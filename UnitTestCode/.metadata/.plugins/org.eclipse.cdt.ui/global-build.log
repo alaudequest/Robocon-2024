@@ -1,0 +1,84 @@
+18:50:58 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "CAN_Bus_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\CAN_Bus_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="CAN_Bus_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: CAN_Bus_Test.elf
+ 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+arm-none-eabi-objdump -h -S  CAN_Bus_Test.elf  > "CAN_Bus_Test.list"
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+Finished building: CAN_Bus_Test.list
+ 
+18:51:15 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "CAN_Bus_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\CAN_Bus_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="CAN_Bus_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: CAN_Bus_Test.elf
+ 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+arm-none-eabi-objdump -h -S  CAN_Bus_Test.elf  > "CAN_Bus_Test.list"
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+Finished building: CAN_Bus_Test.list
+ 
+18:52:42 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+18:53:30 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+18:57:06 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "CAN_Bus_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\CAN_Bus_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="CAN_Bus_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: CAN_Bus_Test.elf
+ 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+arm-none-eabi-objdump -h -S  CAN_Bus_Test.elf  > "CAN_Bus_Test.list"
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+Finished building: CAN_Bus_Test.list
+ 
+19:33:55 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "CAN_Bus_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\CAN_Bus_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="CAN_Bus_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: CAN_Bus_Test.elf
+ 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+arm-none-eabi-objdump -h -S  CAN_Bus_Test.elf  > "CAN_Bus_Test.list"
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+Finished building: CAN_Bus_Test.list
+ 
+20:23:18 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
+20:23:45 **** Incremental Build of configuration Debug for project CAN_Bus_Test ****
+make -j8 all 
+arm-none-eabi-size   CAN_Bus_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+   8192	     20	   1684	   9896	   26a8	CAN_Bus_Test.elf
+Finished building: default.size.stdout
+ 
