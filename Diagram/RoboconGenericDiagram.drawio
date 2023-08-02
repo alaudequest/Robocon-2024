@@ -1,0 +1,128 @@
+<mxfile host="app.diagrams.net" modified="2023-07-30T13:19:08.966Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" etag="sWuvRUz0GT02i1uVP55B" version="21.6.6" type="device">
+  <diagram name="Page-1" id="_jwK-_7LKPGr70GdILth">
+    <mxGraphModel dx="2097" dy="1807" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--2" value="Động cơ bẻ lái DC&lt;br&gt;24V, max 5A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-390" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--3" value="Động cơ chạy BLDC&lt;br&gt;24V, max 12A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-180" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--8" target="S2iHQHUZqmWmzR9-6cO--9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--8" target="S2iHQHUZqmWmzR9-6cO--10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--8" value="Cụm bánh" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--9" value="Động cơ bẻ lái DC&lt;br&gt;24V, max 5A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--10" value="Động cơ chạy BLDC&lt;br&gt;24V, max 12A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--13" target="S2iHQHUZqmWmzR9-6cO--14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--13" target="S2iHQHUZqmWmzR9-6cO--15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--13" value="Cụm bánh" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="510" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--14" value="Động cơ bẻ lái DC&lt;br&gt;24V, max 5A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--15" value="Động cơ chạy BLDC&lt;br&gt;24V, max 12A" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--17" target="S2iHQHUZqmWmzR9-6cO--18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--17" target="S2iHQHUZqmWmzR9-6cO--19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--17" value="Driver lái động cơ" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-270" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--18" target="S2iHQHUZqmWmzR9-6cO--2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="BTS" link="https://www.thegioiic.com/bts7960-module-dieu-khien-dong-co-dc-43a" id="S2iHQHUZqmWmzR9-6cO--18">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="-390" y="530" width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--19" target="S2iHQHUZqmWmzR9-6cO--3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Driver đỏ" link="https://www.thegioiic.com/mach-dieu-khien-dong-co-brushless-with-hall-6-50v-380w" id="S2iHQHUZqmWmzR9-6cO--19">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="-180" y="530" width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--24" target="S2iHQHUZqmWmzR9-6cO--17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--26" value="CAN" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="S2iHQHUZqmWmzR9-6cO--25">
+          <mxGeometry x="0.3203" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--24" target="S2iHQHUZqmWmzR9-6cO--8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--28" value="CAN" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="S2iHQHUZqmWmzR9-6cO--27">
+          <mxGeometry x="-0.0533" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="S2iHQHUZqmWmzR9-6cO--24" target="S2iHQHUZqmWmzR9-6cO--13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--30" value="CAN" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="S2iHQHUZqmWmzR9-6cO--29">
+          <mxGeometry x="0.3346" y="3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="S2iHQHUZqmWmzR9-6cO--24" value="&lt;font style=&quot;font-size: 25px;&quot;&gt;Master&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="100" width="310" height="170" as="geometry" />
+        </mxCell>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;INPUT&lt;br&gt;analog&lt;br&gt;&lt;/font&gt;" id="S2iHQHUZqmWmzR9-6cO--31">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="-430" y="-260" width="200" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;OUTPUT động cơ&lt;br&gt;5&amp;nbsp;&lt;br&gt;&lt;/font&gt;" link="https://www.thegioiic.com/bts7960-module-dieu-khien-dong-co-dc-43a" id="S2iHQHUZqmWmzR9-6cO--32">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="425" y="-260" width="195" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;INPUT&lt;br&gt;8 digital cảm biến&lt;br&gt;&lt;/font&gt;" id="S2iHQHUZqmWmzR9-6cO--33">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="-430" y="-420" width="200" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;INPUT&lt;br&gt;5 encoder&lt;br&gt;&lt;/font&gt;" id="S2iHQHUZqmWmzR9-6cO--34">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="425" y="-420" width="195" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;OUTPUT kích van&amp;nbsp;&lt;/font&gt;" link="https://www.thegioiic.com/bts7960-module-dieu-khien-dong-co-dc-43a" id="S2iHQHUZqmWmzR9-6cO--35">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="20" y="-420" width="200" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;font style=&quot;font-size: 24px;&quot;&gt;2 INPUT&lt;br&gt;đọc van&lt;br&gt;&lt;/font&gt;" id="S2iHQHUZqmWmzR9-6cO--36">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+            <mxGeometry x="20" y="-260" width="200" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
