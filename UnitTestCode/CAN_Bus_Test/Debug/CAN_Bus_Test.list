@@ -29,23 +29,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
  12 .comment      00000043  00000000  00000000  00020035  2**0
                   CONTENTS, READONLY
- 13 .debug_info   000048a8  00000000  00000000  00020078  2**0
+ 13 .debug_info   00004896  00000000  00000000  00020078  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_abbrev 000012ed  00000000  00000000  00024920  2**0
+ 14 .debug_abbrev 000012ed  00000000  00000000  0002490e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_aranges 00000538  00000000  00000000  00025c10  2**3
+ 15 .debug_aranges 00000538  00000000  00000000  00025c00  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_rnglists 000003cc  00000000  00000000  00026148  2**0
+ 16 .debug_rnglists 000003cc  00000000  00000000  00026138  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  00015eeb  00000000  00000000  00026514  2**0
+ 17 .debug_macro  00015eeb  00000000  00000000  00026504  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   00005c08  00000000  00000000  0003c3ff  2**0
+ 18 .debug_line   00005c06  00000000  00000000  0003c3ef  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0007e4b9  00000000  00000000  00042007  2**0
+ 19 .debug_str    0007e4af  00000000  00000000  00041ff5  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .debug_frame  00001398  00000000  00000000  000c04c0  2**2
+ 20 .debug_frame  00001398  00000000  00000000  000c04a4  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000057  00000000  00000000  000c1858  2**0
+ 21 .debug_line_str 00000057  00000000  00000000  000c183c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -79,29 +79,28 @@ Disassembly of section .text:
  8000148:	08001fc4 	.word	0x08001fc4
 
 0800014c <HAL_CAN_RxFifo0MsgPendingCallback>:
-uint8_t txData[8];
-uint8_t rxData[8];
+uint8_t txdata[8] = {0};
+uint8_t rxdata[8] = {0};
 
-uint8_t count = 0;
+uint32_t TxMailBox;
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
  800014c:	b580      	push	{r7, lr}
  800014e:	b082      	sub	sp, #8
  8000150:	af00      	add	r7, sp, #0
  8000152:	6078      	str	r0, [r7, #4]
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxData);
+	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata) == HAL_OK){}
  8000154:	4b04      	ldr	r3, [pc, #16]	; (8000168 <HAL_CAN_RxFifo0MsgPendingCallback+0x1c>)
  8000156:	4a05      	ldr	r2, [pc, #20]	; (800016c <HAL_CAN_RxFifo0MsgPendingCallback+0x20>)
  8000158:	2100      	movs	r1, #0
  800015a:	6878      	ldr	r0, [r7, #4]
  800015c:	f000 fd2d 	bl	8000bba <HAL_CAN_GetRxMessage>
-
 }
  8000160:	bf00      	nop
  8000162:	3708      	adds	r7, #8
  8000164:	46bd      	mov	sp, r7
  8000166:	bd80      	pop	{r7, pc}
- 8000168:	20000090 	.word	0x20000090
+ 8000168:	2000008c 	.word	0x2000008c
  800016c:	20000068 	.word	0x20000068
 
 08000170 <main>:
@@ -118,7 +117,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-   HAL_Init();
+  HAL_Init();
  8000174:	f000 f9e8 	bl	8000548 <HAL_Init>
   /* USER CODE BEGIN Init */
 
@@ -141,6 +140,7 @@ int main(void)
   HAL_CAN_Start(&hcan);
  8000184:	4811      	ldr	r0, [pc, #68]	; (80001cc <main+0x5c>)
  8000186:	f000 fc05 	bl	8000994 <HAL_CAN_Start>
+
   HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
  800018a:	2102      	movs	r1, #2
  800018c:	480f      	ldr	r0, [pc, #60]	; (80001cc <main+0x5c>)
@@ -154,7 +154,7 @@ int main(void)
  8000198:	4b0d      	ldr	r3, [pc, #52]	; (80001d0 <main+0x60>)
  800019a:	2200      	movs	r2, #0
  800019c:	605a      	str	r2, [r3, #4]
-  TxHeader.IDE = CAN_ID_STD ;
+  TxHeader.IDE = CAN_ID_STD;
  800019e:	4b0c      	ldr	r3, [pc, #48]	; (80001d0 <main+0x60>)
  80001a0:	2200      	movs	r2, #0
  80001a2:	609a      	str	r2, [r3, #8]
@@ -171,12 +171,12 @@ int main(void)
  80001b4:	2200      	movs	r2, #0
  80001b6:	751a      	strb	r2, [r3, #20]
 
-  txData[0] = 0xf3;
+  txdata[0] = 0xf3;
  80001b8:	4b06      	ldr	r3, [pc, #24]	; (80001d4 <main+0x64>)
  80001ba:	22f3      	movs	r2, #243	; 0xf3
  80001bc:	701a      	strb	r2, [r3, #0]
 
-  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txData, &txMailBox);
+  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, &TxMailBox);
  80001be:	4b06      	ldr	r3, [pc, #24]	; (80001d8 <main+0x68>)
  80001c0:	4a04      	ldr	r2, [pc, #16]	; (80001d4 <main+0x64>)
  80001c2:	4903      	ldr	r1, [pc, #12]	; (80001d0 <main+0x60>)
@@ -191,8 +191,8 @@ int main(void)
  80001ca:	e7fe      	b.n	80001ca <main+0x5a>
  80001cc:	20000028 	.word	0x20000028
  80001d0:	20000050 	.word	0x20000050
- 80001d4:	20000088 	.word	0x20000088
- 80001d8:	20000084 	.word	0x20000084
+ 80001d4:	20000084 	.word	0x20000084
+ 80001d8:	20000094 	.word	0x20000094
 
 080001dc <SystemClock_Config>:
 /**
@@ -618,8 +618,8 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* hcan)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
  8000416:	2300      	movs	r3, #0
  8000418:	617b      	str	r3, [r7, #20]
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
- 800041a:	2300      	movs	r3, #0
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+ 800041a:	2301      	movs	r3, #1
  800041c:	61bb      	str	r3, [r7, #24]
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
  800041e:	f107 0310 	add.w	r3, r7, #16

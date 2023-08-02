@@ -60,16 +60,13 @@ static void MX_CAN_Init(void);
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
 
-uint32_t txMailBox;
+uint8_t txdata[8] = {0};
+uint8_t rxdata[8] = {0};
 
-uint8_t txData[8];
-uint8_t rxData[8];
-
-uint8_t count = 0;
+uint32_t TxMailBox;
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxData);
-
+	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata) == HAL_OK){}
 }
 
 /* USER CODE END 0 */
@@ -87,7 +84,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-   HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -106,18 +103,19 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_CAN_Start(&hcan);
+
   HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 
   TxHeader.DLC = 1;
   TxHeader.ExtId = 0;
-  TxHeader.IDE = CAN_ID_STD ;
+  TxHeader.IDE = CAN_ID_STD;
   TxHeader.RTR = CAN_RTR_DATA;
   TxHeader.StdId = 0x103;
   TxHeader.TransmitGlobalTime = DISABLE;
 
-  txData[0] = 0xf3;
+  txdata[0] = 0xf3;
 
-  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txData, &txMailBox);
+  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, &TxMailBox);
 
   /* USER CODE END 2 */
 
@@ -203,6 +201,7 @@ static void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
+
 
   CAN_FilterTypeDef canfilterconfig;
 
