@@ -48,18 +48,24 @@ Việc sử dụng bộ lọc CAN giúp giảm tải xử lý của vi điều k
 
         HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig);
 
-FilterActivation: sử dụng bộ lọc hay 
-FilterBank: là tập hợp các thuộc tính bộ lọc được hỗ trợ bởi phần cứng của vi điều khiển cho phép ta cấu hình nhiều bộ lọc CAN để lọc các thông điệp CAN theo nhiều tiêu chí khác. Số lượng FilterBank phụ thuộc vào phần cứng điều khiển. Nó sẽ bao gồm các thông tin như lọc ID nhận vào, thông tin nhận vào, lọc theo hướng (Chỉ truyền hoặc chỉ nhận), lọc theo chiều dài dữ liệu. Chọn số nằm giữa 0 và SlaveStartFilterBank
+FilterActivation: sử dụng bộ lọc hay không.
+
+FilterBank: là tập hợp các thuộc tính bộ lọc được hỗ trợ bởi phần cứng của vi điều khiển cho phép ta cấu hình nhiều bộ lọc CAN để lọc các thông điệp CAN theo nhiều tiêu chí khác. Số lượng FilterBank phụ thuộc vào phần cứng điều khiển. Nó sẽ bao gồm các thông tin như lọc ID nhận vào, thông tin nhận vào, lọc theo hướng (Chỉ truyền hoặc chỉ nhận), lọc theo chiều dài dữ liệu. Chọn số nằm giữa 0 và SlaveStartFilterBank.
+
 FilterFIFOAssignment: lựa chọn FIFO nào để nhận dữ liệu từ CAN Bus (thông thường có 2 kênh FIFO là FIFO0 và FIFO1).
+
 FilterMode: có 2 chế độ lọc: Mask Mode và List Mode.
     Mask Mode: trong chế độ này cần phải xác định Filter ID và Filter Mask. Filter Mask sẽ xác định bit nào trong Filter ID là quan trọng để lọc sau đó nếu ID nhận được khớp với Filter ID thì dữ liệu sẽ được chấp nhận. Ngược lại sẽ bị từ chối. Chế độ này cho phép chúng ta lọc thông tin theo mấu ID hoặc ID cụ thể (Thường được sử dụng nhiều hơn).
     List Mode: chế độ này bạn cần xác định một danh sách các ID mà bộ điều khiển CAN sẽ chấp nhận. Nếu dữ liệu nào có ID khớp với ID trong danh sách sẽ được chấp nhận. 
+
 FilterScale: kích thước của bộ lọc: 
     16 bit: chỉ so sánh 16 bit đầu tiên của Filter ID và Filter Mask với ID đến và những bit còn lại coi như không có nghĩa.
     32 bit: bộ lọc sử dụng toàn bộ 32 bit của Filter ID và Filter Mask để so sánh với ID của dữ liệu truyền đến. 
 FilterIdHigh: là 16 bit đầu tiên của ID lọc. Giá trị được cài đặt ở đây sẽ so sánh với ID của dữ liệu truyền đến. 
     Ở đoạn ví dụ trên ta chỉ muốn so sánh Standard ID thì Standard ID được bắt đầu từ bit thứ 5 của ID High Register nên phải dịch sang trái 5 bit.
+
 FilterMaskIdHigh: là 16 bit đầu tiên của mặt nạ lọc. 
+
 SlaveStartFilterBank: số bộ lọc muốn nhận vào CAN 1(Master CAN). Khi điều khiển với 2 Node đầu cuối ta có thể cấu hình tới 28 thông số lọc. Tuy nhiên chức năng này vô dụng nếu chỉ có 1 điểm đầu (và 1 điểm đầu có thể cấu hình đến 14 bộ lọc từ 0 - 13). 
 
 III. Các tính năng của CAN
