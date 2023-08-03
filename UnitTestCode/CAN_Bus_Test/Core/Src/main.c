@@ -63,7 +63,7 @@ CAN_RxHeaderTypeDef RxHeader;
 uint8_t txdata[8] = {0};
 uint8_t rxdata[8] = {0};
 
-uint32_t TxMailBox;
+uint32_t TxMailBox[3];
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata) == HAL_OK){}
@@ -113,9 +113,19 @@ int main(void)
   TxHeader.StdId = 0x103;
   TxHeader.TransmitGlobalTime = DISABLE;
 
-  txdata[0] = 0xf3;
+  txdata[0] = 0x01;
+  txdata[1] = 0x02;
+  txdata[2] = 0x03;
 
-  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, &TxMailBox);
+  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, &txdata[0], &TxMailBox[0]) != HAL_OK){
+	  Error_Handler();
+  }
+  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, &txdata[1], &TxMailBox[1]) != HAL_OK){
+  	  Error_Handler();
+  }
+  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, &txdata[2], &TxMailBox[2]) != HAL_OK){
+  	  Error_Handler();
+  }
 
   /* USER CODE END 2 */
 

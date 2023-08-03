@@ -42,7 +42,7 @@ Một số bộ lọc có thể được cấu hình để xử lý một số �
 
 Việc sử dụng bộ lọc CAN giúp giảm tải xử lý của vi điều khiển bằng cách chỉ xử lý các thông điệp quan trọng và loại bỏ những thông điệp không liên quan, đồng thời giúp tránh xảy ra lỗi khi nhận nhầm thông điệp từ các thiết bị không mong muốn trên mạng CAN.
 
-### Thuộc tính cài đặt trong truct canfilterconfig 
+### Thuộc tính cài đặt trong struct canfilterconfig 
 
 ```
         CAN_FilterTypeDef canfilterconfig;
@@ -93,3 +93,16 @@ Việc sử dụng bộ lọc CAN giúp giảm tải xử lý của vi điều k
 ### Normal mode
 
 ## Truyền Nhận dữ liệu
+
+### Cấu hình CubeMX
+
+![Alt text](image-4.png)
+
+![Alt text](image-5.png)
+
+![Alt text](image-6.png)
+
+![Alt text](image-7.png)
+
+```
+Time quantum = APP1 / 
