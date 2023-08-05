@@ -85,12 +85,24 @@ Việc sử dụng bộ lọc CAN giúp giảm tải xử lý của vi điều k
 
 **SlaveStartFilterBank**: số bộ lọc muốn nhận vào CAN 1(Master CAN). Khi điều khiển với 2 Node đầu cuối ta có thể cấu hình tới 28 thông số lọc. Tuy nhiên chức năng này vô dụng nếu chỉ có 1 điểm đầu (và 1 điểm đầu có thể cấu hình đến 14 bộ lọc từ 0 - 13). 
 
-## Các tính năng của CAN
+## Các công cụ kiểm tra và sửa lỗi được hỗ trợ trong vi điều khiển
 ### Loopback mode
 
-Đây là chức năng hữu dụng của CAN khi cho phép ta gửi thông tin và đồng thời nhận lại chính cái thông tin vừa gửi đi trên đường dây đó. Loopback mode thường được dùng cho mục đích kiểm tra và sửa lỗi khi cho phép các node xác nhận sự chuẩn xác của thông tin vừa gửi đi mà không cần phải kết nối thêm bất kì node nào nữa.
+![Alt text](image-9.png)
 
-### Normal mode
+Đây là chức năng hữu dụng của CAN khi cho phép ta gửi thông tin và đồng thời nhận lại chính cái thông tin vừa gửi đi. Tuy nhiên, khi ở chế độ này, vi điều khiển sẽ chặn hết tất cả các thông tin truyền từ bên ngoài vào vi điều khiển. `Loopback mode` thường được dùng cho mục đích kiểm tra và sửa lỗi khi cho phép các node xác nhận sự chuẩn xác của thông tin vừa gửi đi.
+
+### Silent mode
+
+![Alt text](image-8.png)
+
+Trái ngược với `Loopback mode` thì `Silent mode` sẽ cho phép chúng ta nhận thông tin từ bên ngoài và thông tin gửi đi cũng sẽ được trả ngược về vi điều khiển. Và ở chế độ này thông tin sẽ không được gửi xuống CANH và CANL. `Silent mode` chuyên dùng cho việc kiểm tra thông tin trên đường dây.
+
+### Silent + Loopback mode
+
+![Alt text](image-10.png)
+
+Khi ở chế độ này ta sẽ tổng hợp được tất cả tính năng của `Silent mode` và `Loopback mode` đều chặn hết thông tin truyền đi và nhận về từ CANH và CANL. Khi ở chế độ này thì ta sẽ truyền và nhận thông tin trên chính vi điều khiển của mình mà không phải nối thêm module chuyển đổi CAN.
 
 ## Truyền Nhận dữ liệu
 
