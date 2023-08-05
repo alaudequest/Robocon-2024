@@ -4,6 +4,8 @@
 
 ![Alt text](image-1.png)
 
+![Alt text](image-11.png)
+
 **SOF(Start of Frame)**: bit mở đầu dữ liệu. (1 bit)
 
 **Identifier**: ID của thiết bị truyền dữ liệu. (11 bit)
