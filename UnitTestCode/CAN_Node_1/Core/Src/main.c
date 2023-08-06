@@ -41,23 +41,46 @@
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan;
+
+/* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
-/* USER CODE BEGIN PV */
 
+uint32_t TxMailBox[3];
+uint8_t txdata[8];
+uint8_t rxdata[8];
+uint8_t mbxZeroComplete = 0;
+uint8_t mbxOneComplete = 0;
+uint8_t mbxTwoComplete = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN_Init(void);
-static void CAN_Filter_Config(void);
 /* USER CODE BEGIN PFP */
-
+static void CAN_Filter_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	mbxZeroComplete = 1;
+}
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	mbxOneComplete = 1;
+}
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
+{
+	mbxTwoComplete = 1;
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata);
+	HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
 
 /* USER CODE END 0 */
 
@@ -91,13 +114,46 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
+  //Filter Config
+  HAL_CAN_Start(&hcan);
   CAN_Filter_Config();
+
+  //Start receive for CAN with IT
+  if(HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK){
+	  Error_Handler();
+  }
+
+  //Set transmit parameters
+  TxHeader.DLC = 2;
+  TxHeader.IDE = CAN_ID_STD;
+  TxHeader.ExtId = 0;
+  TxHeader.RTR = CAN_RTR_DATA;
+  TxHeader.StdId = 0x123;
+  TxHeader.TransmitGlobalTime = DISABLE;
+
+  txdata[0] = 0x01;
+  txdata[1] = 0x02;
+  txdata[2] = 0x03;
+  txdata[3] = 0x04;
+  txdata[4] = 0x05;
+  txdata[5] = 0x06;
+  txdata[6] = 0x07;
+  txdata[7] = 0x08;
+  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if(mbxOneComplete || mbxTwoComplete || mbxZeroComplete)
+	  {
+		  mbxOneComplete = 0;
+		  mbxTwoComplete = 0;
+		  mbxZeroComplete = 0;
+		  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox);
+		  HAL_Delay(200);
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -160,10 +216,10 @@ static void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 16;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
+  hcan.Init.Prescaler = 18;
+  hcan.Init.Mode = CAN_MODE_LOOPBACK;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
@@ -196,7 +252,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
@@ -221,15 +276,17 @@ static void CAN_Filter_Config(void)
 	canfilterconfig.FilterBank = 0;
 	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
 	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	canfilterconfig.FilterIdHigh = 0x0000<<5;
+	canfilterconfig.FilterIdHigh = 0x0000;
 	canfilterconfig.FilterIdLow = 0x0000;
-	canfilterconfig.FilterMaskIdHigh = 0x0000<<5;
+	canfilterconfig.FilterMaskIdHigh = 0x0000;
 	canfilterconfig.FilterMaskIdLow = 0x0000;
 	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
 
 	HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
 }
+
+
 /* USER CODE END 4 */
 
 /**
