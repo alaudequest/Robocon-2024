@@ -110,13 +110,14 @@ Khi ở chế độ này ta sẽ tổng hợp được tất cả tính năng c�
 
 ### Cấu hình CubeMX
 
+![Alt text](image-12.png)
+
 ![Alt text](image-4.png)
-
-![Alt text](image-5.png)
-
-![Alt text](image-6.png)
 
 ![Alt text](image-7.png)
 
-```
-Time quantum = APP1 / 
+![Alt text](image-5.png)
+
+### Cấu hình dữ liệu truyền đi 
+
+Đầu tiên chúng ta cần tạo các biến  
