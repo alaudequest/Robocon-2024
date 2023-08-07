@@ -43,13 +43,12 @@
 CAN_HandleTypeDef hcan;
 
 /* USER CODE BEGIN PV */
-CAN_FilterTypeDef canfilterconfig;
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
-uint32_t TxMailBox;
-uint8_t txdata[8];
-uint8_t rxdata[8];
-uint8_t state = 0;
+uint32_t TxMailBox[3];
+uint8_t txdata[8] = {0};
+uint8_t rxdata[8] = {0};
+uint8_t a = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,13 +61,27 @@ static void MX_CAN_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata);
-	if(RxHeader.DLC ==2){
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		state = 1;
-	}
-}
+//void CAN_FILTER(){
+//	CAN_FilterTypeDef canfilterconfig;
+//
+//	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
+//	canfilterconfig.FilterBank = 0;
+//	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+//	canfilterconfig.FilterIdHigh = 0x0000;
+//	canfilterconfig.FilterIdLow = 0x0000;
+//	canfilterconfig.FilterMaskIdHigh = 0x0000;
+//	canfilterconfig.FilterMaskIdLow = 0x0000;
+//	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
+//	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
+//	canfilterconfig.SlaveStartFilterBank = 13;
+//
+//	HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
+//}
+//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+//	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata);
+//	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//	a = 1;
+//}
 /* USER CODE END 0 */
 
 /**
@@ -102,39 +115,35 @@ int main(void)
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan);
+//  CAN_FILTER();
+//  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-  canfilterconfig.FilterBank = 0;
-  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  canfilterconfig.FilterIdHigh = 0x0000;
-  canfilterconfig.FilterIdLow = 0x0000;
-  canfilterconfig.FilterMaskIdHigh = 0x0000;
-  canfilterconfig.FilterMaskIdLow = 0x0000;
-  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-  canfilterconfig.SlaveStartFilterBank = 14;
-
-  HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
-
-  TxHeader.DLC = 2;
+  TxHeader.DLC = 8;
   TxHeader.IDE = CAN_ID_STD;
   TxHeader.RTR = CAN_RTR_DATA;
   TxHeader.StdId = 0x123;
-
-  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+  TxHeader.ExtId = 0;
+  TxHeader.TransmitGlobalTime = DISABLE;
 
   txdata[0] = 0x01;
-  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, &TxMailBox);
+  txdata[1] = 0x02;
+  txdata[2] = 0x03;
+  txdata[3] = 0x04;
+  txdata[4] = 0x05;
+  txdata[5] = 0x06;
+  txdata[6] = 0x07;
+  txdata[7] = 0x08;
+
+  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(state){
-	  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, &TxMailBox);
-	  state = 0;
-	  }
+		  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox);
+		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -197,10 +206,10 @@ static void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan.Init.Prescaler = 16;
+  hcan.Init.Mode = CAN_MODE_SILENT;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
@@ -235,7 +244,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;

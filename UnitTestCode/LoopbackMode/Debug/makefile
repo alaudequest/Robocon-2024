@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := LoopbackMode
+BUILD_ARTIFACT_NAME := LoopBackMode
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-LoopbackMode.elf \
+LoopBackMode.elf \
 
 MAP_FILES += \
-LoopbackMode.map \
+LoopBackMode.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-LoopbackMode.list \
+LoopBackMode.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: LoopbackMode.elf secondary-outputs
+main-build: LoopBackMode.elf secondary-outputs
 
 # Tool invocations
-LoopbackMode.elf LoopbackMode.map: $(OBJS) $(USER_OBJS) D:\Robocon2024\UnitTestCode\LoopbackMode\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LoopbackMode.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\LoopbackMode\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LoopbackMode.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LoopBackMode.elf LoopBackMode.map: $(OBJS) $(USER_OBJS) D:\Robocon2024\UnitTestCode\LoopBackMode\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LoopBackMode.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\LoopBackMode\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LoopBackMode.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-LoopbackMode.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LoopbackMode.list"
+LoopBackMode.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LoopBackMode.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) LoopbackMode.elf LoopbackMode.list LoopbackMode.map default.size.stdout
+	-$(RM) LoopBackMode.elf LoopBackMode.list LoopBackMode.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
