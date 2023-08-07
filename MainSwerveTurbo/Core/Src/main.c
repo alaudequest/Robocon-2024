@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +41,7 @@
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
@@ -51,6 +52,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_UART4_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -58,55 +60,367 @@ static void MX_UART4_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+uint8_t TxBuf[21];
 
-uint8_t Testarr[10];
-uint8_t Modetest = 3;
-float ftest = -100.2252;
-float ftest2 = 0;
-
-float ftestSlave;
-float ftestSlave2;
-uint8_t modeSlave ;
-uint8_t *pByte = NULL;
-void Splitfloat(uint8_t Mode,float Ftest,float Ftest2)
+void ControlDriver(uint8_t ID1,uint8_t MODE1,float BLDCSpeed1,float DCPos1,uint8_t ID2,uint8_t MODE2,float BLDCSpeed2,float DCPos2)
 {
-	pByte = &Mode;
-	Testarr[0]=pByte[0];
-	pByte = &Ftest;
-	for(uint8_t i=1;i<5;i++){
-		Testarr[i]=pByte[i-1];
+	uint8_t *pByte = NULL;
+	pByte = &ID1;
+	TxBuf[0]=pByte[0];
+	pByte = &MODE1;
+	TxBuf[1]=pByte[0];
+	pByte = &BLDCSpeed1;
+	for(uint8_t i=2;i<6;i++){
+		TxBuf[i]=pByte[i-2];
 	}
-	pByte = &Ftest2;
-	for(uint8_t i=5;i<9;i++){
-		Testarr[i]=pByte[i-5];
+	pByte = &DCPos1;
+	for(uint8_t i=6;i<10;i++){
+		TxBuf[i]=pByte[i-6];
 	}
-	Testarr[9] = 13;
+	pByte = &ID2;
+	TxBuf[10]=pByte[0];
+	pByte = &MODE2;
+	TxBuf[11]=pByte[0];
+	pByte = &BLDCSpeed2;
+	for(uint8_t i=12;i<16;i++){
+		TxBuf[i]=pByte[i-12];
+	}
+	pByte = &DCPos2;
+	for(uint8_t i=16;i<20;i++){
+		TxBuf[i]=pByte[i-16];
+	}
+	TxBuf[20] = 13;
 
-	HAL_UART_Transmit(&huart1, (uint8_t *)Testarr,sizeof(Testarr), 1000);
+	HAL_UART_Transmit(&huart1, (uint8_t *)TxBuf,sizeof(TxBuf), 1000);
 
 }
 
-void MergeByteToFloat(uint8_t* dataArray){
+
+uint8_t ID1,Mode1,ID2,Mode2;
+float BL1,BL2,DC1,DC2;
+void SolveMainTask(uint8_t* dataArray){
 	uint8_t *pFloat=NULL;
-	pFloat = &modeSlave;
+	pFloat = &ID1;
 	*(pFloat)=dataArray[0];
-	pFloat = &ftestSlave;
-	for(uint8_t i = 1; i < 5;i++)
+	pFloat = &Mode1;
+	*(pFloat)=dataArray[1];
+	pFloat = &BL1;
+	for(uint8_t i = 2; i < 6;i++)
 	{
-		*(pFloat+i-1)=dataArray[i];
+		*(pFloat+i-2)=dataArray[i];
 	}
-	pFloat = &ftestSlave2;
-	for(uint8_t i = 5; i < 9;i++)
+	pFloat = &DC1;
+	for(uint8_t i = 6; i < 10;i++)
 	{
-		*(pFloat+i-5)=dataArray[i];
+		*(pFloat+i-6)=dataArray[i];
+	}
+	pFloat = &ID2;
+	*(pFloat)=dataArray[10];
+	pFloat = &Mode2;
+	*(pFloat)=dataArray[11];
+	pFloat = &BL2;
+	for(uint8_t i = 12; i < 16;i++)
+	{
+		*(pFloat+i-12)=dataArray[i];
+	}
+	pFloat = &DC2;
+	for(uint8_t i = 16; i < 20;i++)
+	{
+		*(pFloat+i-16)=dataArray[i];
+	}
+
+}
+
+typedef struct{
+	uint8_t Status;
+
+	uint8_t XLeft;
+	uint8_t YLeft;
+
+	uint8_t XRight;
+	uint8_t YRight;
+
+	uint8_t Left;
+	uint8_t Up;
+	uint8_t Right;
+	uint8_t Down;
+
+	uint8_t Square;
+	uint8_t Triangle;
+	uint8_t Circle;
+	uint8_t Cross;
+
+	uint8_t L1;
+	uint8_t L2;
+	uint8_t L3;
+
+	uint8_t R1;
+	uint8_t R2;
+	uint8_t R3;
+
+	uint8_t Touch;
+
+	uint8_t Charge;
+	uint8_t Battery;
+} _GamePad;
+
+_GamePad GamePad;
+
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+
+float Xleft,Yleft;
+float Xright;
+
+float SpeedOutPut,PosOutPut;
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+
+	if(huart->Instance == USART3){
+		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+		int ViTriData = -1;
+		for(int i = 0; i <= 8; ++i){
+			if(UARTRX3_Buffer[i] == 0xAA){
+				ViTriData = i;
+			}
+		}
+		if(ViTriData != -1){
+			int cnt = 0;
+			while(cnt < 9){
+				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
+				++ViTriData;
+				if(ViTriData == 9){
+					ViTriData = 0;
+				}
+				++cnt;
+			}
+			GamePad.Status = 1;
+
+			GamePad.XLeft = DataTayGame[1];
+			GamePad.YLeft = DataTayGame[2];
+
+			GamePad.XRight = DataTayGame[3];
+			GamePad.YRight = DataTayGame[4];
+
+			GamePad.Left = (DataTayGame[5] >> 7) & 1;
+			GamePad.Up = (DataTayGame[5] >> 6) & 1;
+			GamePad.Right = (DataTayGame[5] >> 5) & 1;
+			GamePad.Down = (DataTayGame[5] >> 4) & 1;
+
+			GamePad.Square = (DataTayGame[5] >> 3) & 1;
+			GamePad.Triangle = (DataTayGame[5] >> 2) & 1;
+			GamePad.Circle = (DataTayGame[5] >> 1) & 1;
+			GamePad.Cross = DataTayGame[5] & 1;
+
+			GamePad.L1 = (DataTayGame[6] >> 7) & 1;
+			GamePad.L2 = (DataTayGame[6] >> 6) & 1;
+			GamePad.R1 = (DataTayGame[6] >> 5) & 1;
+			GamePad.R2 = (DataTayGame[6] >> 4) & 1;
+
+			GamePad.Touch = (DataTayGame[6] >> 3) & 1;
+			GamePad.Charge = (DataTayGame[6] >> 2) & 1;
+
+			GamePad.L3 = (DataTayGame[6] >> 1) & 1;
+			GamePad.R3 = DataTayGame[6] & 1;
+
+			GamePad.Battery = DataTayGame[7];
+
+			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
+			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
+			  Xright =((GamePad.XRight-125)/10)*30/12;
+
+//			  SpeedOutPut = (sqrt((pow(Xleft,2)+pow(Yleft,2))))*10/12;
+//			  PosOutPut = atan2(Xleft,Yleft)*180/M_PI;
+		}
+		else{
+			GamePad.Status = 0;
+		}
 	}
 }
 
-uint8_t SlaveBuff[10];
-uint8_t buff2[10];
-int i;
-/* USER CODE END 0 */
 
+#define robot_Lenght 0.3
+#define robot_WheelR 0.09
+
+float wheel_Vel_X1,wheel_Vel_Y1,wheel_Angle1,wheel_AngleVel1;
+float wheel_Vel_X2,wheel_Vel_Y2,wheel_Angle2,wheel_AngleVel2;
+
+int8_t quadrantCheck(float X, float Y)
+{
+	if ((X>0)&&(Y>=0))return 1;
+	else if ((X>0)&&(Y<=0))return 4;
+	else if ((X<0)&&(Y<=0))return 3;
+	else if ((X<0)&&(Y>=0))return 2;
+	else if ((X==0)&&(Y>0))return -1;
+	else if ((X==0)&&(Y<0))return -2;
+	else return 0;
+}
+
+float u,v,rad,c;
+	int Direc = 1;
+void InverseKinematic(float u,float v ,float r)
+{
+	//Từ ma trận động học nghịch vận tốc ta suy được
+	wheel_Vel_X1 = u;
+	wheel_Vel_Y1 = v+robot_Lenght*r;
+
+	wheel_Vel_X2 = u;
+	wheel_Vel_Y2 = v-robot_Lenght*r;
+
+	//Góc phần tư thứ nhất với bánh 1 :
+
+	if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 0)
+	{
+		Direc = 0;
+		wheel_Angle1 = 0;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == -1)
+	{
+		wheel_Angle1 = 90;
+		Direc = 1;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == -2)
+	{
+		wheel_Angle1 = 90;
+		Direc = -1;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 1)
+	{
+		Direc = 1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 2)
+	{
+		Direc = -1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 3)
+	{
+		Direc = -1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 4)
+	{
+		Direc = 1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+	}
+
+	wheel_AngleVel1 = Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)));
+
+	if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 0)
+	{
+		Direc = 0;
+		wheel_Angle2 = 0;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == -1)
+	{
+		wheel_Angle2 = 90;
+		Direc = 1;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == -2)
+	{
+		wheel_Angle2 = 90;
+		Direc = -1;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 1)
+	{
+		Direc = 1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 2)
+	{
+		Direc = -1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 3)
+	{
+		Direc = -1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 4)
+	{
+		Direc = 1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+	}
+
+	wheel_AngleVel2 = -Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)));
+
+}
+
+
+void InverseKine(float u,float v ,float r)
+{
+	//Từ ma trận động học nghịch vận tốc ta suy được
+	wheel_Vel_X1 = v;
+	wheel_Vel_Y1 = u-robot_Lenght*r;
+
+	wheel_Vel_X2 = v;
+	wheel_Vel_Y2 = u+robot_Lenght*r;
+
+	switch (quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1))
+	{
+	case 1:
+		Direc = 1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+		break;
+	case 2:
+		Direc = -1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+		break;
+	case 3:
+		Direc = -1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+		break;
+	case 4:
+		Direc = 1;
+		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+		break;
+	case -1:
+		Direc = 1;
+		wheel_Angle1 = 90;
+		break;
+	case -2:
+		Direc = -1;
+		wheel_Angle1 = 90;
+		break;
+	default:
+		Direc = 0;
+		wheel_Angle1=0;
+		break;
+	}
+
+	wheel_AngleVel1 = Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+
+	switch (quadrantCheck(wheel_Vel_X2, wheel_Vel_Y2))
+	{
+	case 1:
+		Direc = 1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+		break;
+	case 2:
+		Direc = -1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+		break;
+	case 3:
+		Direc = -1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+		break;
+	case 4:
+		Direc = 1;
+		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+		break;
+	case -1:
+		Direc = 1;
+		wheel_Angle2 = 90;
+		break;
+	case -2:
+		Direc = -1;
+		wheel_Angle2 = 90;
+		break;
+	default:
+		Direc = 0;
+		wheel_Angle2=0;
+		break;
+	}
+
+	wheel_AngleVel2 = -Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+
+
+
+}
+
+/* USER CODE END 0 */
+#define Speed 20
+
+int Angle;
 /**
   * @brief  The application entry point.
   * @retval int
@@ -137,35 +451,76 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_UART4_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 //  ControlDriver(1,10,11);
-  Splitfloat(Modetest,ftest,ftest2);
-  MergeByteToFloat(Testarr);
+//  ControlDriver(1,1,100,90,2,1,-100,95);
+//  SolveMainTask(TxBuf);
+
+  HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_Delay(1000);
-  uint8_t Flag = 1;
-  //uint8_t data[] = "hello";
-  //HAL_UART_Transmit(&huart1, (uint8_t *)data,sizeof(data), 1000);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  Splitfloat(Modetest,ftest,ftest2);
-	  HAL_Delay(80);
-	  Modetest++;
-	  if(Modetest>10)Modetest=0;
-	  if(ftest2>90)Flag = -1;
-	  if(ftest2<0)Flag = 1;
+	  //ControlDriver(1,1,SpeedOutPut,PosOutPut,2,1,0-SpeedOutPut,PosOutPut);
 
-	  if(Flag == 1)
+	  HAL_Delay(10);
+	 // Splitfloat(Modetest,ftest,ftest2);
+
+//	  if((GamePad.Left == 1)||(GamePad.L2 == 1))
+//	  {
+//		  v = -1;
+//	  }
+//	  else if((GamePad.Right == 1)||(GamePad.R2 == 1))
+//	  {
+//		  v = 1;
+//	  }
+//	  else
+//	  {
+//		  v = 0;
+//	  }
+//
+//	  if((GamePad.Up == 1))
+//	  {
+//		  u = 1;
+//	  }
+//	  else if((GamePad.Down == 1))
+//	  {
+//		  u = -1;
+//	  }
+//	  else
+//	  {
+//		  u = 0;
+//	  }
+//
+//	  if (GamePad.Square == 1){
+//		  r = 90;
+//	  }else if(GamePad.Circle == 1)
+//	  {
+//		  r = -90;
+//	  }else r = 0;
+
+	  if (GamePad.Touch == 1)
 	  {
-		  ftest2 += 5;
+		  ControlDriver(1,2,0,0,2,2,0,0);
 	  }
-	  else
-	  {
-		  ftest2 -= 5;
+	  else {
+	  rad = Angle*M_PI/180;
+	  	  InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
+	  	  ControlDriver(1,1,wheel_AngleVel1,wheel_Angle1,2,1,wheel_AngleVel2,wheel_Angle2);
+
 	  }
+
+
+
+
+
+    /* USER CODE END WHILE */
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -279,17 +634,67 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin : PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
