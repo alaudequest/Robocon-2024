@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <math.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -257,84 +258,59 @@ int8_t quadrantCheck(float X, float Y)
 }
 
 float u,v,rad,c;
-	int Direc = 1;
-void InverseKinematic(float u,float v ,float r)
+
+int Direc = 1;
+float CurrentAngle,DeltaAngle,OutPutAngle,TestAngle;
+float PreAngle;
+
+typedef struct Optimizer{
+	int Direc;
+	float CurrentAngle;
+	float DeltaAngle;
+	float OutPutAngle;
+	float TestAngle;
+	float PreAngle;
+}Optimizer;
+
+Optimizer Swerve1;
+Optimizer Swerve2;
+void OptimizeAngle (Optimizer *Swerve,float InPut)
 {
-	//Từ ma trận động học nghịch vận tốc ta suy được
-	wheel_Vel_X1 = u;
-	wheel_Vel_Y1 = v+robot_Lenght*r;
+	if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
+	else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
+	Swerve->DeltaAngle = InPut-Swerve->CurrentAngle ;
 
-	wheel_Vel_X2 = u;
-	wheel_Vel_Y2 = v-robot_Lenght*r;
-
-	//Góc phần tư thứ nhất với bánh 1 :
-
-	if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 0)
+	if (Swerve->DeltaAngle >180)
+		{
+		Swerve->DeltaAngle-=360;
+		Swerve->Direc*=-1;
+		}
+	else if (Swerve->DeltaAngle <-180)
 	{
-		Direc = 0;
-		wheel_Angle1 = 0;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == -1)
-	{
-		wheel_Angle1 = 90;
-		Direc = 1;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == -2)
-	{
-		wheel_Angle1 = 90;
-		Direc = -1;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 1)
-	{
-		Direc = 1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 2)
-	{
-		Direc = -1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 3)
-	{
-		Direc = -1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1) == 4)
-	{
-		Direc = 1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+		Swerve->DeltaAngle+=360;
+		Swerve->Direc*=-1;
 	}
 
-	wheel_AngleVel1 = Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)));
-
-	if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 0)
+	if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
+		{
+			Swerve->DeltaAngle=Swerve->DeltaAngle;
+		}
+	else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<180))
 	{
-		Direc = 0;
-		wheel_Angle2 = 0;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == -1)
+		Swerve->DeltaAngle += -180;
+	}
+	else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>-180))
 	{
-		wheel_Angle2 = 90;
-		Direc = 1;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == -2)
+		Swerve->DeltaAngle += 180;
+	}else
 	{
-		wheel_Angle2 = 90;
-		Direc = -1;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 1)
-	{
-		Direc = 1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 2)
-	{
-		Direc = -1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 3)
-	{
-		Direc = -1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-	}else if (quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2) == 4)
-	{
-		Direc = 1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+		Swerve->DeltaAngle = 0;
+		Swerve->Direc*=-1;
 	}
 
-	wheel_AngleVel2 = -Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)));
-
+	Swerve->OutPutAngle += Swerve->DeltaAngle;
+	Swerve->CurrentAngle += Swerve->DeltaAngle;
 }
-
 
 void InverseKine(float u,float v ,float r)
 {
@@ -345,72 +321,86 @@ void InverseKine(float u,float v ,float r)
 	wheel_Vel_X2 = v;
 	wheel_Vel_Y2 = u+robot_Lenght*r;
 
-	switch (quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1))
-	{
-	case 1:
-		Direc = 1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-		break;
-	case 2:
-		Direc = -1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-		break;
-	case 3:
-		Direc = -1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-		break;
-	case 4:
-		Direc = 1;
-		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-		break;
-	case -1:
-		Direc = 1;
-		wheel_Angle1 = 90;
-		break;
-	case -2:
-		Direc = -1;
-		wheel_Angle1 = 90;
-		break;
-	default:
-		Direc = 0;
-		wheel_Angle1=0;
-		break;
-	}
+//	switch (quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1))
+//	{
+//	case 1:
+//		Direc = 1;
+//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+//		break;
+//	case 2:
+//		Direc = -1;
+//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+//		break;
+//	case 3:
+//		Direc = -1;
+//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+//		break;
+//	case 4:
+//		Direc = 1;
+//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
+//		break;
+//	case -1:
+//		Direc = 1;
+//		wheel_Angle1 = 90;
+//		break;
+//	case -2:
+//		Direc = -1;
+//		wheel_Angle1 = 90;
+//		break;
+//	default:
+//		Direc = 0;
+//		wheel_Angle1=0;
+//		break;
+//	}
+
+//	prevState = quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1);
+
+
+//	switch (quadrantCheck(wheel_Vel_X2, wheel_Vel_Y2))
+//	{
+//	case 1:
+//		Direc = 1;
+//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	case 2:
+//		Direc = -1;
+//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	case 3:
+//		Direc = -1;
+//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	case 4:
+//		Direc = 1;
+//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	case -1:
+//		Direc = 1;
+//		wheel_Angle2 = 90;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	case -2:
+//		Direc = -1;
+//		wheel_Angle2 = 90;
+//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+//		break;
+//	default:
+//		Direc = 0;
+//		wheel_Angle2=0;
+//
+//		break;
+//	}
+//	//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+
+
+	OptimizeAngle(&Swerve1,TestAngle);
+	OptimizeAngle(&Swerve2,TestAngle);
 
 	wheel_AngleVel1 = Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
-
-	switch (quadrantCheck(wheel_Vel_X2, wheel_Vel_Y2))
-	{
-	case 1:
-		Direc = 1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-		break;
-	case 2:
-		Direc = -1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-		break;
-	case 3:
-		Direc = -1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-		break;
-	case 4:
-		Direc = 1;
-		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-		break;
-	case -1:
-		Direc = 1;
-		wheel_Angle2 = 90;
-		break;
-	case -2:
-		Direc = -1;
-		wheel_Angle2 = 90;
-		break;
-	default:
-		Direc = 0;
-		wheel_Angle2=0;
-		break;
-	}
-
 	wheel_AngleVel2 = -Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
 
 

@@ -41,3 +41,11 @@ wheel_Angle1
 wheel_Angle2
 wheel_AngleVel1
 wheel_AngleVel2
+GamePad.Touch
+showAngle
+AngleSolve
+angleTest
+Angle1
+Angle2
+PreAngle
+AngleFactor
