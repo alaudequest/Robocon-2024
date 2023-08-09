@@ -2766,7 +2766,7 @@
     (uuid fe94e873-eeca-4b15-b956-2e11b1da820c)
   )
 
-  (rectangle (start 18.415 76.835) (end 102.235 186.055)
+  (rectangle (start 18.415 76.835) (end 102.235 142.24)
     (stroke (width 0) (type default))
     (fill (type none))
     (uuid 39715e34-5ccf-4f0c-b036-f05c20e43c75)
@@ -2830,7 +2830,7 @@
     (effects (font (size 3 3) (thickness 2) bold) (justify left bottom))
     (uuid ca5395de-5e4f-411c-8f8d-16cb71c55aab)
   )
-  (text "Isolation" (at 45.085 184.785 0)
+  (text "Isolation" (at 44.45 137.795 0)
     (effects (font (size 5 5) (thickness 2) bold) (justify left bottom))
     (uuid f85df24c-e161-407a-8d1b-ac7ed49c72f8)
   )
