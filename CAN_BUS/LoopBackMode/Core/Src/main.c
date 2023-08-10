@@ -179,6 +179,7 @@ int main(void)
   TxHeader.DLC = 8;
   TxHeader.IDE = CAN_ID_STD;
   TxHeader.RTR = CAN_RTR_DATA;
+  TxHeader.StdId = 0x123;
   TxHeader.ExtId = 0;
   TxHeader.TransmitGlobalTime = DISABLE;
 
