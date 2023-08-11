@@ -43,27 +43,44 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan;
 
-UART_HandleTypeDef huart1;
-
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailBox[3];
+uint8_t txdata[8] = {0};
 uint8_t rxdata[8] = {0};
-uint8_t a = 0;
+uint8_t rspeed[4] = {0};
+uint8_t rpos[4] = {0};
+float speed = 0;
+float pos = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void Float2Byte(uint8_t* pByte, float speed, float position){
+	uint8_t tpos[4] = {0};
+	memcpy(pByte,(char*)(&speed), 4);
+	memcpy(tpos,(char*)(&position), 4);
+	strcat((char*)pByte,(char*)tpos);
+}
+void Byte2Float(uint8_t* pByte){
+	uint8_t *pfspeed = NULL;
+	uint8_t *pfpos = NULL;
+	pfspeed = &speed;
+	pfpos = &pos;
+	for(uint8_t i = 0; i < 4; i++){
+		*(pfspeed + i) = pByte[i];
+		*(pfpos + i) = pByte[i+4];
+	}
+}
 void CAN_FILTER(){
 	CAN_FilterTypeDef canfilterconfig;
 
@@ -83,59 +100,7 @@ void CAN_FILTER(){
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata);
 	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	a = 1;
-}
-/** @brief  This function use for transmitted ASCII code.
-  * @param  hcan pointer to an CAN_HandleTypeDef structure that contains
-  *         the configuration information for the specified CAN.
-  * @param  data array containing the payload of the Tx frame.
-  * @param  ID of the message that will be transmitted.
-  *  		This parameter must be a number between Min_Data = 0 and Max_Data = 0x7FF.
-  */
-void CAN_Transmit(CAN_HandleTypeDef *hcan, uint8_t data[], uint32_t ID){
-	uint8_t tdata[8];
-	TxHeader.StdId = ID;
-	if(strlen((char*)data) <= 8){
-		strcpy((char*)tdata,(char*)data);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[0]);
-		memset((char*)tdata,0,8);
-	}else if(strlen((char*)data) <= 16){
-		strncpy((char*)tdata,(char*)data,8);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[0]);
-		memset((char*)tdata,0,8);
-		for(int i = 0; i < 8; i++)
-			data[i] = data[i+8];
-		strncpy((char*)tdata,(char*)data,8);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[1]);
-		memset((char*)tdata,0,8);
-	}else if(strlen((char*)data) <= 24){
-		strncpy((char*)tdata,(char*)data,8);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[0]);
-		memset((char*)tdata,0,8);
-		for(int i = 0; i < 8; i++)
-			data[i] = data[i+8];
-		strncpy((char*)tdata,(char*)data,8);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[1]);
-		memset((char*)tdata,0,8);
-		for(int i = 0; i < 8; i++)
-			data[i] = data[i+16];
-		strncpy((char*)tdata,(char*)data,8);
-		HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, &TxMailBox[2]);
-		memset((char*)tdata,0,8);
-	}else{
-		uint8_t count = 0;
-		uint8_t n = 0;
-		count = (uint8_t)(strlen((char*)data)/8) + 1;
-		while(count > 0){
-			for(int i = 0; i < 8; i++)
-				data[i] = data[i + 8*n];
-			strncpy((char*)tdata,(char*)data,8);
-			HAL_CAN_AddTxMessage(hcan, &TxHeader, tdata, TxMailBox);
-			memset((char*)tdata,0,8);
-			n++;
-			count--;
-		}
-	}
+	Byte2Float(rxdata);
 }
 
 
@@ -170,7 +135,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan);
   CAN_FILTER();
@@ -183,16 +147,17 @@ int main(void)
   TxHeader.ExtId = 0;
   TxHeader.TransmitGlobalTime = DISABLE;
 
-  char* send = "Nguyen Nam Huy 21151244 28/11/2003";
-  CAN_Transmit(&hcan, (uint8_t *)send, 0x123);
+  Float2Byte(txdata, 255.15, 90.15);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		  HAL_Delay(500);
+	  HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox);
+	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -255,8 +220,8 @@ static void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 16;
-  hcan.Init.Mode = CAN_MODE_SILENT;
+  hcan.Init.Prescaler = 18;
+  hcan.Init.Mode = CAN_MODE_LOOPBACK;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
@@ -273,39 +238,6 @@ static void MX_CAN_Init(void)
   /* USER CODE BEGIN CAN_Init 2 */
 
   /* USER CODE END CAN_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
 
 }
 
