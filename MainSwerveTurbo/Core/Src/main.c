@@ -270,23 +270,17 @@ typedef struct Optimizer{
 	float CalInput;
 	float preCal;
 	float DeltaCal;
-	float preDir;
-	float dirFlag;
-	float actualPos;
 }Optimizer;
 
 void SwerveInit(Optimizer *Swerve){
 	Swerve -> Direc = 1;
-	Swerve -> preDir = 1;
 	Swerve -> CurrentAngle = 0;
 	Swerve -> DeltaAngle = 0;
 	Swerve -> OutPutAngle = 0;
 	Swerve -> PreAngle =0;
 	Swerve -> preCal =0;
 	Swerve -> DeltaCal = 0;
-	Swerve -> dirFlag = 0;
 	Swerve-> CalInput = 0;
-	Swerve-> actualPos=0;
 }
 
 

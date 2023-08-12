@@ -1,4 +1,4 @@
-11:07:28 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
+11:29:42 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
 make -j16 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c: In function 'ControlDriver':
@@ -28,8 +28,8 @@ arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -D
   127 |  pFloat = &DC2;
       |         ^
 ../Core/Src/main.c: In function 'signum':
-../Core/Src/main.c:304:1: warning: control reaches end of non-void function [-Wreturn-type]
-  304 | }
+../Core/Src/main.c:298:1: warning: control reaches end of non-void function [-Wreturn-type]
+  298 | }
       | ^
 arm-none-eabi-gcc -o "MainSwerveTurbo.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\LENOVO\Desktop\Robocon2024Chung\MainSwerveTurbo\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MainSwerveTurbo.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: MainSwerveTurbo.elf
@@ -37,7 +37,7 @@ Finished building target: MainSwerveTurbo.elf
 arm-none-eabi-size   MainSwerveTurbo.elf 
 arm-none-eabi-objdump -h -S  MainSwerveTurbo.elf  > "MainSwerveTurbo.list"
    text	   data	    bss	    dec	    hex	filename
-  22868	    120	   1992	  24980	   6194	MainSwerveTurbo.elf
+  22844	    120	   1968	  24932	   6164	MainSwerveTurbo.elf
 Finished building: default.size.stdout
  
 Finished building: MainSwerveTurbo.list
