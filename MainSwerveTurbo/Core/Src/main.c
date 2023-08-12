@@ -281,11 +281,11 @@ void SwerveInit(Optimizer *Swerve){
 	Swerve -> CurrentAngle = 0;
 	Swerve -> DeltaAngle = 0;
 	Swerve -> OutPutAngle = 0;
-	//Swerve -> PreAngle =0;
+	Swerve -> PreAngle =0;
 	Swerve -> preCal =0;
 	Swerve -> DeltaCal = 0;
 	Swerve -> dirFlag = 0;
-	Swerve->CalInput = 0;
+	Swerve-> CalInput = 0;
 	Swerve-> actualPos=0;
 }
 
@@ -302,72 +302,13 @@ int signum(int num){
 	else if(num<0)
 		return -1;
 }
+
 float TestAngle;
 Optimizer Swerve1;
 Optimizer Swerve2;
 void OptimizeAngle (Optimizer *Swerve,float InPut)
 {
 	if (InPut != Swerve->PreAngle){
-
-//		if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
-//		else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
-//
-//		if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
-//		else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
-//
-//
-//		Swerve->CalInput = modulo360(Swerve->CurrentAngle);
-//		if (Swerve->CurrentAngle>180)Swerve->CalInput-=360;
-//		else if (Swerve->CurrentAngle<-180)Swerve->CalInput+=360;
-//
-//		Swerve->DeltaAngle = InPut-(Swerve->CalInput);
-//
-//		if (Swerve->DeltaAngle >180)
-//			{
-//				Swerve->DeltaAngle-=360;
-//			}
-//		else if (Swerve->DeltaAngle <-180)
-//		{
-//			Swerve->DeltaAngle+=360;
-//
-//		}
-
-//		if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
-//			{
-//				Swerve->DeltaAngle=Swerve->DeltaAngle;
-//			}
-//		else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
-//		{
-//			Swerve->DeltaAngle += -180;
-//			Swerve->Direc *=-1;
-//		}
-//		else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
-//		{
-//			Swerve->DeltaAngle += 180;
-//			Swerve->Direc *=-1;
-//		}
-//
-//		Swerve->OutPutAngle += Swerve->DeltaAngle;
-//		Swerve->CurrentAngle += Swerve->DeltaAngle;
-//
-
-//		Swerve->CalInput = modulo360(Swerve->CurrentAngle);
-//		if (Swerve->CalInput>180)Swerve->CalInput-=360;
-//		else if (Swerve->CalInput<-180)Swerve->CalInput+=360;
-//
-//		Swerve->DeltaAngle = InPut - Swerve->CalInput;
-//
-//		if(abs(Swerve->DeltaAngle)>180)
-//		{
-//			if(abs(Swerve->DeltaAngle)>=270)Swerve->Direc*=1;
-//			else Swerve->Direc*=1;
-//
-//
-//			Swerve->DeltaAngle = -(signum(Swerve->DeltaAngle)*360)+Swerve->DeltaAngle;
-//		}
-//		Swerve->PreAngle = InPut;
-//		Swerve->CurrentAngle+= Swerve->DeltaAngle;
-
 
 		Swerve->CalInput = InPut;
 		if ((Swerve->CurrentAngle>=0)&&Swerve->CalInput<0)Swerve->CalInput+=360;
@@ -380,24 +321,15 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 
 		if ((Swerve->DeltaCal>90)&&(Swerve->DeltaCal<180))
 		{
-			//Swerve->DeltaAngle += -180;
 			Swerve->Direc *= -1;
-			Swerve->dirFlag = 1;
 		}else if ((Swerve->DeltaCal<-90)&&(Swerve->DeltaCal>-180))
 		{
-			//Swerve->DeltaAngle += 180;
 			Swerve->Direc *= -1;
-			Swerve->dirFlag = 1;
 		}else if(abs(Swerve->DeltaCal)==180)
 		{
 			Swerve->Direc *= -1;
-			Swerve->dirFlag = -1;
-		}else {
-			Swerve->dirFlag = 1;
 		}
 
-//		if((abs(Swerve->CalInput-Swerve->preCal)>=270)||(abs(Swerve->CalInput-Swerve->preCal)<180))Swerve->Direc *=1;
-//		else Swerve->Direc *=-1;
 		Swerve->DeltaAngle = Swerve->CalInput-modulo360(Swerve->CurrentAngle);
 
 		if(Swerve->DeltaAngle>180)Swerve->DeltaAngle+=-360;
@@ -405,20 +337,13 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 
 		if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
 		{
-			if(Swerve->dirFlag==1)
-				Swerve->DeltaAngle = Swerve->DeltaAngle;
-			else Swerve->DeltaAngle = Swerve->DeltaAngle;
-//			Swerve->Direc *=1;
+			Swerve->DeltaAngle = Swerve->DeltaAngle;
 		}else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
 		{
 			Swerve->DeltaAngle += -180;
-//			Swerve->dirFlag = 0;
-//			Swerve->Direc *= -1;
 		}else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
 		{
 			Swerve->DeltaAngle += 180;
-//			Swerve->dirFlag = 0;
-//			Swerve->Direc *= -1;
 		}
 
 		Swerve->PreAngle = InPut;
@@ -429,21 +354,6 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 		if(Swerve->CalInput==modulo360(Swerve->CurrentAngle)){
 			Swerve->Direc = 1;
 		}
-//		Swerve->preDir=Swerve->Direc;
-//		if(Swerve->CurrentAngle>0)
-//		{
-//			if(Swerve->Direc*modulo360(Swerve->CurrentAngle)<0){
-//				Swerve->actualPos = (Swerve->Direc*Swerve->CurrentAngle)+360;
-//			}
-//				if(Swerve->actualPos!=Swerve->CalInput)Swerve->Direc*=-1;
-//		}else{
-//			if(Swerve->Direc*Swerve->CurrentAngle>0){
-//				Swerve->actualPos = (Swerve->Direc*modulo360(Swerve->CurrentAngle))-360;
-//			}
-//		if(Swerve->actualPos!=Swerve->CalInput)Swerve->Direc*=-1;
-//		}
-
-		//Từ ma trận động học nghịch vận tốc ta suy được
 	}
 }
 float showAngle;

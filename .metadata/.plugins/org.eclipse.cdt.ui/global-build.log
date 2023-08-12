@@ -1,4 +1,4 @@
-10:48:57 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
+11:07:28 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
 make -j16 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c: In function 'ControlDriver':
@@ -37,7 +37,7 @@ Finished building target: MainSwerveTurbo.elf
 arm-none-eabi-size   MainSwerveTurbo.elf 
 arm-none-eabi-objdump -h -S  MainSwerveTurbo.elf  > "MainSwerveTurbo.list"
    text	   data	    bss	    dec	    hex	filename
-  22932	    120	   1992	  25044	   61d4	MainSwerveTurbo.elf
+  22868	    120	   1992	  24980	   6194	MainSwerveTurbo.elf
 Finished building: default.size.stdout
  
 Finished building: MainSwerveTurbo.list
