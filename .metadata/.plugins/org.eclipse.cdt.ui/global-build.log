@@ -1,14 +1,44 @@
-23:16:23 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
+10:48:57 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
 make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'ControlDriver':
+../Core/Src/main.c:73:8: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+   73 |  pByte = &BLDCSpeed1;
+      |        ^
+../Core/Src/main.c:77:8: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+   77 |  pByte = &DCPos1;
+      |        ^
+../Core/Src/main.c:85:8: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+   85 |  pByte = &BLDCSpeed2;
+      |        ^
+../Core/Src/main.c:89:8: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+   89 |  pByte = &DCPos2;
+      |        ^
+../Core/Src/main.c: In function 'SolveMainTask':
+../Core/Src/main.c:108:9: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+  108 |  pFloat = &BL1;
+      |         ^
+../Core/Src/main.c:113:9: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+  113 |  pFloat = &DC1;
+      |         ^
+../Core/Src/main.c:122:9: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+  122 |  pFloat = &BL2;
+      |         ^
+../Core/Src/main.c:127:9: warning: assignment to 'uint8_t *' {aka 'unsigned char *'} from incompatible pointer type 'float *' [-Wincompatible-pointer-types]
+  127 |  pFloat = &DC2;
+      |         ^
+../Core/Src/main.c: In function 'signum':
+../Core/Src/main.c:304:1: warning: control reaches end of non-void function [-Wreturn-type]
+  304 | }
+      | ^
+arm-none-eabi-gcc -o "MainSwerveTurbo.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\LENOVO\Desktop\Robocon2024Chung\MainSwerveTurbo\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MainSwerveTurbo.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: MainSwerveTurbo.elf
+ 
 arm-none-eabi-size   MainSwerveTurbo.elf 
+arm-none-eabi-objdump -h -S  MainSwerveTurbo.elf  > "MainSwerveTurbo.list"
    text	   data	    bss	    dec	    hex	filename
-  20012	    124	   1948	  22084	   5644	MainSwerveTurbo.elf
+  22932	    120	   1992	  25044	   61d4	MainSwerveTurbo.elf
 Finished building: default.size.stdout
  
-23:16:25 **** Incremental Build of configuration Debug for project MainSwerveTurbo ****
-make -j16 all 
-arm-none-eabi-size   MainSwerveTurbo.elf 
-   text	   data	    bss	    dec	    hex	filename
-  20012	    124	   1948	  22084	   5644	MainSwerveTurbo.elf
-Finished building: default.size.stdout
+Finished building: MainSwerveTurbo.list
  

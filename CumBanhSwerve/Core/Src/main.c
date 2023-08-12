@@ -314,7 +314,7 @@ if (RunStatus == EndState){
 //-----------------------------------------------------------------------------------------------------------------//Mode
 uint8_t *pByte = NULL;
 
-#define ID 1
+#define ID 2
 uint8_t Mode;
 float SpeedBLDC;
 float DCDegree;

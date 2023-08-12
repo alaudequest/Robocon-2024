@@ -226,12 +226,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 			GamePad.Battery = DataTayGame[7];
 
+
+
 			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
 			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
-			  Xright =((GamePad.XRight-125)/10)*30/12;
-
-//			  SpeedOutPut = (sqrt((pow(Xleft,2)+pow(Yleft,2))))*10/12;
-//			  PosOutPut = atan2(Xleft,Yleft)*180/M_PI;
+			  Xright =((GamePad.XRight-120)/10)*30/12;
 		}
 		else{
 			GamePad.Status = 0;
@@ -260,148 +259,228 @@ int8_t quadrantCheck(float X, float Y)
 float u,v,rad,c;
 
 int Direc = 1;
-float CurrentAngle,DeltaAngle,OutPutAngle,TestAngle;
-float PreAngle;
+int prevState1,prevState2;
 
 typedef struct Optimizer{
 	int Direc;
 	float CurrentAngle;
 	float DeltaAngle;
 	float OutPutAngle;
-	float TestAngle;
 	float PreAngle;
+	float CalInput;
+	float preCal;
+	float DeltaCal;
+	float preDir;
+	float dirFlag;
+	float actualPos;
 }Optimizer;
 
+void SwerveInit(Optimizer *Swerve){
+	Swerve -> Direc = 1;
+	Swerve -> preDir = 1;
+	Swerve -> CurrentAngle = 0;
+	Swerve -> DeltaAngle = 0;
+	Swerve -> OutPutAngle = 0;
+	//Swerve -> PreAngle =0;
+	Swerve -> preCal =0;
+	Swerve -> DeltaCal = 0;
+	Swerve -> dirFlag = 0;
+	Swerve->CalInput = 0;
+	Swerve-> actualPos=0;
+}
+
+
+float modulo360(float Angle)
+{
+	int Result = (int)Angle/360;
+	return Angle-Result*360;
+}
+
+int signum(int num){
+	if (num>0)
+		return 1;
+	else if(num<0)
+		return -1;
+}
+float TestAngle;
 Optimizer Swerve1;
 Optimizer Swerve2;
 void OptimizeAngle (Optimizer *Swerve,float InPut)
 {
-	if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
-	else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
-	Swerve->DeltaAngle = InPut-Swerve->CurrentAngle ;
+	if (InPut != Swerve->PreAngle){
 
-	if (Swerve->DeltaAngle >180)
+//		if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
+//		else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
+//
+//		if (Swerve->CurrentAngle>180)Swerve->CurrentAngle-=360;
+//		else if (Swerve->CurrentAngle<-180)Swerve->CurrentAngle+=360;
+//
+//
+//		Swerve->CalInput = modulo360(Swerve->CurrentAngle);
+//		if (Swerve->CurrentAngle>180)Swerve->CalInput-=360;
+//		else if (Swerve->CurrentAngle<-180)Swerve->CalInput+=360;
+//
+//		Swerve->DeltaAngle = InPut-(Swerve->CalInput);
+//
+//		if (Swerve->DeltaAngle >180)
+//			{
+//				Swerve->DeltaAngle-=360;
+//			}
+//		else if (Swerve->DeltaAngle <-180)
+//		{
+//			Swerve->DeltaAngle+=360;
+//
+//		}
+
+//		if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
+//			{
+//				Swerve->DeltaAngle=Swerve->DeltaAngle;
+//			}
+//		else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
+//		{
+//			Swerve->DeltaAngle += -180;
+//			Swerve->Direc *=-1;
+//		}
+//		else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
+//		{
+//			Swerve->DeltaAngle += 180;
+//			Swerve->Direc *=-1;
+//		}
+//
+//		Swerve->OutPutAngle += Swerve->DeltaAngle;
+//		Swerve->CurrentAngle += Swerve->DeltaAngle;
+//
+
+//		Swerve->CalInput = modulo360(Swerve->CurrentAngle);
+//		if (Swerve->CalInput>180)Swerve->CalInput-=360;
+//		else if (Swerve->CalInput<-180)Swerve->CalInput+=360;
+//
+//		Swerve->DeltaAngle = InPut - Swerve->CalInput;
+//
+//		if(abs(Swerve->DeltaAngle)>180)
+//		{
+//			if(abs(Swerve->DeltaAngle)>=270)Swerve->Direc*=1;
+//			else Swerve->Direc*=1;
+//
+//
+//			Swerve->DeltaAngle = -(signum(Swerve->DeltaAngle)*360)+Swerve->DeltaAngle;
+//		}
+//		Swerve->PreAngle = InPut;
+//		Swerve->CurrentAngle+= Swerve->DeltaAngle;
+
+
+		Swerve->CalInput = InPut;
+		if ((Swerve->CurrentAngle>=0)&&Swerve->CalInput<0)Swerve->CalInput+=360;
+		else if ((Swerve->CurrentAngle<0)&&Swerve->CalInput>0) Swerve->CalInput-=360;
+
+		Swerve->DeltaCal = Swerve->CalInput-Swerve->preCal;
+		if(Swerve->DeltaCal>180)Swerve->DeltaCal+=-360;
+		else if(Swerve->DeltaCal<-180)Swerve->DeltaCal+=360;
+
+
+		if ((Swerve->DeltaCal>90)&&(Swerve->DeltaCal<180))
 		{
-		Swerve->DeltaAngle-=360;
-		Swerve->Direc*=-1;
-		}
-	else if (Swerve->DeltaAngle <-180)
-	{
-		Swerve->DeltaAngle+=360;
-		Swerve->Direc*=-1;
-	}
-
-	if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
+			//Swerve->DeltaAngle += -180;
+			Swerve->Direc *= -1;
+			Swerve->dirFlag = 1;
+		}else if ((Swerve->DeltaCal<-90)&&(Swerve->DeltaCal>-180))
 		{
-			Swerve->DeltaAngle=Swerve->DeltaAngle;
+			//Swerve->DeltaAngle += 180;
+			Swerve->Direc *= -1;
+			Swerve->dirFlag = 1;
+		}else if(abs(Swerve->DeltaCal)==180)
+		{
+			Swerve->Direc *= -1;
+			Swerve->dirFlag = -1;
+		}else {
+			Swerve->dirFlag = 1;
 		}
-	else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<180))
-	{
-		Swerve->DeltaAngle += -180;
-	}
-	else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>-180))
-	{
-		Swerve->DeltaAngle += 180;
-	}else
-	{
-		Swerve->DeltaAngle = 0;
-		Swerve->Direc*=-1;
-	}
 
-	Swerve->OutPutAngle += Swerve->DeltaAngle;
-	Swerve->CurrentAngle += Swerve->DeltaAngle;
+//		if((abs(Swerve->CalInput-Swerve->preCal)>=270)||(abs(Swerve->CalInput-Swerve->preCal)<180))Swerve->Direc *=1;
+//		else Swerve->Direc *=-1;
+		Swerve->DeltaAngle = Swerve->CalInput-modulo360(Swerve->CurrentAngle);
+
+		if(Swerve->DeltaAngle>180)Swerve->DeltaAngle+=-360;
+		else if(Swerve->DeltaAngle<-180)Swerve->DeltaAngle+=360;
+
+		if((Swerve->DeltaAngle<=90)&&(Swerve->DeltaAngle>=-90))
+		{
+			if(Swerve->dirFlag==1)
+				Swerve->DeltaAngle = Swerve->DeltaAngle;
+			else Swerve->DeltaAngle = Swerve->DeltaAngle;
+//			Swerve->Direc *=1;
+		}else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
+		{
+			Swerve->DeltaAngle += -180;
+//			Swerve->dirFlag = 0;
+//			Swerve->Direc *= -1;
+		}else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
+		{
+			Swerve->DeltaAngle += 180;
+//			Swerve->dirFlag = 0;
+//			Swerve->Direc *= -1;
+		}
+
+		Swerve->PreAngle = InPut;
+		Swerve->preCal = Swerve->CalInput;
+		Swerve->CurrentAngle+= Swerve->DeltaAngle;
+
+
+		if(Swerve->CalInput==modulo360(Swerve->CurrentAngle)){
+			Swerve->Direc = 1;
+		}
+//		Swerve->preDir=Swerve->Direc;
+//		if(Swerve->CurrentAngle>0)
+//		{
+//			if(Swerve->Direc*modulo360(Swerve->CurrentAngle)<0){
+//				Swerve->actualPos = (Swerve->Direc*Swerve->CurrentAngle)+360;
+//			}
+//				if(Swerve->actualPos!=Swerve->CalInput)Swerve->Direc*=-1;
+//		}else{
+//			if(Swerve->Direc*Swerve->CurrentAngle>0){
+//				Swerve->actualPos = (Swerve->Direc*modulo360(Swerve->CurrentAngle))-360;
+//			}
+//		if(Swerve->actualPos!=Swerve->CalInput)Swerve->Direc*=-1;
+//		}
+
+		//Từ ma trận động học nghịch vận tốc ta suy được
+	}
 }
-
+float showAngle;
+int preQuad1,currQuad1;
+int preQuad2,currQuad2;
 void InverseKine(float u,float v ,float r)
 {
-	//Từ ma trận động học nghịch vận tốc ta suy được
+
 	wheel_Vel_X1 = v;
 	wheel_Vel_Y1 = u-robot_Lenght*r;
 
 	wheel_Vel_X2 = v;
 	wheel_Vel_Y2 = u+robot_Lenght*r;
 
-//	switch (quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1))
-//	{
-//	case 1:
-//		Direc = 1;
-//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-//		break;
-//	case 2:
-//		Direc = -1;
-//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-//		break;
-//	case 3:
-//		Direc = -1;
-//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-//		break;
-//	case 4:
-//		Direc = 1;
-//		wheel_Angle1 = atan(wheel_Vel_Y1/wheel_Vel_X1)*180/M_PI;
-//		break;
-//	case -1:
-//		Direc = 1;
-//		wheel_Angle1 = 90;
-//		break;
-//	case -2:
-//		Direc = -1;
-//		wheel_Angle1 = 90;
-//		break;
-//	default:
-//		Direc = 0;
-//		wheel_Angle1=0;
-//		break;
-//	}
+	currQuad1 = quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1);
+	currQuad2 = quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2);
+	if(currQuad1 == 0)
+		{
+			OptimizeAngle(&Swerve1, preQuad1);
+		}
+	else{
+		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI);
+		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI;
+	}
+	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+	//OptimizeAngle(&Swerve1, TestAngle);
 
-//	prevState = quadrantCheck(wheel_Vel_X1, wheel_Vel_Y1);
+	if(currQuad2 == 0)
+	{
+		OptimizeAngle(&Swerve2, preQuad2);
+	}
+	else{
+		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI);
+		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+	}
 
-
-//	switch (quadrantCheck(wheel_Vel_X2, wheel_Vel_Y2))
-//	{
-//	case 1:
-//		Direc = 1;
-//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	case 2:
-//		Direc = -1;
-//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	case 3:
-//		Direc = -1;
-//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	case 4:
-//		Direc = 1;
-//		wheel_Angle2 = atan(wheel_Vel_Y2/wheel_Vel_X2)*180/M_PI;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	case -1:
-//		Direc = 1;
-//		wheel_Angle2 = 90;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	case -2:
-//		Direc = -1;
-//		wheel_Angle2 = 90;
-//		//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-//		break;
-//	default:
-//		Direc = 0;
-//		wheel_Angle2=0;
-//
-//		break;
-//	}
-//	//showAngle = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
-
-
-	OptimizeAngle(&Swerve1,TestAngle);
-	OptimizeAngle(&Swerve2,TestAngle);
-
-	wheel_AngleVel1 = Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
-	wheel_AngleVel2 = -Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
 
 
 
@@ -446,7 +525,8 @@ int main(void)
 //  ControlDriver(1,10,11);
 //  ControlDriver(1,1,100,90,2,1,-100,95);
 //  SolveMainTask(TxBuf);
-
+  SwerveInit(&Swerve1);
+  SwerveInit(&Swerve2);
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_Delay(1000);
 
@@ -458,50 +538,19 @@ int main(void)
   {
 	  //ControlDriver(1,1,SpeedOutPut,PosOutPut,2,1,0-SpeedOutPut,PosOutPut);
 
-	  HAL_Delay(10);
-	 // Splitfloat(Modetest,ftest,ftest2);
-
-//	  if((GamePad.Left == 1)||(GamePad.L2 == 1))
-//	  {
-//		  v = -1;
-//	  }
-//	  else if((GamePad.Right == 1)||(GamePad.R2 == 1))
-//	  {
-//		  v = 1;
-//	  }
-//	  else
-//	  {
-//		  v = 0;
-//	  }
-//
-//	  if((GamePad.Up == 1))
-//	  {
-//		  u = 1;
-//	  }
-//	  else if((GamePad.Down == 1))
-//	  {
-//		  u = -1;
-//	  }
-//	  else
-//	  {
-//		  u = 0;
-//	  }
-//
-//	  if (GamePad.Square == 1){
-//		  r = 90;
-//	  }else if(GamePad.Circle == 1)
-//	  {
-//		  r = -90;
-//	  }else r = 0;
+	  HAL_Delay(100);
 
 	  if (GamePad.Touch == 1)
 	  {
 		  ControlDriver(1,2,0,0,2,2,0,0);
+	  }else if (GamePad.R2 == 1){
+		  SwerveInit(&Swerve1);
+		  SwerveInit(&Swerve2);
 	  }
 	  else {
 	  rad = Angle*M_PI/180;
 	  	  InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
-	  	  ControlDriver(1,1,wheel_AngleVel1,wheel_Angle1,2,1,wheel_AngleVel2,wheel_Angle2);
+	  	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 
 	  }
 

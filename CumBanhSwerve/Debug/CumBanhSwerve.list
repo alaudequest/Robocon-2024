@@ -2553,7 +2553,7 @@ if (RunStatus == EndState){
 
 08001754 <SolveMainTask>:
 
-#define ID 1
+#define ID 2
 uint8_t Mode;
 float SpeedBLDC;
 float DCDegree;
@@ -2568,7 +2568,7 @@ void SolveMainTask(uint8_t* dataArray){
 	if (dataArray[0] == ID)
  8001760:	687b      	ldr	r3, [r7, #4]
  8001762:	781b      	ldrb	r3, [r3, #0]
- 8001764:	2b01      	cmp	r3, #1
+ 8001764:	2b02      	cmp	r3, #2
  8001766:	d12e      	bne.n	80017c6 <SolveMainTask+0x72>
 	{
 		pFloat = &Mode;
@@ -2641,7 +2641,7 @@ void SolveMainTask(uint8_t* dataArray){
  80017c6:	687b      	ldr	r3, [r7, #4]
  80017c8:	330a      	adds	r3, #10
  80017ca:	781b      	ldrb	r3, [r3, #0]
- 80017cc:	2b01      	cmp	r3, #1
+ 80017cc:	2b02      	cmp	r3, #2
  80017ce:	d12d      	bne.n	800182c <SolveMainTask+0xd8>
 		pFloat = &Mode;
  80017d0:	4b19      	ldr	r3, [pc, #100]	; (8001838 <SolveMainTask+0xe4>)
