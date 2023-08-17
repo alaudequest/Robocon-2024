@@ -15,6 +15,6 @@
 ../Core/Src/main.c:731:13:MX_GPIO_Init	40	static
 ../Core/Src/main.c:774:6:StartCalPIDDC	16	static
 ../Core/Src/main.c:804:6:StartCalPIDBLDC	16	static
-../Core/Src/main.c:837:6:StartLogicControl	16	static
-../Core/Src/main.c:867:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:884:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:838:6:StartLogicControl	16	static
+../Core/Src/main.c:868:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:885:6:Error_Handler	4	static,ignoring_inline_asm

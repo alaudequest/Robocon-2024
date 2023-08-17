@@ -42,10 +42,18 @@
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+/*-----------------------------Begin:kinematic Macro--------------------------*/
+#define robot_Lenght 0.3
+#define robot_WheelR 0.09
+/*-----------------------------End:kinematic Macro----------------------------*/
 
+/*-----------------------------Begin:Optimizer Var----------------------------*/
+
+/*-----------------------------End:Optimizer Var------------------------------*/
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,6 +62,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -175,6 +184,25 @@ float Xleft,Yleft;
 float Xright;
 
 float SpeedOutPut,PosOutPut;
+
+char ds[12];
+uint8_t uart2_ds, ds_ind, ds_cnt, ds_flg;
+int GocRobot;
+
+void GetDataCompass(){
+	GocRobot = ds[1] - 48;
+	int x = 2;
+	while((ds[x] >= 48) && (ds[x] <= 57)){
+		GocRobot = GocRobot * 10;
+		GocRobot += ds[x] -48;
+		++x;
+	}
+
+	if(ds[0] == '-'){
+		GocRobot = -GocRobot;
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart->Instance == USART3){
@@ -236,11 +264,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			GamePad.Status = 0;
 		}
 	}
+	if(huart->Instance == USART2){
+		if(uart2_ds != '\n')
+				ds[ds_ind++] = uart2_ds;
+		else{
+				GetDataCompass();
+				ds_cnt = ds_ind;
+				ds_flg = 1;
+				ds_ind = 0;
+		}
+		HAL_UART_Receive_IT(&huart2, &uart2_ds, 1);
+	}
 }
 
 
-#define robot_Lenght 0.3
-#define robot_WheelR 0.09
+
 
 float wheel_Vel_X1,wheel_Vel_Y1,wheel_Angle1,wheel_AngleVel1;
 float wheel_Vel_X2,wheel_Vel_Y2,wheel_Angle2,wheel_AngleVel2;
@@ -350,7 +388,6 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 		}
 	}
 }
-float showAngle;
 int preQuad1,currQuad1;
 int preQuad2,currQuad2;
 void InverseKine(float u,float v ,float r)
@@ -369,31 +406,28 @@ void InverseKine(float u,float v ,float r)
 			OptimizeAngle(&Swerve1, preQuad1);
 		}
 	else{
-		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI);
-		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI;
+		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI - GocRobot);
+		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI - GocRobot;
 	}
 	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
-	//OptimizeAngle(&Swerve1, TestAngle);
 
 	if(currQuad2 == 0)
 	{
 		OptimizeAngle(&Swerve2, preQuad2);
 	}
 	else{
-		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI);
-		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI- GocRobot);
+		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI- GocRobot;
 	}
 
 	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
-
-
-
 }
 
-/* USER CODE END 0 */
-#define Speed 20
 
-int Angle;
+
+
+/* USER CODE END 0 */
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -425,15 +459,15 @@ int main(void)
   MX_USART1_UART_Init();
   MX_UART4_Init();
   MX_USART3_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-//  ControlDriver(1,10,11);
-//  ControlDriver(1,1,100,90,2,1,-100,95);
-//  SolveMainTask(TxBuf);
   SwerveInit(&Swerve1);
   SwerveInit(&Swerve2);
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
-  HAL_Delay(1000);
 
+  HAL_Delay(5000);
+  HAL_UART_Receive_IT(&huart2, &uart2_ds, 1);
+  int flag;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -452,9 +486,8 @@ int main(void)
 		  SwerveInit(&Swerve2);
 	  }
 	  else {
-	  rad = Angle*M_PI/180;
 	  	  InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
-	  	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+	  	 ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 
 	  }
 
@@ -486,10 +519,14 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -499,12 +536,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -577,6 +614,39 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -619,8 +689,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin : PA15 */
