@@ -40,16 +40,16 @@ HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct, uint8_t reg)
 //
 //}
 
-uint32_t MCT8316_Read(MCT8316_t *mct, uint8_t reg)
+HAL_StatusTypeDef MCT8316_Read(MCT8316_t *mct, uint8_t reg)
 {
 	if(!mct || !mct->i2c) return HAL_ERROR;
 	mct->ctrlWord[0] = reg;
 	HAL_I2C_Master_Transmit(mct->i2c, 0x00, mct->ctrlWord, 3, 100);
 
 	if(mct->ctrlWordCfg.dataLen == DATA_LENGTH_64BIT)
-	HAL_I2C_Master_Receive(mct->i2c, 0x00, mct->Data, 8, 100);
+	HAL_I2C_Master_Receive_IT(mct->i2c, 0x00, mct->Data, 8);
 	else if(mct->ctrlWordCfg.dataLen == DATA_LENGTH_32BIT)
-	HAL_I2C_Master_Receive(mct->i2c, 0x00, mct->Data, 4, 100);
-	else HAL_I2C_Master_Receive(mct->i2c, 0x00, mct->Data, 2, 100);
-	return 0;
+	HAL_I2C_Master_Receive_IT(mct->i2c, 0x00, mct->Data, 4);
+	else HAL_I2C_Master_Receive_IT(mct->i2c, 0x00, mct->Data, 2);
+	return HAL_OK;
 }

@@ -76,6 +76,10 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 		__NOP();
 	}
 }
+
+void logPrint(char *s){
+	HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), 100);
+}
 /* USER CODE END 0 */
 
 /**
@@ -110,18 +114,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 0);
-  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 1);
   mct8316.ctrlWordCfg.rw = 1;
   mct8316.ctrlWordCfg.crcEn = 0;
   mct8316.i2c = &hi2c1;
   mct8316.ctrlWordCfg.dataLen = DATA_LENGTH_16BIT;
   MCT8316_PackageControlWord(&mct8316, ISD_CONFIG);
   while(MCT8316_IsReady(&mct8316) != HAL_OK){
-	  HAL_Delay(100);
+	  HAL_Delay(1000);
+	  logPrint("MCT8316 fail to ACK, check Vm voltage is above 5V, 3.3V at AVDD\r\n");
   }
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_UART_Transmit(&huart2, (uint8_t*)"Hello", strlen("Hello"), 100);
+  logPrint("Detect MCT8316\r\n");
+  MCT8316_Read(&mct8316, ISD_CONFIG);
 
   /* USER CODE END 2 */
 
@@ -129,12 +132,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,0);
-//	  HAL_Delay(1000);
-//	  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,1000);
-//	  HAL_Delay(1000);
-	  MCT8316_Read(&mct8316, ISD_CONFIG);
-	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
