@@ -1,0 +1,11 @@
+../Core/Src/main.c:69:6:HAL_GPIO_EXTI_Callback	1
+../Core/Src/main.c:72:6:Wheel_Speed	1
+../Core/Src/main.c:76:6:Wheel_Angle	3
+../Core/Src/main.c:88:6:Encoder_Get_Value	1
+../Core/Src/main.c:98:5:main	1
+../Core/Src/main.c:153:6:SystemClock_Config	3
+../Core/Src/main.c:193:13:MX_TIM2_Init	6
+../Core/Src/main.c:250:13:MX_TIM3_Init	3
+../Core/Src/main.c:299:13:MX_TIM4_Init	3
+../Core/Src/main.c:348:13:MX_GPIO_Init	1
+../Core/Src/main.c:391:6:Error_Handler	1
