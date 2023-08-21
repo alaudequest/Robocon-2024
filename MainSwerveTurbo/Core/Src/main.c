@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <math.h>
 #include <stdlib.h>
+#include <PID.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -63,6 +66,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -308,6 +312,7 @@ typedef struct Optimizer{
 	float CalInput;
 	float preCal;
 	float DeltaCal;
+	uint8_t OdorFlag;
 }Optimizer;
 
 void SwerveInit(Optimizer *Swerve){
@@ -318,7 +323,8 @@ void SwerveInit(Optimizer *Swerve){
 	Swerve -> PreAngle =0;
 	Swerve -> preCal =0;
 	Swerve -> DeltaCal = 0;
-	Swerve-> CalInput = 0;
+	Swerve->  CalInput = 0;
+	Swerve-> OdorFlag = 1;
 }
 
 
@@ -326,6 +332,11 @@ float modulo360(float Angle)
 {
 	int Result = (int)Angle/360;
 	return Angle-Result*360;
+}
+float modulo180(float Angle)
+{
+	int Result = (int)Angle/180;
+	return Angle-Result*180;
 }
 
 int signum(int num){
@@ -338,6 +349,10 @@ int signum(int num){
 float TestAngle;
 Optimizer Swerve1;
 Optimizer Swerve2;
+
+int OdoPos,OdoFlag1,OdoFlag2,OdorCnt;;
+double CurrPos;
+
 void OptimizeAngle (Optimizer *Swerve,float InPut)
 {
 	if (InPut != Swerve->PreAngle){
@@ -373,9 +388,15 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 		}else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
 		{
 			Swerve->DeltaAngle += -180;
+//			if (modulo360(abs(Swerve->CurrentAngle)>90)){
+//				Swerve->OdorFlag ^= 1;
+//			}
 		}else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
 		{
 			Swerve->DeltaAngle += 180;
+//			if (modulo360(abs(Swerve->CurrentAngle)>90)&&(Swerve->)){
+//				Swerve->OdorFlag ^= 1;
+//			}
 		}
 
 		Swerve->PreAngle = InPut;
@@ -390,6 +411,7 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 }
 int preQuad1,currQuad1;
 int preQuad2,currQuad2;
+
 void InverseKine(float u,float v ,float r)
 {
 
@@ -406,8 +428,8 @@ void InverseKine(float u,float v ,float r)
 			OptimizeAngle(&Swerve1, preQuad1);
 		}
 	else{
-		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI - GocRobot);
-		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI - GocRobot;
+		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI);
+		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI;
 	}
 	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
 
@@ -416,15 +438,63 @@ void InverseKine(float u,float v ,float r)
 		OptimizeAngle(&Swerve2, preQuad2);
 	}
 	else{
-		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI- GocRobot);
-		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI- GocRobot;
+		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI);
+		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
 	}
 
 	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+
+	if ((v>0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 0;
+	else if ((v<0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 1;
+	else if ((v<0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 0;
+	else if ((v>0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 1;
+	else {
+		OdorCnt = 0;
+		Swerve1.OdorFlag = 2;
+	}
+}
+Optimizer Base;
+PID_Param PIDAngle;
+PID_Param PIDOdoU;
+PID_Param PIDOdoV;
+
+double h,xnow,ynow,preh;
+void PositionCal(float x,float y,float Count)
+{
+	h = sqrt(pow(x,2)+pow(y,2));
+	xnow = sqrt(pow(Count,2)-pow((y)*(Count/h),2));
+	ynow = sqrt(pow(Count,2)-pow((x)*(Count/h),2));
 }
 
 
 
+#define P_Term 0
+#define I_Term 0
+#define D_Term 0
+#define DeltaT 0.01
+#define D_alpha 0
+#define I_Above 40
+#define I_Below -40
+#define U_Above 40
+#define U_Below -40
+
+
+double kP=1.5,kI,kD=0.1,alpha=0.8,T = 0.05,Ia,Ib,Ua = 40,Ub =-40;
+double kP1=0,kI1,kD1=0,alpha1=0,T1 = 0.05,Ia1,Ib1,Ua1 = 0.05,Ub1 =-0.05;
+double kP2=1.5,kI2,kD2=0.1,alpha2=0.8,T2 =0.05,Ia2,Ib2,Ua2 = 0.1,Ub2 =-0.1;
+double TargetAngle = 0;
+int zamn = 0;
+
+
+double x,y;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == Odo_Extio_Pin)
+	{
+		if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt++;
+		else OdorCnt--;
+	}
+}
 
 /* USER CODE END 0 */
 
@@ -441,7 +511,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -460,40 +531,78 @@ int main(void)
   MX_UART4_Init();
   MX_USART3_UART_Init();
   MX_USART2_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   SwerveInit(&Swerve1);
   SwerveInit(&Swerve2);
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
-
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(5000);
   HAL_UART_Receive_IT(&huart2, &uart2_ds, 1);
-  int flag;
+//  TargetAngle=GocRobot;
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  //ControlDriver(1,1,SpeedOutPut,PosOutPut,2,1,0-SpeedOutPut,PosOutPut);
-
-	  HAL_Delay(100);
-
+//	  ControlDriver(1,1,SpeedOutPut,PosOutPut,2,1,0-SpeedOutPut,PosOutPut);
+	  HAL_Delay(T*1000);
 	  if (GamePad.Touch == 1)
 	  {
-		  ControlDriver(1,2,0,0,2,2,0,0);
-	  }else if (GamePad.R2 == 1){
-		  SwerveInit(&Swerve1);
-		  SwerveInit(&Swerve2);
+		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  }
 	  else {
-	  	  InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
-	  	 ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+//	  	if(zamn == 1){
+//	  		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
+//	  		  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
+//	  		  InverseKine(Yleft,-Xleft,-PIDAngle.u*M_PI/180);
+//	  		  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+//	  	}
 
+		 if(GamePad.Square == 1){
+			 OdoFlag1 = 1;
+			 OdoFlag2 = 0;
+		 }else if(GamePad.Circle == 1)
+		 {
+			 OdoFlag2 = 1;
+			 OdoFlag1 = 0;
+		 }
+	  	 }
+	  if (OdoFlag1 == 1){
+
+		if(Swerve1.OdorFlag == 0)
+		{
+			OdoPos-= OdorCnt;
+		}else {
+			OdoPos+= OdorCnt;
+		}
+
+		OdorCnt = 0;
+
+//		  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
+		  Pid_SetParam(&PIDOdoU,kP1,kI1,kD1,alpha1,T1,Ia1,Ib1,Ua1,Ub1);
+//		  Pid_SetParam(&PIDOdoV,kP2,kI2,kD2,alpha2,T2,Ia2,Ib2,Ua2,Ub2);
+		  CurrPos = (0.07*M_PI/1000)*OdoPos;
+//		  PositionCal(x,y,OdoCount);
+		  Pid_Cal(&PIDOdoU,x,CurrPos);
+//		  Pid_Cal(&PIDOdoV,y,ynow);
+//		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
+
+		  InverseKine(0,-PIDOdoU.u,0);
+				  //-PIDAngle.u*M_PI/180);
+		  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 	  }
-
-
-
-
+////	  else if (GamePad.R2 == 1){
+////		  SwerveInit(&Swerve1);
+////		  SwerveInit(&Swerve2);
+////	  }
+//	  else {
+//	  	 InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
+//	  	 ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+//	  }
 
     /* USER CODE END WHILE */
 
@@ -545,6 +654,51 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 168-1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 10000-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
 }
 
 /**
@@ -694,17 +848,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
-  /*Configure GPIO pin : PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  /*Configure GPIO pin : Odo_Extio_Pin */
+  GPIO_InitStruct.Pin = Odo_Extio_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(Odo_Extio_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin : Odo_Input_Pin */
+  GPIO_InitStruct.Pin = Odo_Input_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(Odo_Input_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
@@ -715,6 +869,27 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

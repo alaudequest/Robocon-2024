@@ -57,6 +57,11 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define Odo_Extio_Pin GPIO_PIN_15
+#define Odo_Extio_GPIO_Port GPIOA
+#define Odo_Extio_EXTI_IRQn EXTI15_10_IRQn
+#define Odo_Input_Pin GPIO_PIN_3
+#define Odo_Input_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
