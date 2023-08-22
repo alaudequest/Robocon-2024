@@ -117,14 +117,14 @@ int main(void)
   mct8316.ctrlWordCfg.rw = 1;
   mct8316.ctrlWordCfg.crcEn = 0;
   mct8316.i2c = &hi2c1;
-  mct8316.ctrlWordCfg.dataLen = DATA_LENGTH_16BIT;
-  MCT8316_PackageControlWord(&mct8316, ISD_CONFIG);
+  mct8316.ctrlWordCfg.dataLen = DATA_LENGTH_32BIT;
+  MCT8316_PackageControlWord(&mct8316, 0x82);
   while(MCT8316_IsReady(&mct8316) != HAL_OK){
 	  HAL_Delay(1000);
 	  logPrint("MCT8316 fail to ACK, check Vm voltage is above 5V, 3.3V at AVDD\r\n");
   }
   logPrint("Detect MCT8316\r\n");
-  MCT8316_Read(&mct8316, ISD_CONFIG);
+  MCT8316_Read(&mct8316, 0x82);
 
   /* USER CODE END 2 */
 
@@ -196,7 +196,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.ClockSpeed = 1000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
