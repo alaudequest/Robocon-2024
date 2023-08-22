@@ -60,6 +60,6 @@ typedef struct MCT8316_t{
 
 
 HAL_StatusTypeDef MCT8316_IsReady(MCT8316_t *mct);
-HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct, uint8_t reg);
+HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct);
 HAL_StatusTypeDef MCT8316_Read(MCT8316_t *mct, uint8_t reg);
 #endif

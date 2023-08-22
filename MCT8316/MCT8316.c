@@ -18,7 +18,7 @@ HAL_StatusTypeDef MCT8316_IsReady(MCT8316_t *mct)
 }
 
 
-HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct, uint8_t reg)
+HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct)
 {
 	if(!mct) return HAL_ERROR;
 	uint32_t Temp = 0;
@@ -27,7 +27,6 @@ HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct, uint8_t reg)
 	if(mct->ctrlWordCfg.crcEn) Temp |= CRC_ENABLE;
 	else if(mct->ctrlWordCfg.dataLen == DATA_LENGTH_32BIT) Temp |= DLEN_32BIT;
 	else if(mct->ctrlWordCfg.dataLen == DATA_LENGTH_64BIT) Temp |= DLEN_64BIT;
-	Temp |= reg;
 	mct->ctrlWord[0] =  Temp & 0xff;
 	mct->ctrlWord[1] =  (Temp & 0xff00) >> 8;
 	mct->ctrlWord[2] =  (Temp & 0xff0000) >> 16;
