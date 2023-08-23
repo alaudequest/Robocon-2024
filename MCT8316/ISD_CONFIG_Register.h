@@ -1,5 +1,5 @@
-#ifndef ISD_CONFIG
-#define ISD_CONFIG
+#ifndef ISD_CONFIG_H
+#define ISD_CONFIG_H
 
 #define PARITY (1UL << 31)
 #define ISD_EN (1UL << 30)

@@ -9,10 +9,6 @@
 #define MCT8316_H
 #include "main.h"
 
-#define CTRL_WORD_READ_WRITE_POS 23
-#define READ_MODE (1UL << CTRL_WORD_READ_WRITE_POS)
-#define WRITE_MODE (0UL << CTRL_WORD_READ_WRITE_POS)
-
 #define CTRL_WORD_CRC_POS 22
 #define CRC_ENABLE (1UL << CTRL_WORD_CRC_POS)
 #define CRC_DISABLE (0UL << CTRL_WORD_CRC_POS)
@@ -52,14 +48,19 @@ typedef struct ControlWord {
 
 
 typedef struct MCT8316_t{
-	uint8_t Data[8];
+	uint8_t Data[4];
 	uint8_t ctrlWord[3];
 	I2C_HandleTypeDef *i2c;
 	ControlWordConfig ctrlWordCfg;
 }MCT8316_t;
 
 
-HAL_StatusTypeDef MCT8316_IsReady(MCT8316_t *mct);
+HAL_StatusTypeDef MCT8316_IsReady(MCT8316_t *mct, I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef MCT8316_PackageControlWord(MCT8316_t *mct);
-HAL_StatusTypeDef MCT8316_Read(MCT8316_t *mct, uint8_t reg);
+HAL_StatusTypeDef MCT8316_Write_64bit(MCT8316_t *mct, uint8_t reg, uint64_t data);
+HAL_StatusTypeDef MCT8316_Write(MCT8316_t *mct, uint8_t reg, uint32_t data);
+uint32_t MCT8316_Read(MCT8316_t *mct, uint8_t reg);
+HAL_StatusTypeDef MCT8316_EEPROM_Read(MCT8316_t *mct);
+HAL_StatusTypeDef MCT8316_EEPROM_Write(MCT8316_t *mct);
+HAL_StatusTypeDef MCT8316_EEPROM_Commit(MCT8316_t *mct);
 #endif

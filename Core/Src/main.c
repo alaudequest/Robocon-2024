@@ -22,7 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "MCT8316.h"
+#include "ISD_CONFIG_Register.h"
 #include "string.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +51,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 MCT8316_t mct8316;
+char s[30] = {0};
 
 /* USER CODE END PV */
 
@@ -114,25 +117,25 @@ int main(void)
   MX_TIM3_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
-
-  mct8316.ctrlWordCfg.rw = 1;
-  mct8316.ctrlWordCfg.crcEn = 0;
-  mct8316.i2c = &hi2c1;
-  mct8316.ctrlWordCfg.dataLen = DATA_LENGTH_32BIT;
-  MCT8316_PackageControlWord(&mct8316);
-  while(MCT8316_IsReady(&mct8316) != HAL_OK){
+  while(MCT8316_IsReady(&mct8316,&hi2c1) != HAL_OK){
 	  HAL_Delay(1000);
-	  logPrint("MCT8316 fail to ACK, check Vm voltage is above 5V, 3.3V at AVDD\r\n");
+	  logPrint("MCT8316 fail to ACK\r\nCheck Vm voltage is above 5V, 3.3V at AVDD\r\nCheck I2C wire pins\r\n");
   }
   logPrint("Detect MCT8316\r\n");
-  MCT8316_Read(&mct8316, ISD_CONFIG);
 
-//  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 1);
-//  HAL_Delay(1000);
-//  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 0);
-//  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-//  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,1000);
+  MCT8316_EEPROM_Read(&mct8316);
+  volatile uint32_t mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
+  sprintf(s,"Read Reg:0x%lx\n",mctData);
+  HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), HAL_MAX_DELAY);
+
+  mctData |= STAT_BRK_EN;
+  MCT8316_Write(&mct8316, ISD_CONFIG, mctData);
+  MCT8316_EEPROM_Commit(&mct8316);
+  mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
+  MCT8316_EEPROM_Read(&mct8316);
+  mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
+  sprintf(s,"Check Write Reg:0x%lx\n",mctData);
+  HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -204,7 +207,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 10000;
+  hi2c1.Init.ClockSpeed = 1000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
