@@ -94,6 +94,11 @@ void Pid_Cal(PID_Param *pid,double Target,double CurrVal)
 }
 
 //-----------------------------------------------End: Calculating PID-----------------------------------------------------//
+
+double e_CalOnly(PID_Param *pid,double Target,double CurrVal)
+{
+	return Target - CurrVal;
+}
 #endif
 
 

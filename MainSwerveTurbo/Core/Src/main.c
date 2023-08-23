@@ -289,12 +289,14 @@ float wheel_Vel_X2,wheel_Vel_Y2,wheel_Angle2,wheel_AngleVel2;
 
 int8_t quadrantCheck(float X, float Y)
 {
-	if ((X>0)&&(Y>=0))return 1;
-	else if ((X>0)&&(Y<=0))return 4;
-	else if ((X<0)&&(Y<=0))return 3;
-	else if ((X<0)&&(Y>=0))return 2;
-	else if ((X==0)&&(Y>0))return -1;
-	else if ((X==0)&&(Y<0))return -2;
+	if((X>0)&&(Y>0))return 1;
+	else if ((X<0)&&(Y>0))return 2;
+	else if ((X<0)&&(Y<0))return 3;
+	else if ((X>0)&&(Y<0))return 4;
+	else if ((X>0)&&(Y==0))return -1;
+	else if ((X<0)&&(Y==0))return -2;
+	else if ((X==0)&&(Y>0))return -3;
+	else if ((X==0)&&(Y<0))return -4;
 	else return 0;
 }
 
@@ -312,7 +314,11 @@ typedef struct Optimizer{
 	float CalInput;
 	float preCal;
 	float DeltaCal;
-	uint8_t OdorFlag;
+	uint8_t OdoFlagX;
+	uint8_t OdoFlagY;
+	double Xcoef,Ycoef;
+	double XCurrPos;
+	double YCurrPos;
 }Optimizer;
 
 void SwerveInit(Optimizer *Swerve){
@@ -324,7 +330,10 @@ void SwerveInit(Optimizer *Swerve){
 	Swerve -> preCal =0;
 	Swerve -> DeltaCal = 0;
 	Swerve->  CalInput = 0;
-	Swerve-> OdorFlag = 1;
+	Swerve-> OdoFlagX = 1;
+	Swerve-> OdoFlagY = 1;
+	Swerve-> Xcoef = 0;
+	Swerve-> Ycoef = 0;
 }
 
 
@@ -350,8 +359,7 @@ float TestAngle;
 Optimizer Swerve1;
 Optimizer Swerve2;
 
-int OdoPos,OdoFlag1,OdoFlag2,OdorCnt;;
-double CurrPos;
+int OdoPos,OdoFlag1,OdoFlag2,OdorCnt;
 
 void OptimizeAngle (Optimizer *Swerve,float InPut)
 {
@@ -412,6 +420,8 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 int preQuad1,currQuad1;
 int preQuad2,currQuad2;
 
+
+
 void InverseKine(float u,float v ,float r)
 {
 
@@ -444,15 +454,150 @@ void InverseKine(float u,float v ,float r)
 
 	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
 
-	if ((v>0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 0;
-	else if ((v<0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 1;
-	else if ((v<0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 0;
-	else if ((v>0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 1;
-	else {
-		OdorCnt = 0;
-		Swerve1.OdorFlag = 2;
+//	if ((v>0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 0;
+//	else if ((v<0)&&(Swerve1.Direc>0))Swerve1.OdorFlag = 1;
+//	else if ((v<0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 0;
+//	else if ((v>0)&&(Swerve1.Direc<0))Swerve1.OdorFlag = 1;
+//	else {
+//		OdorCnt = 0;
+//		Swerve1.OdorFlag = 2;
+//	}
+
+	//Góc phần tư đầu tiên :
+	if (currQuad1 == 1){
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 0;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 1;
+			}
+		Swerve1.Xcoef =  cos(atan(wheel_Vel_Y1/wheel_Vel_X1));
+		Swerve1.Ycoef =  sin(atan(wheel_Vel_Y1/wheel_Vel_X1));
+	//Goc phan tu thu 2 :
 	}
+	else if (currQuad1 == 2){
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 0;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 1;
+			}
+		Swerve1.Xcoef =  cos(atan(wheel_Vel_Y1/wheel_Vel_X1));
+		Swerve1.Ycoef =  sin(atan(wheel_Vel_Y1/wheel_Vel_X1));
+	}
+	//Goc phan tu thu 3 :
+	else if (currQuad1 == 3)
+	{
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 1;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 0;
+			}
+		Swerve1.Xcoef =  cos(atan(wheel_Vel_Y1/wheel_Vel_X1));
+		Swerve1.Ycoef =  sin(atan(wheel_Vel_Y1/wheel_Vel_X1));
+	}
+	//Goc phan tu thu 4 :
+	else if (currQuad1 == 4){
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 1;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 0;
+			}
+		Swerve1.Xcoef =  cos(atan(wheel_Vel_Y1/wheel_Vel_X1));
+		Swerve1.Ycoef =  sin(atan(wheel_Vel_Y1/wheel_Vel_X1));
+	}
+	//Vector chi huong 0 do :
+	else if (currQuad1 == -1)
+	{
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 2;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 2;
+			}
+		Swerve1.Xcoef = 1;
+		Swerve1.Ycoef = 0;
+	}
+	//Vector chi huong 180 do :
+	else if (currQuad1 == -2)
+	{
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 1;
+				Swerve1.OdoFlagY = 2;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 0;
+				Swerve1.OdoFlagY = 2;
+			}
+		Swerve1.Xcoef = 1;
+		Swerve1.Ycoef = 0;
+	}
+	//Vecto chi huong 90 do :
+	else if (currQuad1 == -3)
+	{
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 2;
+				Swerve1.OdoFlagY = 0;
+			}
+		else if (Swerve1.Direc<0)
+			{
+				Swerve1.OdoFlagX = 2;
+				Swerve1.OdoFlagY = 1;
+			}
+		Swerve1.Xcoef = 0;
+		Swerve1.Ycoef = 1;
+	}
+	//vecto chi huong 270 do :
+	else if (currQuad1 == -4)
+	{
+		if(Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 2;
+				Swerve1.OdoFlagY = 1;
+			}
+		else if (Swerve1.Direc>0)
+			{
+				Swerve1.OdoFlagX = 2;
+				Swerve1.OdoFlagY = 0;
+			}
+		Swerve1.Xcoef = 0;
+		Swerve1.Ycoef = 1;
+	}
+	else{
+		Swerve1.Xcoef = 0;
+		Swerve1.Ycoef = 0;
+	}
+
+if (Swerve1.Ycoef<0)Swerve1.Ycoef=Swerve1.Ycoef*-1;
+//	Swerve1.Xcoef = abs(Swerve1.Xcoef);
+//	Swerve1.Ycoef= abs(Swerve1.Ycoef);
 }
+
 Optimizer Base;
 PID_Param PIDAngle;
 PID_Param PIDOdoU;
@@ -480,8 +625,8 @@ void PositionCal(float x,float y,float Count)
 
 
 double kP=1.5,kI,kD=0.1,alpha=0.8,T = 0.05,Ia,Ib,Ua = 40,Ub =-40;
-double kP1=0,kI1,kD1=0,alpha1=0,T1 = 0.05,Ia1,Ib1,Ua1 = 0.05,Ub1 =-0.05;
-double kP2=1.5,kI2,kD2=0.1,alpha2=0.8,T2 =0.05,Ia2,Ib2,Ua2 = 0.1,Ub2 =-0.1;
+double kP1=1.2,kI1,kD1=0.1,alpha1=0.1,T1 =0.05,Ia1,Ib1,Ua1 = 0.05,Ub1 =-0.05;
+double kP2=1.2,kI2,kD2=0.1,alpha2=0.1,T2 =0.05,Ia2,Ib2,Ua2 = 0.05,Ub2 =-0.05;
 double TargetAngle = 0;
 int zamn = 0;
 
@@ -496,6 +641,62 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
+double RobotCurXPos,RobotCurYPos;
+uint16_t state1,state2;
+double u1,v1;
+double u2,v2;
+
+double Prex1,Prey1;
+int TrajecFlag;
+
+void TrajectoryCtr1(double x,double y,double t ,double Phi)
+{
+	if(x!= Prex1){
+		u1=(x-Prex1)/t;
+		v1=(y-Prey1)/t;
+		TargetAngle = Phi;
+
+		if ((x>Prex1)&&(y>Prey1))
+		{
+			TrajecFlag = 1;
+		}else if ((x>Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 2;
+		}else if ((x<Prex1)&&(y>Prey1))
+		{
+			TrajecFlag = 3;
+		}else if ((x<Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 4;
+		}else if ((x>Prex1)&&(y==Prey1))
+		{
+			TrajecFlag = 5;
+		}else if ((x<Prex1)&&(y==Prey1))
+		{
+			TrajecFlag = 6;
+		}else if ((x==Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 7;
+		}else if ((x==Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 8;
+		}else{
+			TrajecFlag = 0;
+		}
+		Prex1 = x;
+		Prey1 = y;
+	}
+}
+
+void TrajectoryCtr2(double x,double y,double t ,double Phi)
+{
+
+}
+
+double TrajecArrX[] = {0.5,0};
+double TrajecArrY[] = {0.5,1};
+int i;
+float lenghtAr;
 /* USER CODE END 0 */
 
 /**
@@ -555,12 +756,6 @@ int main(void)
 		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  }
 	  else {
-//	  	if(zamn == 1){
-//	  		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
-//	  		  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
-//	  		  InverseKine(Yleft,-Xleft,-PIDAngle.u*M_PI/180);
-//	  		  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-//	  	}
 
 		 if(GamePad.Square == 1){
 			 OdoFlag1 = 1;
@@ -572,27 +767,99 @@ int main(void)
 		 }
 	  	 }
 	  if (OdoFlag1 == 1){
-
-		if(Swerve1.OdorFlag == 0)
+		//Xac dinh chuyen vi theo phuong X:
+		if (Swerve1.OdoFlagX == 0)
 		{
-			OdoPos-= OdorCnt;
-		}else {
-			OdoPos+= OdorCnt;
+			Swerve1.XCurrPos += (0.054*M_PI/1000)*OdorCnt*Swerve1.Xcoef;
 		}
-
+		else if (Swerve1.OdoFlagX == 1)
+		{
+			Swerve1.XCurrPos -= (0.054*M_PI/1000)*OdorCnt*Swerve1.Xcoef;
+		}
+		else if (Swerve1.OdoFlagX == 2)
+		{
+			Swerve1.XCurrPos += 0;
+		}
+		//Xac dinh chuyen vi theo phuong Y:
+		if (Swerve1.OdoFlagY == 0)
+		{
+			Swerve1.YCurrPos += (0.054*M_PI/1000)*OdorCnt*Swerve1.Ycoef;
+		}
+		else if (Swerve1.OdoFlagY == 1)
+		{
+			Swerve1.YCurrPos -= (0.054*M_PI/1000)*OdorCnt*Swerve1.Ycoef;
+		}
+		else if (Swerve1.OdoFlagY == 2)
+		{
+			Swerve1.YCurrPos += 0;
+		}
 		OdorCnt = 0;
+		lenghtAr =(sizeof(TrajecArrX)/sizeof(TrajecArrY[0]));
+		if (i<lenghtAr){
+			TrajectoryCtr1(TrajecArrX[i], TrajecArrY[i], 10, 0);
+			switch(TrajecFlag){
+			case 1:
+				if ((Swerve1.XCurrPos>=TrajecArrX[i])&&(Swerve1.YCurrPos>=TrajecArrY[i]))i++;
+				break;
+			case 2 :
+				if ((Swerve1.XCurrPos>=TrajecArrX[i])&&(Swerve1.YCurrPos<=TrajecArrY[i]))i++;
+				break;
+			case 3 :
+				if ((Swerve1.XCurrPos<=TrajecArrX[i])&&(Swerve1.YCurrPos>=TrajecArrY[i]))i++;
+				break;
+			case 4 :
+				if ((Swerve1.XCurrPos<=TrajecArrX[i])&&(Swerve1.YCurrPos<=TrajecArrY[i]))i++;
+				break;
+			case 5 :
+				if ((Swerve1.XCurrPos>=TrajecArrX[i]))i++;
+				break;
+			case 6 :
+				if ((Swerve1.XCurrPos<=TrajecArrX[i]))i++;
+				break;
+			case 7 :
+				if ((Swerve1.YCurrPos>=TrajecArrY[i]))i++;
+				break;
+			case 8 :
+				if ((Swerve1.YCurrPos<=TrajecArrY[i]))i++;
+				break;
+			case 9 :
+				break;
+			}
 
-//		  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
+		}else {
+			u1 = 0;
+			v1 = 0;
+		}
+//		if ((wheel_AngleVel1==0)||(wheel_AngleVel2==0)){
+//			RobotCurPos +=0;
+//		}else {
+//		{
+//			Swerve2.XCurrPos = (wheel_AngleVel2/wheel_AngleVel1)*Swerve1.XCurrPos;
+//			Swerve2.YCurrPos = (wheel_AngleVel2/wheel_AngleVel1)*Swerve1.YCurrPos;
+//			RobotCurPos +=sqrt(pow(Swerve1.XCurrPos,2)+pow(Swerve1.YCurrPos,2)
+//					)
+
+									;
+//		}
+
+			if (e_CalOnly(&PIDOdoU,y,Swerve1.YCurrPos)<=0)
+			{
+				y+=u1*DeltaT;
+			}
+			if (e_CalOnly(&PIDOdoV,x,Swerve1.XCurrPos)<=0)
+			{
+				x+=v1*DeltaT;
+			}
+		  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
 		  Pid_SetParam(&PIDOdoU,kP1,kI1,kD1,alpha1,T1,Ia1,Ib1,Ua1,Ub1);
-//		  Pid_SetParam(&PIDOdoV,kP2,kI2,kD2,alpha2,T2,Ia2,Ib2,Ua2,Ub2);
-		  CurrPos = (0.07*M_PI/1000)*OdoPos;
+		  Pid_SetParam(&PIDOdoV,kP2,kI2,kD2,alpha2,T2,Ia2,Ib2,Ua2,Ub2);
+//		  CurrPos = (0.07*M_PI/1000)*OdoPos;
 //		  PositionCal(x,y,OdoCount);
-		  Pid_Cal(&PIDOdoU,x,CurrPos);
-//		  Pid_Cal(&PIDOdoV,y,ynow);
-//		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
+		  Pid_Cal(&PIDOdoU,x,Swerve1.XCurrPos);
+		  Pid_Cal(&PIDOdoV,y,Swerve1.YCurrPos);
+		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
 
-		  InverseKine(0,-PIDOdoU.u,0);
-				  //-PIDAngle.u*M_PI/180);
+		  InverseKine(v1+PIDOdoV.u,u1+PIDOdoU.u,-PIDAngle.u*M_PI/180);
 		  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 	  }
 ////	  else if (GamePad.R2 == 1){

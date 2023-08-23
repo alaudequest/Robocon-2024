@@ -53,6 +53,8 @@ void Pid_uI_PreSetParam(PID_Param *pid,double uI_AboveLimit,double uI_BelowLimit
 void Pid_u_PresetParam(PID_Param *pid,double u_AboveLimit,double u_BelowLimit);
 void Pid_Term_PresetParam(PID_Param *pid,double kP,double kI,double kD);
 void Pid_Cal(PID_Param *pid,double Target,double CurrVal);
+
+double e_CalOnly(PID_Param *pid,double Target,double CurrVal);
 //------------------------End: Function of Pid-------------------------------------//
 #endif
 

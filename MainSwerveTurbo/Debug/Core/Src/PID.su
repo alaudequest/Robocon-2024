@@ -3,3 +3,4 @@
 ../Core/Src/PID.c:43:6:Pid_u_PresetParam	32	static
 ../Core/Src/PID.c:51:6:Pid_Term_PresetParam	40	static
 ../Core/Src/PID.c:64:6:Pid_Cal	40	static
+../Core/Src/PID.c:98:8:e_CalOnly	32	static
