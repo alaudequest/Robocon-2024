@@ -52,7 +52,7 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 MCT8316_t mct8316;
 char s[30] = {0};
-
+uint32_t mctData = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,6 +82,13 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void logPrint(char *s){
 	HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), 100);
+}
+
+void printRegisterValue(uint32_t val)
+{
+  sprintf(s,"RegVal:0x%lx\n",val);
+  HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), HAL_MAX_DELAY);
+
 }
 /* USER CODE END 0 */
 
@@ -122,27 +129,35 @@ int main(void)
 	  logPrint("MCT8316 fail to ACK\r\nCheck Vm voltage is above 5V, 3.3V at AVDD\r\nCheck I2C wire pins\r\n");
   }
   logPrint("Detect MCT8316\r\n");
-
   MCT8316_EEPROM_Read(&mct8316);
-  volatile uint32_t mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
-  sprintf(s,"Read Reg:0x%lx\n",mctData);
-  HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), HAL_MAX_DELAY);
-
-  mctData |= STAT_BRK_EN;
+  printRegisterValue(MCT8316_Read(&mct8316, ISD_CONFIG));
+  mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
+  mctData &= ~STAT_BRK_EN;
+  mctData &= ~BRAKE_EN;
   MCT8316_Write(&mct8316, ISD_CONFIG, mctData);
   MCT8316_EEPROM_Commit(&mct8316);
-  mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
   MCT8316_EEPROM_Read(&mct8316);
-  mctData = MCT8316_Read(&mct8316, ISD_CONFIG);
-  sprintf(s,"Check Write Reg:0x%lx\n",mctData);
-  HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), HAL_MAX_DELAY);
+
+  printRegisterValue(MCT8316_Read(&mct8316, ISD_CONFIG));
+  printRegisterValue(MCT8316_Read(&mct8316, 0xea));
+
+
+//  MCT8316_SetSpeed(&mct8316, 10);
+//  mctData = MCT8316_Read(&mct8316, DEVICE_CTRL);
+//  MCT8316_SetOverride(&mct8316, 1);
+//  mctData = MCT8316_Read(&mct8316, DEVICE_CTRL);
+
+
+
+//  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,0);
+//  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 0);
+//  HAL_GPIO_WritePin(MCT_RST_GPIO_Port, MCT_RST_Pin, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

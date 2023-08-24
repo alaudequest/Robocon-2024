@@ -2,7 +2,7 @@
  * DEVICE_CTRL_Register.h
  *
  *  Created on: Aug 18, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef DEVICE_CTRL_REGISTER_H_

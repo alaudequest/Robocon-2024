@@ -2,7 +2,7 @@
  * MCT8316.h
  *
  *  Created on: Aug 16, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef MCT8316_H
@@ -39,6 +39,7 @@
 #define GD_CONFIG2 0xae
 
 #define ALGO_CTRL1 0xe6
+#define DEVICE_CTRL 0xe8
 
 typedef struct ControlWord {
 	uint8_t rw;
@@ -63,4 +64,8 @@ uint32_t MCT8316_Read(MCT8316_t *mct, uint8_t reg);
 HAL_StatusTypeDef MCT8316_EEPROM_Read(MCT8316_t *mct);
 HAL_StatusTypeDef MCT8316_EEPROM_Write(MCT8316_t *mct);
 HAL_StatusTypeDef MCT8316_EEPROM_Commit(MCT8316_t *mct);
+HAL_StatusTypeDef MCT8316_SetSpeed(MCT8316_t *mct,uint8_t speedPercent);
+HAL_StatusTypeDef MCT8316_SetOverride(MCT8316_t *mct, uint8_t override);
+
+
 #endif

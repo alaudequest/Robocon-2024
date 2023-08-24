@@ -2,7 +2,7 @@
  * MCT8316_Register.h
  *
  *  Created on: Aug 16, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef INC_MCT8316_DEFINE_H_
@@ -10,7 +10,7 @@
 
 
 
-#define CTRL_WORD_DATA_LENGTH_POS 21
+#define CTRL_WORD_DATA_LENGTH_POS 20
 #define DLEN_16BIT 0UL
 #define DLEN_32BIT (1UL << CTRL_WORD_DATA_LENGTH_POS)
 #define DLEN_64BIT (2UL << CTRL_WORD_DATA_LENGTH_POS)
@@ -18,6 +18,8 @@
 #define CTRL_WORD_READ_WRITE_POS 23
 #define MCT_READ_MODE (1UL << CTRL_WORD_READ_WRITE_POS)
 #define MCT_WRITE_MODE (0UL << CTRL_WORD_READ_WRITE_POS)
+
+
 
 #define READ_MODE 1
 #define WRITE_MODE 0

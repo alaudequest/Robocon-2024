@@ -7,9 +7,9 @@
 
 #include "MCT8316.h"
 #include "MCT8316_Define.h"
+#include "DEVICE_CTRL_Register.h"
 #include "ALGO_CTRL1_Register.h"
 #include "ISD_CONFIG_Register.h"
-#include "DEVICE_CTRL_Register.h"
 HAL_StatusTypeDef MCT8316_IsReady(MCT8316_t *mct, I2C_HandleTypeDef *hi2c)
 {
 	mct->i2c = hi2c;
@@ -115,4 +115,19 @@ HAL_StatusTypeDef MCT8316_EEPROM_Commit(MCT8316_t *mct)
 	err = MCT8316_Write(mct, ALGO_CTRL1,EEPROM_WRITE_ACCESS_KEY_CODE);
 	HAL_Delay(100);
 	return err;
+}
+
+HAL_StatusTypeDef MCT8316_SetOverride(MCT8316_t *mct, uint8_t override)
+{
+	if(!override) return HAL_ERROR;
+	MCT8316_Write(mct, DEVICE_CTRL, OVERRIDE);
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef MCT8316_SetSpeed(MCT8316_t *mct,uint8_t speedPercent)
+{
+	if(speedPercent > 100) return HAL_ERROR;
+	uint32_t speed = (speedPercent*32767)/100;
+	MCT8316_Write(mct, DEVICE_CTRL,speed << SPEED_CTRL_POS);
+	return HAL_OK;
 }
