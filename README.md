@@ -48,3 +48,30 @@ Thiết kế board mạch điều khiển phần cơ khí là đế Swerve gồm
 * Thử nghiệm nguồn LDO và Buck tích hợp bên trong MCT8316
 * Thiết kế chuẩn nạp và giao tiếp UART khớp với mạch nạp ST-link V2.1
 * Giao tiếp I2C giữa MCU trên board và MCT8316 hoặc từ MCU bên ngoài giao tiếp để cài đặt thông số cho MCT8316
+
+Bảng chân ngoại vi của board driver 
+
+| Pin Number | Function           | Isolator        | Device Pin Number | Pin Function | Device Name      |
+|------------|--------------------|-----------------|-------------------|--------------|------------------|
+| 10(PA0)    | TIM2_CH1_PWM (DC)  | HCPL2631 (Pin 4)| 2                 | IN           | BTS7960 (1)      |
+| 11(PA1)    | TIM2_CH2_PWM (DC)  | HCPL2631 (Pin 1)| 2                 | IN             | BTS7960 (1)      |
+|            |                    |                 |                   |              |                  |
+| 13(PA3)    | TIM2_CH4_PWM       | HCPL2631 (Pin 4)| 2                 | IN           | BTS7960 (2)      |
+| 12(PA2)    | TIM2_CH3_PWM       | HCPL2631 (Pin 1)| 2                 | IN             | BTS7960 (2)      |
+|            |                    |                 |                   |              |                  |
+| 42(PB6)    | TIM4_CH1_ENCODER   | X               | 1                 | CHANNEL_A    | ENCODER (1)      |
+| 43(PB7)    | TIM4_CH2_ENCODER   | X               | 2                 | CHANNEL_B    | ENCODER (1)      |
+|            |                    |                 |                   |              |                  |
+| 16(PA6)    | TIM3_CH1_ENCODER   | X               | 1                 | CHANNEL_A    | ENCODER (2)      |
+| 17(PA7)    | TIM3_CH2_ENCODER   | X               | 2                 | CHANNEL_B    | ENCODER (2)      |
+|            |                    |                 |                   |              |                  |
+| 11(PA1)    | TIM2_CH2_PWM (BLDC)| ISO7721DR       | 28                | SPEED/WAKE   | MCT8316          |
+| 25(PB12)   | GPIO_INPUT         | ISO7721DR       | 29                | FG           | MCT8316          |
+| 26(PB13)   | GPIO_INPUT         | EL817           | 40                | nFAULT       | MCT8316          |
+| 14(PA4)    | GPIO_OUTPUT        | EL817           | 35                | BRAKE        | MCT8316          |
+| 10(PA0)    | GPIO_OUTPUT (BLDC) | EL817           | 34                | DIR          | MCT8316          |
+|            |                    |                 |                   |              |                  |
+| 30(PA9)    | USART1_TX          | X               |                   | USART_RX     | STM32F407VCT6    |
+| 31(PA10)   | USART1_RX          | X               |                   | USART_TX     | STM32F407VCT6    |
+| 21(PB10)   | USART3_TX          | X               |                   | USART_RX     | STM32F407VCT6    |
+| 22(PB11)   | USART3_RX          | X               |                   | USART_TX     | STM32F407VCT6    |
