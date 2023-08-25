@@ -103,7 +103,7 @@ int main(void)
   TxHeader.ExtId = 0x00;
   TxHeader.IDE = CAN_ID_STD;
   TxHeader.RTR = CAN_RTR_DATA;
-  TxHeader.StdId = 0x101;
+  TxHeader.StdId = 0x100;
   TxHeader.TransmitGlobalTime = DISABLE;
 
   float_byte.txfloat[0] = 255.5;

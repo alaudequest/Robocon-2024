@@ -405,9 +405,9 @@ int main(void)
  800052c:	4b0f      	ldr	r3, [pc, #60]	; (800056c <main+0x6c>)
  800052e:	2200      	movs	r2, #0
  8000530:	60da      	str	r2, [r3, #12]
-  TxHeader.StdId = 0x101;
+  TxHeader.StdId = 0x100;
  8000532:	4b0e      	ldr	r3, [pc, #56]	; (800056c <main+0x6c>)
- 8000534:	f240 1201 	movw	r2, #257	; 0x101
+ 8000534:	f44f 7280 	mov.w	r2, #256	; 0x100
  8000538:	601a      	str	r2, [r3, #0]
   TxHeader.TransmitGlobalTime = DISABLE;
  800053a:	4b0c      	ldr	r3, [pc, #48]	; (800056c <main+0x6c>)
