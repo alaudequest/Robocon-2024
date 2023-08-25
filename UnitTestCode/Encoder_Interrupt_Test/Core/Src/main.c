@@ -100,6 +100,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, 1);
+//	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, 1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -164,13 +166,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : EnA_Pin */
   GPIO_InitStruct.Pin = EnA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(EnA_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : EnB_Pin */
   GPIO_InitStruct.Pin = EnB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(EnB_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
