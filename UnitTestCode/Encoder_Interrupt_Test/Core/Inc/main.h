@@ -57,11 +57,11 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ENA_Pin GPIO_PIN_0
-#define ENA_GPIO_Port GPIOA
-#define ENA_EXTI_IRQn EXTI0_IRQn
-#define ENB_Pin GPIO_PIN_1
-#define ENB_GPIO_Port GPIOA
+#define EnA_Pin GPIO_PIN_6
+#define EnA_GPIO_Port GPIOA
+#define EnA_EXTI_IRQn EXTI9_5_IRQn
+#define EnB_Pin GPIO_PIN_7
+#define EnB_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

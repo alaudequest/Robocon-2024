@@ -41,7 +41,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  18 .debug_line   0000496b  00000000  00000000  00039995  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0007bb76  00000000  00000000  0003e300  2**0
+ 19 .debug_str    0007bb78  00000000  00000000  0003e300  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  20 .debug_frame  00000d6c  00000000  00000000  000b9e78  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -90,12 +90,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
  8000150:	af00      	add	r7, sp, #0
  8000152:	4603      	mov	r3, r0
  8000154:	80fb      	strh	r3, [r7, #6]
-	if(GPIO_Pin == ENA_Pin){
+	if(GPIO_Pin == EnA_Pin){
  8000156:	88fb      	ldrh	r3, [r7, #6]
- 8000158:	2b01      	cmp	r3, #1
+ 8000158:	2b40      	cmp	r3, #64	; 0x40
  800015a:	d111      	bne.n	8000180 <HAL_GPIO_EXTI_Callback+0x34>
-		if(HAL_GPIO_ReadPin(ENB_GPIO_Port, ENB_Pin))
- 800015c:	2102      	movs	r1, #2
+		if(HAL_GPIO_ReadPin(EnB_GPIO_Port, EnB_Pin))
+ 800015c:	2180      	movs	r1, #128	; 0x80
  800015e:	480a      	ldr	r0, [pc, #40]	; (8000188 <HAL_GPIO_EXTI_Callback+0x3c>)
  8000160:	f000 fc36 	bl	80009d0 <HAL_GPIO_ReadPin>
  8000164:	4603      	mov	r3, r0
@@ -306,46 +306,46 @@ static void MX_GPIO_Init(void)
  800026c:	603b      	str	r3, [r7, #0]
  800026e:	683b      	ldr	r3, [r7, #0]
 
-  /*Configure GPIO pin : ENA_Pin */
-  GPIO_InitStruct.Pin = ENA_Pin;
- 8000270:	2301      	movs	r3, #1
+  /*Configure GPIO pin : EnA_Pin */
+  GPIO_InitStruct.Pin = EnA_Pin;
+ 8000270:	2340      	movs	r3, #64	; 0x40
  8000272:	60bb      	str	r3, [r7, #8]
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
  8000274:	4b11      	ldr	r3, [pc, #68]	; (80002bc <MX_GPIO_Init+0x90>)
  8000276:	60fb      	str	r3, [r7, #12]
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
- 8000278:	2301      	movs	r3, #1
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 8000278:	2300      	movs	r3, #0
  800027a:	613b      	str	r3, [r7, #16]
-  HAL_GPIO_Init(ENA_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(EnA_GPIO_Port, &GPIO_InitStruct);
  800027c:	f107 0308 	add.w	r3, r7, #8
  8000280:	4619      	mov	r1, r3
  8000282:	480f      	ldr	r0, [pc, #60]	; (80002c0 <MX_GPIO_Init+0x94>)
  8000284:	f000 fa20 	bl	80006c8 <HAL_GPIO_Init>
 
-  /*Configure GPIO pin : ENB_Pin */
-  GPIO_InitStruct.Pin = ENB_Pin;
- 8000288:	2302      	movs	r3, #2
+  /*Configure GPIO pin : EnB_Pin */
+  GPIO_InitStruct.Pin = EnB_Pin;
+ 8000288:	2380      	movs	r3, #128	; 0x80
  800028a:	60bb      	str	r3, [r7, #8]
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
  800028c:	2300      	movs	r3, #0
  800028e:	60fb      	str	r3, [r7, #12]
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
- 8000290:	2301      	movs	r3, #1
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 8000290:	2300      	movs	r3, #0
  8000292:	613b      	str	r3, [r7, #16]
-  HAL_GPIO_Init(ENB_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(EnB_GPIO_Port, &GPIO_InitStruct);
  8000294:	f107 0308 	add.w	r3, r7, #8
  8000298:	4619      	mov	r1, r3
  800029a:	4809      	ldr	r0, [pc, #36]	; (80002c0 <MX_GPIO_Init+0x94>)
  800029c:	f000 fa14 	bl	80006c8 <HAL_GPIO_Init>
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
  80002a0:	2200      	movs	r2, #0
  80002a2:	2100      	movs	r1, #0
- 80002a4:	2006      	movs	r0, #6
+ 80002a4:	2017      	movs	r0, #23
  80002a6:	f000 f9d8 	bl	800065a <HAL_NVIC_SetPriority>
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
- 80002aa:	2006      	movs	r0, #6
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+ 80002aa:	2017      	movs	r0, #23
  80002ac:	f000 f9f1 	bl	8000692 <HAL_NVIC_EnableIRQ>
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -356,7 +356,7 @@ static void MX_GPIO_Init(void)
  80002b4:	46bd      	mov	sp, r7
  80002b6:	bd80      	pop	{r7, pc}
  80002b8:	40021000 	.word	0x40021000
- 80002bc:	10210000 	.word	0x10210000
+ 80002bc:	10110000 	.word	0x10110000
  80002c0:	40010800 	.word	0x40010800
 
 080002c4 <Error_Handler>:
@@ -608,24 +608,24 @@ void SysTick_Handler(void)
  800037e:	bf00      	nop
  8000380:	bd80      	pop	{r7, pc}
 
-08000382 <EXTI0_IRQHandler>:
+08000382 <EXTI9_5_IRQHandler>:
 
 /**
-  * @brief This function handles EXTI line0 interrupt.
+  * @brief This function handles EXTI line[9:5] interrupts.
   */
-void EXTI0_IRQHandler(void)
+void EXTI9_5_IRQHandler(void)
 {
  8000382:	b580      	push	{r7, lr}
  8000384:	af00      	add	r7, sp, #0
-  /* USER CODE BEGIN EXTI0_IRQn 0 */
+  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
 
-  /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(ENA_Pin);
- 8000386:	2001      	movs	r0, #1
+  /* USER CODE END EXTI9_5_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(EnA_Pin);
+ 8000386:	2040      	movs	r0, #64	; 0x40
  8000388:	f000 fb3a 	bl	8000a00 <HAL_GPIO_EXTI_IRQHandler>
-  /* USER CODE BEGIN EXTI0_IRQn 1 */
+  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
-  /* USER CODE END EXTI0_IRQn 1 */
+  /* USER CODE END EXTI9_5_IRQn 1 */
 }
  800038c:	bf00      	nop
  800038e:	bd80      	pop	{r7, pc}

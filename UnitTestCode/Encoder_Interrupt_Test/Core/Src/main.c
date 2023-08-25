@@ -55,8 +55,8 @@ static void MX_GPIO_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if(GPIO_Pin == ENA_Pin){
-		if(HAL_GPIO_ReadPin(ENB_GPIO_Port, ENB_Pin))
+	if(GPIO_Pin == EnA_Pin){
+		if(HAL_GPIO_ReadPin(EnB_GPIO_Port, EnB_Pin))
 			count++;
 		else
 			count--;
@@ -161,21 +161,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /*Configure GPIO pin : ENA_Pin */
-  GPIO_InitStruct.Pin = ENA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ENA_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : EnA_Pin */
+  GPIO_InitStruct.Pin = EnA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(EnA_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ENB_Pin */
-  GPIO_InitStruct.Pin = ENB_Pin;
+  /*Configure GPIO pin : EnB_Pin */
+  GPIO_InitStruct.Pin = EnB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ENB_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(EnB_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
