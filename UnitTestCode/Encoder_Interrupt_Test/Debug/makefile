@@ -60,8 +60,8 @@ all: main-build
 main-build: Encoder_Interrupt_Test.elf secondary-outputs
 
 # Tool invocations
-Encoder_Interrupt_Test.elf Encoder_Interrupt_Test.map: $(OBJS) $(USER_OBJS) D:\Robocon2024\UnitTestCode\Encoder_Interrupt_Test\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Encoder_Interrupt_Test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Robocon2024\UnitTestCode\Encoder_Interrupt_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Encoder_Interrupt_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Encoder_Interrupt_Test.elf Encoder_Interrupt_Test.map: $(OBJS) $(USER_OBJS) C:\Users\ADMIN\Desktop\Robocon\ team\ K\UnitTestCode\Encoder_Interrupt_Test\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Encoder_Interrupt_Test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\ADMIN\Desktop\Robocon team K\UnitTestCode\Encoder_Interrupt_Test\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Encoder_Interrupt_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -39,13 +39,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  17 .debug_macro  00015928  00000000  00000000  0002406d  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   0000496b  00000000  00000000  00039995  2**0
+ 18 .debug_line   0000494b  00000000  00000000  00039995  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0007bb78  00000000  00000000  0003e300  2**0
+ 19 .debug_str    0007bb8f  00000000  00000000  0003e2e0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .debug_frame  00000d6c  00000000  00000000  000b9e78  2**2
+ 20 .debug_frame  00000d6c  00000000  00000000  000b9e70  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000061  00000000  00000000  000babe4  2**0
+ 21 .debug_line_str 00000078  00000000  00000000  000babdc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -313,8 +313,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
  8000274:	4b11      	ldr	r3, [pc, #68]	; (80002bc <MX_GPIO_Init+0x90>)
  8000276:	60fb      	str	r3, [r7, #12]
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
- 8000278:	2300      	movs	r3, #0
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+ 8000278:	2301      	movs	r3, #1
  800027a:	613b      	str	r3, [r7, #16]
   HAL_GPIO_Init(EnA_GPIO_Port, &GPIO_InitStruct);
  800027c:	f107 0308 	add.w	r3, r7, #8
@@ -329,8 +329,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
  800028c:	2300      	movs	r3, #0
  800028e:	60fb      	str	r3, [r7, #12]
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
- 8000290:	2300      	movs	r3, #0
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+ 8000290:	2301      	movs	r3, #1
  8000292:	613b      	str	r3, [r7, #16]
   HAL_GPIO_Init(EnB_GPIO_Port, &GPIO_InitStruct);
  8000294:	f107 0308 	add.w	r3, r7, #8
