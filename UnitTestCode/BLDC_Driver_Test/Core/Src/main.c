@@ -48,8 +48,10 @@ TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
+CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailBox[3];
 uint8_t txdata[8];
+uint8_t rxdata[8];
 uint16_t pwm = 0;
 uint16_t pwm1 = 0;
 uint16_t pwm2 = 0;
@@ -57,6 +59,7 @@ uint8_t dir = 0;
 uint8_t brake = 0;
 uint8_t ecd1 = 0;
 uint8_t ecd2 = 0;
+uint8_t pwm_en = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +99,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		pwm2 = 0;
 	}
 }
-
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata) == HAL_OK){
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -134,6 +141,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_CAN_Start(&hcan);
+  CAN_Filter_Config();
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -162,16 +171,20 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 0);
 	  ecd1 = __HAL_TIM_GET_COUNTER(&htim3);
 	  ecd2 = __HAL_TIM_GET_COUNTER(&htim4);
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm);
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm1);
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm2);
+	  HAL_GPIO_WritePin(FET_Control_GPIO_Port, FET_Control_Pin, pwm_en);
 	  HAL_GPIO_WritePin(DIR_GPIO_Port, DIR_Pin, dir);
 	  HAL_GPIO_WritePin(BRAKE_GPIO_Port, BRAKE_Pin, brake);
-	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
-		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	  }
+//	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+//		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+//		  HAL_Delay(1000);
+//	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -191,12 +204,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -212,7 +224,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -234,7 +246,7 @@ static void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 18;
+  hcan.Init.Prescaler = 9;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -275,7 +287,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 72-1;
+  htim2.Init.Prescaler = 36-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 1000-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -433,7 +445,6 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
@@ -442,6 +453,9 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, DIR_Pin|BRAKE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(FET_Control_GPIO_Port, FET_Control_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -462,6 +476,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Sensor_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : FET_Control_Pin */
+  GPIO_InitStruct.Pin = FET_Control_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(FET_Control_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);

@@ -78,6 +78,8 @@ void Error_Handler(void);
 #define EnA2_GPIO_Port GPIOA
 #define EnB2_Pin GPIO_PIN_7
 #define EnB2_GPIO_Port GPIOA
+#define FET_Control_Pin GPIO_PIN_12
+#define FET_Control_GPIO_Port GPIOB
 #define EnB1_Pin GPIO_PIN_6
 #define EnB1_GPIO_Port GPIOB
 #define EnA1_Pin GPIO_PIN_7
