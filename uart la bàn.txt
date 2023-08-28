@@ -1,0 +1,28 @@
+------------------- Code truyền từ board la bàn ------------------------  
+ if(millis() - timeled > 5){
+        blinkState = !blinkState;
+        digitalWrite(LED_OK, blinkState);
+        timeled = millis();  
+        
+        uint8_t *pByte = NULL;
+        pByte  = &xoay;
+        for(uint8_t i = 0; i < 4; i++) {
+            Data[i] = pByte[i];
+        }
+        Data[4] = 13;
+        Serial.write(Data, 5);
+    }
+-----------------------------------------------------------------------------------
+
+------------------Code nhận xuống board main --------------------------
+
+void Receive(uint8_t *DataArray){
+            uint8_t *pInt = NULL;
+            if(DataArray[4] == 13){
+            	pInt = &xoay;
+            	for(uint8_t i = 0; i < 4; i++) {
+                	   *(pInt + i) = dataArray[i];
+            	}
+            }
+             memset(DataArray,0,Size);
+ }
