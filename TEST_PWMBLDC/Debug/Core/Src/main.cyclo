@@ -1,0 +1,10 @@
+../Core/Src/main.c:54:6:HAL_TIM_IC_CaptureCallback	2
+../Core/Src/main.c:60:6:ControlBLDC	1
+../Core/Src/main.c:85:5:main	1
+../Core/Src/main.c:136:6:SystemClock_Config	3
+../Core/Src/main.c:176:13:MX_TIM2_Init	6
+../Core/Src/main.c:235:13:MX_TIM3_Init	3
+../Core/Src/main.c:284:13:MX_TIM4_Init	4
+../Core/Src/main.c:329:13:MX_GPIO_Init	1
+../Core/Src/main.c:365:6:HAL_TIM_PeriodElapsedCallback	3
+../Core/Src/main.c:389:6:Error_Handler	1
