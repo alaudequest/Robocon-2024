@@ -688,10 +688,162 @@ void TrajectoryCtr1(double x,double y,double t ,double Phi)
 	}
 }
 
-void TrajectoryCtr2(double x,double y,double t ,double Phi)
+//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
+//----------------------------------------Begin:PurePursuilt-----------------------------------//
+//Tim Khoang cach giua hai diem :
+double Points[5][2] = {{0,0},{0.5,0},{1,0},{1.5,0},{1,1}};
+
+
+double PointDistances(double* pt1,double* pt2)
 {
+	double Distance = 0;
+	Distance = sqrt(pow((pt2[0]-pt1[0]),2)+pow((pt2[1]-pt1[1]),2));
+	return Distance;
+}
+//Ham kiem tra dau :
+int sgn(double num)
+{
+	if(num >=0)return 1;
+	else return 0;
+}
+
+double CurrPosition[2] = {0,0};
+double LookAheadDis = 0.3;
+
+uint16_t LFIndex;
+uint8_t IntersectionFound=0;
+uint8_t STIndex;
+double X1,X2,Y1,Y2;
+double Solx1,Solx2,Soly1,Soly2;
+double CurrX = 0,CurrY = 1;
+double dx,dy,dr,D,discriminant;
+
+double Solptn1[2],Solptn2[2],GoalPtn[2];
+
+double minX,minY,maxX,maxY;
+
+double min(double a,double b)
+{
+	double min;
+	min = a;
+	if (b<=min)
+	{
+		min = b;
+	}
+	return min;
+}
+
+double max(double a,double b)
+{
+	double max;
+	max = a;
+	if (b>=max)
+	{
+		max = b;
+	}
+	return max;
+}
+double absDouble(double num)
+{
+	if (num >=0)return num;
+	else return num*-1;
+}
+
+int SizeT;
+void PurePursuilt(void)
+{
+	STIndex = LFIndex;
+	IntersectionFound = 0;
+	CurrPosition[0]=CurrX;
+	CurrPosition[1]=CurrY;
+	for (int i = STIndex;i<=4;i++)
+	{
+		X1 = Points[i][0]-CurrX;
+		Y1 = Points[i][1]-CurrY;
+
+		X2 = Points[i+1][0]-CurrX;
+		Y2 = Points[i+1][1]-CurrY;
+
+		dx = X2-X1;
+		dy = Y2-Y1;
+
+		dr = sqrt(pow(dx,2)+pow(dy,2));
+
+		D = X1*Y2-X2*Y1;
+
+		discriminant = pow(LookAheadDis,2)*pow(dr,2)-pow(D,2);
+
+		if (discriminant>=0)
+		{
+			Solx1 = (D*dy+sgn(dy)*dx*sqrt(discriminant))/pow(dr,2);
+			Solx2 = (D*dy-sgn(dy)*dx*sqrt(discriminant))/pow(dr,2);
+			Soly1 = (-D*dx+absDouble(dy)*sqrt(discriminant))/pow(dr,2);
+			Soly2 = (-D*dx-absDouble(dy)*sqrt(discriminant))/pow(dr,2);
+
+			Solptn1[0]=Solx1+CurrX;
+			Solptn1[1]=Soly1+CurrY;
+
+			Solptn2[0]=Solx2+CurrX;
+			Solptn2[1]=Soly2+CurrY;
+
+			minX = min(Points[i][0],Points[i+1][0]);
+			minY = min(Points[i][1],Points[i+1][1]);
+			maxX = max(Points[i][0],Points[i+1][0]);
+			maxY = max(Points[i][1],Points[i+1][1]);
+
+			if(( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
+			&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) )
+			|| ( ((minX<=Solptn2[0])&&(Solptn2[0]<=maxX))
+			&& ((minY<=Solptn2[1])&&(Solptn2[1]<=maxY)) ))
+			{
+				IntersectionFound = 1;
+
+				if (( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
+					&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) )
+					&& ( ((minX<=Solptn2[0])&&(Solptn2[0]<=maxX))
+					&& ((minY<=Solptn2[1])&&(Solptn2[1]<=maxY)) ))
+				{
+					if((PointDistances(Solptn1,Points[i+1])) < (PointDistances(Solptn2,Points[i+1])))
+					{
+						GoalPtn[0] = Solptn1[0];
+						GoalPtn[1] = Solptn1[1];
+					}else{
+						GoalPtn[0] = Solptn2[0];
+						GoalPtn[1] = Solptn2[1];
+					}
+				}else {
+					if( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
+					&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) ){
+						GoalPtn[0] = Solptn1[0];
+						GoalPtn[1] = Solptn1[1];
+					}else{
+						GoalPtn[0] = Solptn2[0];
+						GoalPtn[1] = Solptn2[1];
+					}
+				}
+				if (PointDistances(GoalPtn, Points[i+1])<PointDistances(CurrPosition, Points[i+1])){
+					LFIndex = i;
+					break;
+				}else{
+					LFIndex = i+1;
+				}
+			}
+			else{
+				IntersectionFound = 0;
+				GoalPtn[0] = Points[LFIndex][0];
+				GoalPtn[1] = Points[LFIndex][1];
+			}
+		}
+	}
 
 }
+
+
+
+
+//----------------------------------------End:PurePursuilt-------------------------------------//
+//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
+
 
 double TrajecArrX[] = {0.5,0};
 double TrajecArrY[] = {0.5,1};
@@ -723,7 +875,6 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -870,7 +1021,9 @@ int main(void)
 //	  	 InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
 //	  	 ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 //	  }
-
+	  else if(OdoFlag2==1){
+		  PurePursuilt();
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

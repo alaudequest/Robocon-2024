@@ -778,13 +778,13 @@ void StartCalPIDDC(void const * argument)
   for(;;)
   {
 
-//
-//	if((HomeStatus)&&(RunStatus != AccurateFindingState)){
-//		PIDDCPos();
-//	}
-//	else{
-//		PIDDCSpeed();
-//	}
+
+	if((HomeStatus)&&(RunStatus != AccurateFindingState)){
+		PIDDCPos();
+	}
+	else{
+		PIDDCSpeed();
+	}
 
 	osDelay(1);
 
@@ -807,17 +807,17 @@ void StartCalPIDBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	if(Mode == 2){
-//		PID_BLDC.uI = 0;
-//		PID_BLDC.uI_Pre = 0;
-//		PID_BLDC.u = 0;
-//		BLDC_Drive_RedBoard(&BLDC,&htim2,0,TIM_CHANNEL_2);
-//		osDelay(100);
-////		Mode = 0;
-//	}else{
-//		PIDBLDC();
-//	}
-	  BLDC_Drive_RedBoard(&BLDC,&htim2,1000,TIM_CHANNEL_2);
+	if(Mode == 2){
+		PID_BLDC.uI = 0;
+		PID_BLDC.uI_Pre = 0;
+		PID_BLDC.u = 0;
+		BLDC_Drive_RedBoard(&BLDC,&htim2,0,TIM_CHANNEL_2);
+		osDelay(100);
+//		Mode = 0;
+	}else{
+		PIDBLDC();
+	}
+//	  BLDC_Drive_RedBoard(&BLDC,&htim2,1000,TIM_CHANNEL_2);
 	osDelay(1);
   }
   /* USER CODE END StartCalPIDBLDC */
@@ -841,15 +841,15 @@ void StartLogicControl(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	if(HomeFound == 0)
-//	{
-//		HomeFinding();
-//	}
-//	else
-//	{
-//		target_BLDC_Speed = SpeedBLDC;
-//		target_DC_POS = DCDegree;
-//	}
+	if(HomeFound == 0)
+	{
+		HomeFinding();
+	}
+	else
+	{
+		target_BLDC_Speed = SpeedBLDC;
+		target_DC_POS = DCDegree;
+	}
     osDelay(1);
   }
 
