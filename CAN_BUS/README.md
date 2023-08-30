@@ -118,7 +118,7 @@ Khi ở chế độ này ta sẽ tổng hợp được tất cả tính năng c�
 
 ![Alt text](image-5.png)
 
-### Cấu hình dữ liệu truyền đi 
+### Truyền gói tin
 
 Đầu tiên chúng ta cần khởi tạo các biến để chứa dữ liệu và tiêu đề.
 
@@ -139,7 +139,7 @@ Tiếp theo ta sẽ gán giá trị cho các biến tiêu đề.
 - `ExtId` ID mở rộng. Ta có thể gán giá trị cho biến này từ 0 đến 0x1FFFFFFF.
 - `TransmitGlobalTime` "Tem thư"(`timestamp`) - khởi động đếm thời gian truyền dữ liệu và gửi đi đến nơi nhận. Giá trị thời gian sẽ được lưu vào byte thứ 6 và 7 của chuỗi truyền vì thế cần phải cấu hình DLC = 8. Biến này có thể chọn ENABLE hoặc DISABLE.
 
-Khi mà cấu hình xong thông tin ta gọi hàm truyền dữ liệu
+Khi mà cấu hình xong thông tin ta sử dụng lệnh truyền dữ liệu.
 
 ```
 HAL_CAN_AddTxMessage(CAN_HandleTypeDef *hcan, const CAN_TxHeaderTypeDef *pHeader,
@@ -152,3 +152,57 @@ Trong đó:
 - aData[] chứa dữ liệu truyền đi.
 - Con trỏ pTxMailbox trỏ tới biến hộp thư được gửi đi.
 
+Dưới đây là dữ liệu từ chân Tx truyền đi:
+
+
+Ta có thể thấy rằng:
+- Id là 0x103.
+- 8 byte data.
+- Và cuối cùng là giá trị CRC được thêm bởi HAL.
+
+Gói tin sẽ được truyền lên đường dây qua 2 chân CANH và CANL và các thiết bị giao tiếp CAN sẽ có thể nhận được gói tin từ đường dây này. Ở đây dùng từ có thể bởi vì gói tin nhận được hay không còn tùy thuộc vào cấu hình bộ lọc của nơi nhận. Nếu gói tin thông qua được bộ lọc thì có thể đưa vào thiết bị.
+
+# Nhận gói tin
+
+Ta sử dụng ngắt cho việc nhận gói tin. Khi có gói tin vượt qua bộ lọc truyền xuống vi điều khiển thì ngắt sẽ được bật. 
+
+Đầu tiên chúng ta lựa chọn thanh ghi FIFO để chứa gói tin nhận được.
+
+![Alt text](image-15.png)
+
+Nếu tick vào `CAN RX0 Interrupts` thì sẽ lựa chọn FIFO 0 để chứa gói tin còn `CAN RX1 Interrupts` thì lựa chọn FIFO 1.
+
+Bây giờ trong hàm main ta sẽ bật ngắt bằng lệnh. 
+
+```
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+```
+
+Ở đây nếu có gói tin chứa trong RX_FIFO_0 thì chương trình sẽ nhảy vao hàm ngắt. Trong trường hợp này hàm ngắt sẽ là.
+
+```
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){}
+```
+
+Và để lấy dữ liệu từ gói tin ta sử dụng lệnh sau.
+
+```
+HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata);
+```
+
+- Ở đây ta sẽ lấy dữ liệu từ `CAN_RX_FIFO0` 
+- Tiêu đề sẽ được chứa trong `RxHeader` và `rxdata`.
+
+## Một số lỗi cần lưu ý khi dùng CANBus
+
+![Alt text](image-16.png)
+
+Chúng ta có thể kiểm tra lỗi ở thanh ghi `CAN_ESR` 
+
+Đa phần lỗi CANBus đều do phần cứng gây ra cho nên nếu có lỗi chúng ta sẽ ưu tiên kiểm tra phần cứng.
+
+1. `Stuff Error`: Cứ mỗi 5 bit cùng mức logic thì CANBus sẽ tự chèn vào 1 bit khác mức logic để đảm bảo rằng CANBus vẫn hoạt động được. Những node nhận sẽ tự động loại bỏ bit được chèn vào này. Nếu không có trở 120 Ohm thì sẽ bị lỗi này.
+2. `Form Error`: Nếu 
+3. `Acknowledgment Error`: Lỗi không có node nào nhận được.
+4. `Bit recessive Error` và `Bit dominant Error`: 2 lỗi này chủ yếu là do chưa kết nối với module CAN Transceiver hoặc nối nhầm dây Tx và Rx.
+5. `CRC Error`: Node đếm giá trị CRC của gói tin khác với giá trị CRC trên đường dây.

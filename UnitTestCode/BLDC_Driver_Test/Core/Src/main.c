@@ -99,6 +99,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		pwm2 = 0;
 	}
 }
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxdata) == HAL_OK){
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -142,7 +143,9 @@ int main(void)
 
   HAL_CAN_Start(&hcan);
   CAN_Filter_Config();
+
   HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -178,12 +181,13 @@ int main(void)
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm1);
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, pwm2);
 	  HAL_GPIO_WritePin(FET_Control_GPIO_Port, FET_Control_Pin, pwm_en);
+
 	  HAL_GPIO_WritePin(DIR_GPIO_Port, DIR_Pin, dir);
 	  HAL_GPIO_WritePin(BRAKE_GPIO_Port, BRAKE_Pin, brake);
-//	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
-//		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-//		  HAL_Delay(1000);
-//	  }
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		  HAL_Delay(1000);
+	  }
 
     /* USER CODE END WHILE */
 
