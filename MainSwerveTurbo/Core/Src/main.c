@@ -401,10 +401,10 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 			Swerve->DeltaAngle = Swerve->DeltaAngle;
 		}else if ((Swerve->DeltaAngle>90)&&(Swerve->DeltaAngle<=180))
 		{
-			Swerve->DeltaAngle += -180;
+			Swerve->DeltaAngle += -180.0;
 		}else if ((Swerve->DeltaAngle<-90)&&(Swerve->DeltaAngle>=-180))
 		{
-			Swerve->DeltaAngle += 180;
+			Swerve->DeltaAngle += 180.0;
 		}
 
 		Swerve->PreAngle = InPut;
@@ -620,8 +620,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if (GPIO_Pin == Odo_Extio_Pin)
 	{
-		if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt--;
-		else OdorCnt++;
+		if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt++;
+		else OdorCnt--;
 	}
 }
 
@@ -658,19 +658,16 @@ void OdoCountLogic(void){
 	OdorCnt = 0;
 }
 
-void interpolate(void)
-{
-
-}
 //----------------------------------------End:Position Track-----------------------------------//
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
+
 
 
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 //----------------------------------------Begin:PurePursuilt-----------------------------------//
 
-double Points[5][2] = {{0,0},{0.5,0},{1,0},{1.5,0},{1,1}};
+double Points[5][2] = {{0,0},{0,0.5},{1,1},{0,2},{0,0}};
 double CurrPosition[2] = {0,0};
 double LookAheadDis = 0.3;
 
@@ -733,7 +730,7 @@ double absDouble(double num)
 	if (num >=0)return num;
 	else return num*-1;
 }
-
+int lmao;
 void PurePursuilt(void)
 {
 	pathlen = sizeof(Points)/sizeof(Points[0]);
@@ -814,15 +811,17 @@ void PurePursuilt(void)
             if (PointDistances(GoalPtn, Points[i+1])<PointDistances(CurrPosition, Points[i+1])){
                 LFIndex = i;
                 break;
-            }else{
-            	if (LFIndex==pathlen-2)
-            	{
-            		EndOfPath = 1 ;
-        			GoalPtn[0] = Points[LFIndex+1][0];
-        			GoalPtn[1] = Points[LFIndex+1][1];
-            	}
-                LFIndex = i+1;
+            }else if (LFIndex==pathlen-2)
+				{
+					EndOfPath = 1 ;
+					GoalPtn[0] = Points[i+1][0];
+					GoalPtn[1] = Points[i+1][1];
+					LFIndex = i+1;
+					lmao++;
                 }
+            else{
+            	LFIndex = i+1;
+            }
 			}
     		else{
     			IntersectionFound = 0;
@@ -838,26 +837,17 @@ void PurePursuilt(void)
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 //----------------------------------------Begin:PIDController----------------------------------//
-#define P_Term 0
-#define I_Term 0
-#define D_Term 0
-#define DeltaT 0.01
-#define D_alpha 0
-#define I_Above 20
-#define I_Below -20
-#define U_Above 20
-#define U_Below -20
 
 
-double kP=1.5,kI,kD=0.1,alpha=0.8,T = 0.05,Ia,Ib,Ua = 40,Ub =-40;
-double kP1=1.2,kI1,kD1=0.1,alpha1=0.1,T1 =0.05,Ia1,Ib1,Ua1 = 0.05,Ub1 =-0.05;
-double kP2=1.2,kI2,kD2=0.1,alpha2=0.1,T2 =0.05,Ia2,Ib2,Ua2 = 0.05,Ub2 =-0.05;
+double kP=1.5,kI,kD=0.1,alpha=0.8,T = 0.08,Ia,Ib,Ua = 40,Ub =-40;
+double kP1=1.2,kI1,kD1=0,alpha1=0.1,T1 = 0.08,Ia1,Ib1,Ua1 = 0.1,Ub1 =-0.1;
+double kP2=1.2,kI2,kD2=0,alpha2=0.1,T2 = 0.08,Ia2,Ib2,Ua2 = 0.1,Ub2 =-0.1;
 
 uint8_t esTablished,establishCheck;
 void SteadyStateCheck(void)
 {
 
-	if ((abs(e_CalOnly(&PIDOdoU,Solptn1[0],Swerve1.XCurrPos))<0.01) && (abs(e_CalOnly(&PIDOdoU,Solptn1[1],Swerve1.YCurrPos))<0.01))
+	if ((abs(e_CalOnly(&PIDOdoU,Solptn1[0],Swerve1.XCurrPos))<0.01) && (abs(e_CalOnly(&PIDOdoV,Solptn1[1],Swerve1.YCurrPos))<0.01))
 	{
 		establishCheck+=1;
 		if(establishCheck>3)
@@ -879,6 +869,9 @@ void ResetCheckPara(void)
 	establishCheck = 0;
 }
 
+
+
+
 void PIDPathFollow(void)
 {
 	  Pid_SetParam(&PIDAngle,kP,kI,kD,alpha,T,Ia,Ib,Ua,Ub);
@@ -889,8 +882,8 @@ void PIDPathFollow(void)
 	  {
 		  SteadyStateCheck();
 	  }
-	  Pid_Cal(&PIDOdoU,Solptn1[0],Swerve1.XCurrPos);
-	  Pid_Cal(&PIDOdoV,Solptn1[1],Swerve1.YCurrPos);
+	  Pid_Cal(&PIDOdoV,GoalPtn[0],Swerve1.XCurrPos);
+	  Pid_Cal(&PIDOdoU,GoalPtn[1],Swerve1.YCurrPos);
 	  if (esTablished!= 1)
 	  {
 		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
@@ -898,13 +891,54 @@ void PIDPathFollow(void)
 		  PIDAngle.u = 0;
 	  }
 
-	  InverseKine(-PIDOdoV.u,-PIDOdoU.u,-PIDAngle.u*M_PI/180);
+	  InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
 	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 }
 
 //----------------------------------------End:PIDController------------------------------------//
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 
+
+void TrajectoryCtr1(double x,double y,double t ,double Phi)
+{
+	if(x!= Prex1){
+		u1=(x-Prex1)/t;
+		v1=(y-Prey1)/t;
+		TargetAngle = Phi;
+
+		if ((x>Prex1)&&(y>Prey1))
+		{
+			TrajecFlag = 1;
+		}else if ((x>Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 2;
+		}else if ((x<Prex1)&&(y>Prey1))
+		{
+			TrajecFlag = 3;
+		}else if ((x<Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 4;
+		}else if ((x>Prex1)&&(y==Prey1))
+		{
+			TrajecFlag = 5;
+		}else if ((x<Prex1)&&(y==Prey1))
+		{
+			TrajecFlag = 6;
+		}else if ((x==Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 7;
+		}else if ((x==Prex1)&&(y<Prey1))
+		{
+			TrajecFlag = 8;
+		}else{
+			TrajecFlag = 0;
+		}
+		Prex1 = x;
+		Prey1 = y;
+	}
+}
+
+double uT,vT,rT;
 /* USER CODE END 0 */
 
 /**
@@ -920,8 +954,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -977,6 +1010,8 @@ int main(void)
 		  PurePursuilt();
 		  PIDPathFollow();
 	  }
+//	  InverseKine(uT,vT,rT);
+//	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 	  HAL_Delay(T*1000);
     /* USER CODE END WHILE */
 
@@ -1218,9 +1253,10 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin : Odo_Extio_Pin */
   GPIO_InitStruct.Pin = Odo_Extio_Pin;
