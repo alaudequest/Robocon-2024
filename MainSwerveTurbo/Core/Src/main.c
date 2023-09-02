@@ -25,6 +25,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <PID.h>
+#include <String.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +49,7 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId TaskPathTrackHandle;
 osThreadId TaskPIDCalHandle;
@@ -66,6 +68,7 @@ osThreadId KinematicTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_UART4_Init(void);
 static void MX_USART3_UART_Init(void);
@@ -217,6 +220,31 @@ void GetDataCompass(){
 
 uint8_t AngleData[5];
 int CurrAngle;
+void Receive(uint8_t *DataArray){
+      uint8_t *pInt = NULL;
+      if(DataArray[4] == 13){
+           pInt = &CurrAngle;
+           for(uint8_t i = 0; i < 4; i++) {
+               *(pInt + i) = DataArray[i];
+            }
+      }
+      memset(DataArray,0,5);
+ }
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	if(huart -> Instance == USART2)
+	{
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart2_ds, 5);
+		if (uart2_ds[5]==13)
+		{
+
+			Receive(uart2_ds);
+		}
+		  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx,DMA_IT_HT);
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart->Instance == USART3){
@@ -278,39 +306,39 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			GamePad.Status = 0;
 		}
 	}
-	if(huart->Instance == USART2){
-//		if(uart2_ds != '\n')
-//				ds[ds_ind++] = uart2_ds;
-//		else{
-//				GetDataCompass();
-//				ds_cnt = ds_ind;
-//				ds_flg = 1;
-//				ds_ind = 0;
+//	if(huart->Instance == USART2){
+////		if(uart2_ds != '\n')
+////				ds[ds_ind++] = uart2_ds;
+////		else{
+////				GetDataCompass();
+////				ds_cnt = ds_ind;
+////				ds_flg = 1;
+////				ds_ind = 0;
+////		}
+//		HAL_UART_Receive_IT(&huart2, (uint8_t*)uart2_ds, 5);
+//		int Vitridata2 = -1;
+//		for (int i2 =0;i2<=4;++i2)
+//		{
+//			if(uart2_ds[i2]==149){
+//				Vitridata2 = i2;
+//			}
 //		}
-		HAL_UART_Receive_IT(&huart2, (uint8_t*)uart2_ds, 5);
-		int Vitridata2 = -1;
-		for (int i2 =0;i2<=4;++i2)
-		{
-			if(uart2_ds[i2]==149){
-				Vitridata2 = i2;
-			}
-		}
-
-		if(Vitridata2 != -1){
-			int cnt2 = 0;
-			while (cnt2<5){
-				AngleData[cnt2] = AngleData[Vitridata2];
-				++Vitridata2;
-				if(Vitridata2 == 5)
-				{
-					Vitridata2 = 0;
-				}
-				++cnt2;
-			}
-			CurrAngle = AngleData[2]<<8 | AngleData[3];
-		}
-
-	}
+//
+//		if(Vitridata2 != -1){
+//			int cnt2 = 0;
+//			while (cnt2<5){
+//				AngleData[cnt2] = AngleData[Vitridata2];
+//				++Vitridata2;
+//				if(Vitridata2 == 5)
+//				{
+//					Vitridata2 = 0;
+//				}
+//				++cnt2;
+//			}
+//			CurrAngle = AngleData[2]<<8 | AngleData[3];
+//		}
+//
+//	}
 }
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
@@ -997,6 +1025,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_UART4_Init();
   MX_USART3_UART_Init();
@@ -1008,7 +1037,10 @@ int main(void)
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(5000);
-  HAL_UART_Receive_IT(&huart2, (uint8_t *)uart2_ds, 5);
+//  HAL_UART_Receive_IT(&huart2, (uint8_t *)uart2_ds, 5);
+
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx,DMA_IT_HT);
 //  TargetAngle=GocRobot;
 
 
@@ -1303,6 +1335,22 @@ static void MX_USART3_UART_Init(void)
   /* USER CODE BEGIN USART3_Init 2 */
 
   /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 
