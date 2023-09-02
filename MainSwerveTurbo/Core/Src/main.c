@@ -198,7 +198,7 @@ float Xright;
 float SpeedOutPut,PosOutPut;
 
 char ds[12];
-uint8_t uart2_ds, ds_ind, ds_cnt, ds_flg;
+uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
 int GocRobot;
 
 void GetDataCompass(){
@@ -215,6 +215,8 @@ void GetDataCompass(){
 	}
 }
 
+uint8_t AngleData[5];
+int CurrAngle;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 	if(huart->Instance == USART3){
@@ -277,15 +279,37 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		}
 	}
 	if(huart->Instance == USART2){
-		if(uart2_ds != '\n')
-				ds[ds_ind++] = uart2_ds;
-		else{
-				GetDataCompass();
-				ds_cnt = ds_ind;
-				ds_flg = 1;
-				ds_ind = 0;
+//		if(uart2_ds != '\n')
+//				ds[ds_ind++] = uart2_ds;
+//		else{
+//				GetDataCompass();
+//				ds_cnt = ds_ind;
+//				ds_flg = 1;
+//				ds_ind = 0;
+//		}
+		HAL_UART_Receive_IT(&huart2, (uint8_t*)uart2_ds, 5);
+		int Vitridata2 = -1;
+		for (int i2 =0;i2<=4;++i2)
+		{
+			if(uart2_ds[i2]==149){
+				Vitridata2 = i2;
+			}
 		}
-		HAL_UART_Receive_IT(&huart2, &uart2_ds, 1);
+
+		if(Vitridata2 != -1){
+			int cnt2 = 0;
+			while (cnt2<5){
+				AngleData[cnt2] = AngleData[Vitridata2];
+				++Vitridata2;
+				if(Vitridata2 == 5)
+				{
+					Vitridata2 = 0;
+				}
+				++cnt2;
+			}
+			CurrAngle = AngleData[2]<<8 | AngleData[3];
+		}
+
 	}
 }
 
@@ -984,7 +1008,7 @@ int main(void)
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_Delay(5000);
-  HAL_UART_Receive_IT(&huart2, &uart2_ds, 1);
+  HAL_UART_Receive_IT(&huart2, (uint8_t *)uart2_ds, 5);
 //  TargetAngle=GocRobot;
 
 
@@ -1389,9 +1413,12 @@ void KinematicCal(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
-	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-    osDelay(T*1000);
+	 if(OdoFlag2 == 1)
+	 {
+		InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
+		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+		osDelay(T*1000);
+	 }
   }
   /* USER CODE END KinematicCal */
 }
