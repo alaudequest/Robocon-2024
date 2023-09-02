@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -48,6 +49,9 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
+osThreadId TaskPathTrackHandle;
+osThreadId TaskPIDCalHandle;
+osThreadId KinematicTaskHandle;
 /* USER CODE BEGIN PV */
 /*-----------------------------Begin:kinematic Macro--------------------------*/
 #define robot_Lenght 0.3
@@ -67,6 +71,10 @@ static void MX_UART4_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
+void PathTracking(void const * argument);
+void StartTask02(void const * argument);
+void KinematicCal(void const * argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -890,9 +898,6 @@ void PIDPathFollow(void)
 	  }else {
 		  PIDAngle.u = 0;
 	  }
-
-	  InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
-	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 }
 
 //----------------------------------------End:PIDController------------------------------------//
@@ -985,34 +990,69 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of TaskPathTrack */
+  osThreadDef(TaskPathTrack, PathTracking, osPriorityNormal, 0, 128);
+  TaskPathTrackHandle = osThreadCreate(osThread(TaskPathTrack), NULL);
+
+  /* definition and creation of TaskPIDCal */
+  osThreadDef(TaskPIDCal, StartTask02, osPriorityNormal, 0, 128);
+  TaskPIDCalHandle = osThreadCreate(osThread(TaskPIDCal), NULL);
+
+  /* definition and creation of KinematicTask */
+  osThreadDef(KinematicTask, KinematicCal, osPriorityBelowNormal, 0, 128);
+  KinematicTaskHandle = osThreadCreate(osThread(KinematicTask), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
 
-
-
-	  if (GamePad.Touch == 1)
-	  {
-		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
-	  }
-	  else {
-			 if(GamePad.Square == 1){
-				 OdoFlag2 = 0;
-			 }else if(GamePad.Circle == 1)
-			 {
-				 OdoFlag2 = 1;
-			 }
-	  	 }
-
-	  OdoCountLogic();
-	  if(OdoFlag2==1){
-		  PurePursuilt();
-		  PIDPathFollow();
-	  }
+//	  if (GamePad.Touch == 1)
+//	  {
+//		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
+//	  }
+//	  else {
+//			 if(GamePad.Square == 1){
+//				 OdoFlag2 = 0;
+//			 }else if(GamePad.Circle == 1)
+//			 {
+//				 OdoFlag2 = 1;
+//			 }
+//	  	 }
+//
+//	  OdoCountLogic();
+//	  if(OdoFlag2==1){
+//		  PurePursuilt();
+//		  PIDPathFollow();
+//	  }
 //	  InverseKine(uT,vT,rT);
 //	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-	  HAL_Delay(T*1000);
+//	  HAL_Delay(T*1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1271,7 +1311,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(Odo_Input_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
@@ -1279,6 +1319,82 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_PathTracking */
+/**
+  * @brief  Function implementing the TaskPathTrack thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_PathTracking */
+void PathTracking(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+  if (GamePad.Touch == 1)
+	  {
+		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
+	  }
+	  else {
+			 if(GamePad.Square == 1){
+				 OdoFlag2 = 0;
+			 }else if(GamePad.Circle == 1)
+			 {
+				 OdoFlag2 = 1;
+			 }
+		 }
+
+	  OdoCountLogic();
+	  if(OdoFlag2==1){
+		  PurePursuilt();
+	  }
+    osDelay(T*1000);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartTask02 */
+/**
+* @brief Function implementing the TaskPIDCal thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask02 */
+void StartTask02(void const * argument)
+{
+  /* USER CODE BEGIN StartTask02 */
+  /* Infinite loop */
+  for(;;)
+  {
+  if(OdoFlag2==1){
+	  PIDPathFollow();
+  }
+    osDelay(T*1000);
+  }
+  /* USER CODE END StartTask02 */
+}
+
+/* USER CODE BEGIN Header_KinematicCal */
+/**
+* @brief Function implementing the KinematicTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_KinematicCal */
+void KinematicCal(void const * argument)
+{
+  /* USER CODE BEGIN KinematicCal */
+  /* Infinite loop */
+  for(;;)
+  {
+	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
+	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+    osDelay(T*1000);
+  }
+  /* USER CODE END KinematicCal */
+}
 
 /**
   * @brief  Period elapsed callback in non blocking mode
