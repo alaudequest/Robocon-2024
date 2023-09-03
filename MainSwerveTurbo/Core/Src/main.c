@@ -228,7 +228,7 @@ void Receive(uint8_t *DataArray){
                *(pInt + i) = DataArray[i];
             }
       }
-      memset(DataArray,0,5);
+      	  memset(DataArray,0,5);
  }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
@@ -236,11 +236,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 	if(huart -> Instance == USART2)
 	{
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart2_ds, 5);
-		if (uart2_ds[5]==13)
-		{
-
 			Receive(uart2_ds);
-		}
 		  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx,DMA_IT_HT);
 	}
 }
@@ -790,7 +786,9 @@ double absDouble(double num)
 	if (num >=0)return num;
 	else return num*-1;
 }
-int lmao;
+
+
+double TargetPoint[2];
 void PurePursuilt(void)
 {
 	pathlen = sizeof(Points)/sizeof(Points[0]);
@@ -871,25 +869,27 @@ void PurePursuilt(void)
             if (PointDistances(GoalPtn, Points[i+1])<PointDistances(CurrPosition, Points[i+1])){
                 LFIndex = i;
                 break;
-            }else if (LFIndex==pathlen-2)
+            }
+            else if (LFIndex==pathlen-2)
 				{
 					EndOfPath = 1 ;
 					GoalPtn[0] = Points[i+1][0];
 					GoalPtn[1] = Points[i+1][1];
 					LFIndex = i+1;
-					lmao++;
+//					lmao++;
                 }
             else{
             	LFIndex = i+1;
             }
 			}
-    		else{
-    			IntersectionFound = 0;
-    			GoalPtn[0] = Points[LFIndex][0];
-    			GoalPtn[1] = Points[LFIndex][1];
-    		}
+		}else{
+			IntersectionFound = 0;
+			GoalPtn[0] = Points[LFIndex][0];
+			GoalPtn[1] = Points[LFIndex][1];
 		}
 	}
+	TargetPoint[0]=GoalPtn[0];
+	TargetPoint[1]=GoalPtn[1];
 }
 
 //----------------------------------------End:PurePursuilt-------------------------------------//
@@ -942,8 +942,8 @@ void PIDPathFollow(void)
 	  {
 		  SteadyStateCheck();
 	  }
-	  Pid_Cal(&PIDOdoV,GoalPtn[0],Swerve1.XCurrPos);
-	  Pid_Cal(&PIDOdoU,GoalPtn[1],Swerve1.YCurrPos);
+	  Pid_Cal(&PIDOdoV,TargetPoint[0],Swerve1.XCurrPos);
+	  Pid_Cal(&PIDOdoU,TargetPoint[1],Swerve1.YCurrPos);
 	  if (esTablished!= 1)
 	  {
 		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
@@ -1011,7 +1011,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+ HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -1039,7 +1039,7 @@ int main(void)
   HAL_Delay(5000);
 //  HAL_UART_Receive_IT(&huart2, (uint8_t *)uart2_ds, 5);
 
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart2_ds, 5);
   __HAL_DMA_DISABLE_IT(&hdma_usart2_rx,DMA_IT_HT);
 //  TargetAngle=GocRobot;
 
@@ -1442,6 +1442,8 @@ void StartTask02(void const * argument)
   {
   if(OdoFlag2==1){
 	  PIDPathFollow();
+	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
+	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
   }
     osDelay(T*1000);
   }
@@ -1461,12 +1463,11 @@ void KinematicCal(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	 if(OdoFlag2 == 1)
-	 {
-		InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
-		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-		osDelay(T*1000);
-	 }
+//	 if(OdoFlag2 == 1)
+//	 {
+//		osDelay(T*1000);
+//	 }
+	  osDelay(1);
   }
   /* USER CODE END KinematicCal */
 }
