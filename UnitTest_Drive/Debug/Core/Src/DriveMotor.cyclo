@@ -1,0 +1,7 @@
+../Core/Src/DriveMotor.c:11:6:EncoderSetting	1
+../Core/Src/DriveMotor.c:17:6:SpeedReadOnly	1
+../Core/Src/DriveMotor.c:30:6:SpeedReadNonReset	1
+../Core/Src/DriveMotor.c:41:8:CountRead	5
+../Core/Src/DriveMotor.c:63:6:ResetCount	2
+../Core/Src/DriveMotor.c:77:6:BLDC_Drive_RedBoard	8
+../Core/Src/DriveMotor.c:94:6:DC_Drive_BTS	42
