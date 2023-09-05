@@ -192,13 +192,13 @@ void DC_Drive_BTS(MotorDrive *motor,TIM_HandleTypeDef *htim1,uint16_t Mode,int I
 	if(motor->Mode==0){
 		if(Input < 0)
 		{
-			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,0-motor->Pwm);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,motor->Pwm);
 			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,0);
 		}
 		else if(Input > 0)
 		{
 			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,0);
-			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,0-motor->Pwm);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,motor->Pwm);
 		}
 		else
 		{
