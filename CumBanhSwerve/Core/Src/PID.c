@@ -109,7 +109,7 @@ void SpeedReadOnly(EncoderRead *enc)
 	enc->count_Timer = __HAL_TIM_GET_COUNTER(enc->htim);
 	enc->count_X4 += enc->count_Timer;
 	__HAL_TIM_SET_COUNTER(enc->htim,0);
-	enc->vel_Real = (enc->count_X4/enc->deltaT)/(enc->count_PerRevol)*60;
+	enc->vel_Real = (enc->count_X4/enc->deltaT)/(enc->count_PerRevol*4)*60;
 	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
 	enc->vel_Pre = enc->vel_Real;
 	enc->count_X4 = 0;
@@ -189,20 +189,38 @@ void DC_Drive_BTS(MotorDrive *motor,TIM_HandleTypeDef *htim1,uint16_t Mode,int I
 	motor->Channel1 = Channel1;
 	motor->Channel2 = Channel2;
 //	motor->Mode = Mode;
-	if(Input < 0)
-	{
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,1000-motor->Pwm);
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,1000);
-	}
-	else if(Input > 0)
-	{
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,1000);
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,1000-motor->Pwm);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,1000);
-		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,1000);
+	if(motor->Mode==0){
+		if(Input < 0)
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,0-motor->Pwm);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,0);
+		}
+		else if(Input > 0)
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,0);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,0-motor->Pwm);
+		}
+		else
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,0);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,0);
+		}
+	}else{
+		if(Input < 0)
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,motor->Mode-motor->Pwm);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,motor->Mode);
+		}
+		else if(Input > 0)
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,motor->Mode);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,motor->Mode-motor->Pwm);
+		}
+		else
+		{
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,motor->Mode);
+			__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel2,motor->Mode);
+		}
 	}
 }
 

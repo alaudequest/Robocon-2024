@@ -202,21 +202,21 @@ float SpeedOutPut,PosOutPut;
 
 char ds[12];
 uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
-int GocRobot;
-
-void GetDataCompass(){
-	GocRobot = ds[1] - 48;
-	int x = 2;
-	while((ds[x] >= 48) && (ds[x] <= 57)){
-		GocRobot = GocRobot * 10;
-		GocRobot += ds[x] -48;
-		++x;
-	}
-
-	if(ds[0] == '-'){
-		GocRobot = -GocRobot;
-	}
-}
+//int GocRobot;
+//
+//void GetDataCompass(){
+//	GocRobot = ds[1] - 48;
+//	int x = 2;
+//	while((ds[x] >= 48) && (ds[x] <= 57)){
+//		GocRobot = GocRobot * 10;
+//		GocRobot += ds[x] -48;
+//		++x;
+//	}
+//
+//	if(ds[0] == '-'){
+//		GocRobot = -GocRobot;
+//	}
+//}
 
 uint8_t AngleData[5];
 int CurrAngle;
@@ -674,10 +674,12 @@ double TargetAngle = 0;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if (GPIO_Pin == Odo_Extio_Pin)
-	{
-		if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt++;
-		else OdorCnt--;
+	if(OdoFlag2!=0){
+		if (GPIO_Pin == Odo_Extio_Pin)
+		{
+			if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt++;
+			else OdorCnt--;
+		}
 	}
 }
 
@@ -834,17 +836,17 @@ void PurePursuilt(void)
 			maxX = max(Points[i][0],Points[i+1][0]);
 			maxY = max(Points[i][1],Points[i+1][1]);
 
-			if(( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
-			&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) )
-			|| ( ((minX<=Solptn2[0])&&(Solptn2[0]<=maxX))
-			&& ((minY<=Solptn2[1])&&(Solptn2[1]<=maxY)) ))
+			if(( ((Solptn1[0]>=minX)&&(Solptn1[0]<=maxX))
+			&& ((Solptn1[1]>=minY)&&(Solptn1[1]<=maxY)) )
+			|| ( ((Solptn2[0]>=minX)&&(Solptn2[0]<=maxX))
+			&& ((Solptn2[1]>=minY)&&(Solptn2[1]<=maxY)) ))
 			{
 				IntersectionFound = 1;
 
-				if (( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
-					&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) )
-					&& ( ((minX<=Solptn2[0])&&(Solptn2[0]<=maxX))
-					&& ((minY<=Solptn2[1])&&(Solptn2[1]<=maxY)) ))
+				if (( ((Solptn1[0]>=minX)&&(Solptn1[0]<=maxX))
+					&& ((Solptn1[1]>=minY)&&(Solptn1[1]<=maxY)) )
+					&& ( ((Solptn2[0]>=minX)&&(Solptn2[0]<=maxX))
+					&& ((Solptn2[1]>=minY)&&(Solptn2[1]<=maxY)) ))
 				{
 					if((PointDistances(Solptn1,Points[i+1])) < (PointDistances(Solptn2,Points[i+1])))
 					{
@@ -855,8 +857,8 @@ void PurePursuilt(void)
 						GoalPtn[1] = Solptn2[1];
 					}
 				}else {
-					if( ((minX<=Solptn1[0])&&(Solptn1[0]<=maxX))
-					&& ((minY<=Solptn1[1])&&(Solptn1[1]<=maxY)) )
+					if( ((Solptn1[0]>=minX)&&(Solptn1[0]<=maxX))
+					&& ((Solptn1[1]>=minY)&&(Solptn1[1]<=maxY)) )
 					{
 						GoalPtn[0] = Solptn1[0];
 						GoalPtn[1] = Solptn1[1];
@@ -900,8 +902,8 @@ void PurePursuilt(void)
 
 
 double kP=1.5,kI,kD=0.1,alpha=0.8,T = 0.08,Ia,Ib,Ua = 40,Ub =-40;
-double kP1=1.2,kI1,kD1=0,alpha1=0.1,T1 = 0.08,Ia1,Ib1,Ua1 = 0.1,Ub1 =-0.1;
-double kP2=1.2,kI2,kD2=0,alpha2=0.1,T2 = 0.08,Ia2,Ib2,Ua2 = 0.1,Ub2 =-0.1;
+double kP1=1.2,kI1,kD1=0.05,alpha1=0.1,T1 = 0.08,Ia1,Ib1,Ua1 = 0.3,Ub1 =-0.2;
+double kP2=1.2,kI2,kD2=0.05,alpha2=0.1,T2 = 0.08,Ia2,Ib2,Ua2 = 0.3,Ub2 =-0.2;
 
 uint8_t esTablished,establishCheck;
 void SteadyStateCheck(void)
@@ -946,7 +948,7 @@ void PIDPathFollow(void)
 	  Pid_Cal(&PIDOdoU,TargetPoint[1],Swerve1.YCurrPos);
 	  if (esTablished!= 1)
 	  {
-		  Pid_Cal(&PIDAngle,TargetAngle,GocRobot);
+		  Pid_Cal(&PIDAngle,TargetAngle,CurrAngle);
 	  }else {
 		  PIDAngle.u = 0;
 	  }
@@ -996,6 +998,9 @@ void TrajectoryCtr1(double x,double y,double t ,double Phi)
 }
 
 double uT,vT,rT;
+
+uint8_t PIDCalFlag;
+
 /* USER CODE END 0 */
 
 /**
@@ -1014,7 +1019,6 @@ int main(void)
  HAL_Init();
 
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -1409,18 +1413,29 @@ void PathTracking(void const * argument)
 	  {
 		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  }
+  else if(GamePad.Cross == 1)
+  {
+	  ControlDriver(1,2,0,90,2,2,0,90);
+  }
 	  else {
-			 if(GamePad.Square == 1){
+			 if(GamePad.Triangle == 1){
 				 OdoFlag2 = 0;
 			 }else if(GamePad.Circle == 1)
 			 {
 				 OdoFlag2 = 1;
+				 TargetAngle = CurrAngle;
+			 }else if(GamePad.Square == 1){
+				 OdoFlag2 = 2;
 			 }
 		 }
 
-	  OdoCountLogic();
 	  if(OdoFlag2==1){
+		  OdoCountLogic();
 		  PurePursuilt();
+		  PIDCalFlag = 1;
+	  }else if (OdoFlag2 == 2){
+		InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
+		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 	  }
     osDelay(T*1000);
   }
@@ -1440,12 +1455,13 @@ void StartTask02(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-  if(OdoFlag2==1){
-	  PIDPathFollow();
+  if(PIDCalFlag==1){
+	PIDPathFollow();
 	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
 	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+	PIDCalFlag = 0;
   }
-    osDelay(T*1000);
+    osDelay(1);
   }
   /* USER CODE END StartTask02 */
 }

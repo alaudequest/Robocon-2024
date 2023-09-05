@@ -72,7 +72,7 @@
 #define BLDCIntegralBelowLimit -1000
 #define BLDCSumAboveLimit 1000
 #define BLDCSumBelowLimit -1000
-#define _BLDCEncoderPerRound 2000
+#define _BLDCEncoderPerRound 200
 #define _BLDCGearRatio 	2.5
 
 
@@ -311,10 +311,10 @@ if (RunStatus == EndState){
 
 //-----------------------------------------------------------------------------------------------------------------//
 //----------------------------------------------------END: Home Finding--------------------------------------------//
-//-----------------------------------------------------------------------------------------------------------------//Mode
+//-----------------------------------------------------------------------------------------------------------------//
 uint8_t *pByte = NULL;
 
-#define ID 2
+#define ID 1
 uint8_t Mode;
 float SpeedBLDC;
 float DCDegree;
@@ -420,7 +420,7 @@ int main(void)
   HAL_Delay(1000);
   //Set intial Speed of both Motor as 0 RPM
 
-  EncoderSetting(&ENC_BLDC,&htim4,_BLDCEncoderPerRound*2.5,BLDCDeltaT);
+  EncoderSetting(&ENC_BLDC,&htim4,_BLDCEncoderPerRound*_BLDCGearRatio,BLDCDeltaT);
   EncoderSetting(&ENC_DC,&htim3,_DCEncoderPerRound,DCDeltaT);
 
   Pid_SetParam(&PID_BLDC,BLDCProportion,BLDCIntegral,BLDCDerivative,BLDCAlpha,BLDCDeltaT,BLDCIntegralAboveLimit,BLDCIntegralBelowLimit,BLDCSumAboveLimit,BLDCSumBelowLimit);
@@ -832,7 +832,7 @@ void StartCalPIDBLDC(void const * argument)
 
 //int TestDegree[] = {90,180,50,0,60,0,-90,10};
 //int TestSpeed[] = {100,0,120,200,100,200,100,0};
-
+int Test;
 
 /* USER CODE END Header_StartLogicControl */
 void StartLogicControl(void const * argument)
