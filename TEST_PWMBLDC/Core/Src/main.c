@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-int16_t count;
+int16_t count, sensor;
 int _SoXung, counter, _SoXungTruocDo, _ViTriRobot;
 double _VanTocThucTe, _VanTocLoc, _VanTocTruocDo;
 double DeltaT = 0.001;
@@ -114,6 +114,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
   HAL_TIM_Base_Start_IT(&htim3);
   ControlBLDC(0, 0);
+  HAL_GPIO_WritePin(Break_GPIO_Port, Break_Pin, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -121,6 +122,7 @@ int main(void)
   while (1)
   {
 	  ControlBLDC(DirTest, SpeedTest);
+//	  sensor = HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin);
 
     /* USER CODE END WHILE */
 
@@ -337,14 +339,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Dir_GPIO_Port, Dir_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, Dir_Pin|Break_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : Dir_Pin */
-  GPIO_InitStruct.Pin = Dir_Pin;
+  /*Configure GPIO pins : Dir_Pin Break_Pin */
+  GPIO_InitStruct.Pin = Dir_Pin|Break_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Dir_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Sensor_Pin */
+  GPIO_InitStruct.Pin = Sensor_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Sensor_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
