@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "DriveMotor.h"
+#include "Encoder.h"
 #include "stdlib.h"
 /* USER CODE END Includes */
 

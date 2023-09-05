@@ -1,7 +1,2 @@
-../Core/Src/DriveMotor.c:11:6:EncoderSetting	24	static
-../Core/Src/DriveMotor.c:17:6:SpeedReadOnly	24	static
-../Core/Src/DriveMotor.c:30:6:SpeedReadNonReset	24	static
-../Core/Src/DriveMotor.c:41:8:CountRead	16	static
-../Core/Src/DriveMotor.c:63:6:ResetCount	16	static
-../Core/Src/DriveMotor.c:77:6:BLDC_Drive_RedBoard	24	static
-../Core/Src/DriveMotor.c:94:6:DC_Drive_BTS	24	static
+../Core/Src/DriveMotor.c:10:6:BLDC_Drive_RedBoard	24	static
+../Core/Src/DriveMotor.c:27:6:DC_Drive_BTS	24	static
