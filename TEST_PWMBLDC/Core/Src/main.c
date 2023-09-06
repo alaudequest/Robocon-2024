@@ -122,7 +122,7 @@ int main(void)
   while (1)
   {
 	  ControlBLDC(DirTest, SpeedTest);
-//	  sensor = HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin);
+	  sensor = HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin);
 
     /* USER CODE END WHILE */
 
