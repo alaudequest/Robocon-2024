@@ -41,19 +41,23 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:PID BLDC Macro---------------------------*/
-#define BLDCPropotion				0
-#define BLDCIntergral				0
-#define BLDCDerivative				0
+//#define BLDCPropotion				0.2
+//#define BLDCIntergral				10
+//#define BLDCDerivative				0
 #define BLDCAlpha					0
-#define BLDCDeltaT					0.01
+#define BLDCDeltaT					0.001
 #define BLDCClockWise				1
 #define BLDCCounterClockWise		0
-#define BLDCIntergralAboveLimit		0
-#define BLDCIntergralBelowLimit		0
-#define BLDCSumAboveLimit			0
-#define BLDCSumBelowLimit			0
+#define BLDCIntergralAboveLimit		1000
+#define BLDCIntergralBelowLimit	   -1000
+#define BLDCSumAboveLimit			1000
+#define BLDCSumBelowLimit		   -1000
 #define BLDCEncoderPerRound			200
 #define BLDCGearRatio 				2.5
+
+double BLDCPropotion;
+double BLDCIntergral;
+double BLDCDerivative;
 /*-----------------------------End:PID BLDC Macro-----------------------------*/
 /* USER CODE END PM */
 
@@ -130,7 +134,7 @@ int main(void)
 
   EncoderSetting(&ENC_BLDC, &htim4, BLDCEncoderPerRound*BLDCGearRatio, BLDCDeltaT);
 
-  Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
+//  Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -360,8 +364,6 @@ static void MX_GPIO_Init(void)
   * @param  argument: Not used
   * @retval None
   */
-int countX1;
-int countX4;
 /* USER CODE END Header_StartCalPIDBLDC */
 void StartCalPIDBLDC(void const * argument)
 {
@@ -369,12 +371,13 @@ void StartCalPIDBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedTestBLDC, TIM_CHANNEL_2);
-//	SpeedReadNonReset(&ENC_BLDC);
-//	PIDBLDC();
-	  countX1 = CountRead(&ENC_BLDC, count_ModeX1);
-	  countX4 = CountRead(&ENC_BLDC, count_ModeX4);
-    osDelay(100);
+	SpeedReadNonReset(&ENC_BLDC);
+//	BLDC_Drive_RedBoard(&BLDC, &htim2, -SpeedTestBLDC, TIM_CHANNEL_2);
+//	SpeedReadOnly(&ENC_BLDC);
+	Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
+
+	PIDBLDC();
+    osDelay(1);
   }
   /* USER CODE END 5 */
 }

@@ -67,8 +67,8 @@ EncoderRead ENC_DC;
 MotorDrive BLDC;
 MotorDrive DC;
 
-int16_t SpeedBLDCTest;
-int16_t SpeedDCTest;
+int16_t SpeedTestBLDC;
+int16_t SpeedTestDC;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -426,7 +426,7 @@ void StartDriveBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedBLDCTest, TIM_CHANNEL_2);
+	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedTestBLDC, TIM_CHANNEL_2);
 	SpeedReadNonReset(&ENC_BLDC);
     osDelay(1);
   }
@@ -446,7 +446,7 @@ void StartDrvieDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedDCTest, TIM_CHANNEL_3, TIM_CHANNEL_4);
+	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTestDC, TIM_CHANNEL_3, TIM_CHANNEL_4);
 	SpeedReadNonReset(&ENC_DC);
     osDelay(1);
   }

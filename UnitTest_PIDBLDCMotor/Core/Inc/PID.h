@@ -19,16 +19,16 @@ typedef struct PID_Param{
 	double e_Pre;
 	double deltaT;
 //---------Propotion Parameters-------//
-	double kP;
+	float kP;
 	double uP;
 //---------Intergral Parameters-------//
-	double kI;
+	float kI;
 	double uI;
 	double uI_Pre;
 	int uI_AboveLimit;
 	int uI_BelowLimit;
 //---------Derivative Parameters------//
-	double kD;
+	float kD;
 	double uD;
 	double uD_Fil;
 	double uD_FilPre;

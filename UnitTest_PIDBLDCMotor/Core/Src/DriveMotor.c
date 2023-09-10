@@ -12,7 +12,7 @@ void BLDC_Drive_RedBoard(MotorDrive *motor,TIM_HandleTypeDef *htim1,int Input,un
 	motor->htim1 = htim1;
 	motor->Pwm = abs(Input);
 	motor->Channel1 = Channel1;
-	if (Input>0)
+	if (Input<0)
 	{
 		HAL_GPIO_WritePin(DirBLDC_GPIO_Port, DirBLDC_Pin, 1);
 		__HAL_TIM_SET_COMPARE(motor->htim1,motor->Channel1,motor->Pwm);

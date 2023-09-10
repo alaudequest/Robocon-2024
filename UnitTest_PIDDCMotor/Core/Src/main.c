@@ -53,7 +53,8 @@
 #define DCIntegralBelowLimit	0
 #define DCSumAboveLimit 		0
 #define DCSumBelowLimit			0
-#define DCEncoderPerRound		68000
+#define DCEncoderPerRound		14000
+#define DCGearRatio				3.5
 
 double SpeedTest_DC_Speed;
 /*-----------------------------End:PID DC Macro(SPEED)------------------------*/
@@ -397,8 +398,9 @@ void StartCalPIDDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTest_DC_Speed, TIM_CHANNEL_3, TIM_CHANNEL_4);
-//	PIDDCSPEED();
+//	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTest_DC_Speed, TIM_CHANNEL_3, TIM_CHANNEL_4);
+//	SpeedReadNonReset(&ENC_DC);
+	PIDDCSPEED();
 //	PIDDCPOS();
     osDelay(1);
   }

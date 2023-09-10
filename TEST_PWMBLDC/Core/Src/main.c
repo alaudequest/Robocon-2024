@@ -38,6 +38,7 @@ double DeltaT = 0.001;
 
 uint8_t DirTest;
 uint16_t SpeedTest;
+uint8_t breaktest;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -114,14 +115,14 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
   HAL_TIM_Base_Start_IT(&htim3);
   ControlBLDC(0, 0);
-  HAL_GPIO_WritePin(Break_GPIO_Port, Break_Pin, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ControlBLDC(DirTest, SpeedTest);
+	  HAL_GPIO_WritePin(Break_GPIO_Port, Break_Pin, 0);
+	  ControlBLDC(1, 1000);
 	  sensor = HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin);
 
     /* USER CODE END WHILE */
