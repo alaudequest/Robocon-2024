@@ -41,20 +41,20 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:PID DC Macro(SPEED)----------------------*/
-#define DCProportion 			0
-#define DCIntegral				0
+#define DCProportion 			5
+#define DCIntegral				250
 #define DCDerivatite			0
 #define DCAlpha					0
 #define DCDeltaT				0.001
 #define DCClockWise				1
 #define DCCounterClockWise 	   -1
 #define DCStop					0
-#define DCIntegralAboveLimit	0
-#define DCIntegralBelowLimit	0
-#define DCSumAboveLimit 		0
-#define DCSumBelowLimit			0
-#define DCEncoderPerRound		14000
-#define DCGearRatio				3.5
+#define DCIntegralAboveLimit	1000
+#define DCIntegralBelowLimit	-1000
+#define DCSumAboveLimit 		1000
+#define DCSumBelowLimit			-1000
+#define DCEncoderPerRound		1000
+#define DCGearRatio				3.535
 
 double SpeedTest_DC_Speed;
 /*-----------------------------End:PID DC Macro(SPEED)------------------------*/
@@ -66,14 +66,14 @@ double SpeedTest_DC_Speed;
 #define DCDerivatitePOS					0
 #define DCAlphaPOS						0
 #define DCDeltaTPOS						0.001
-#define DCIntegralAboveLimitPOS			0
-#define DCIntegralBelowLimitPOS			0
-#define DCSumAboveLimitPOS				0
-#define DCSumBelowLimitPOS				0
+#define DCIntegralAboveLimitPOS			1000
+#define DCIntegralBelowLimitPOS			-1000
+#define DCSumAboveLimitPOS				1000
+#define DCSumBelowLimitPOS				-1000
 
 double SpeedTest_DC_POS;
 /*-----------------------------End:PID DC Macro(POS)--------------------------*/
-
+double Degree;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -112,7 +112,7 @@ void PIDDCSPEED(void){
 }
 
 void PIDDCPOS(void){
-	Pid_Cal(&PID_DC_POS, SpeedTest_DC_POS, ENC_DC.vel_Real);
+	Pid_Cal(&PID_DC_POS, SpeedTest_DC_POS, CountRead(&ENC_DC, count_ModeDegree));
 
 	SpeedTest_DC_Speed = PID_DC_POS.u;
 
@@ -155,7 +155,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 
-  EncoderSetting(&ENC_DC, &htim3, DCEncoderPerRound, DCDeltaT);
+  EncoderSetting(&ENC_DC, &htim3, DCEncoderPerRound*DCGearRatio, DCDeltaT);
   Pid_SetParam(&PID_DC_SPEED, DCProportion, DCIntegral, DCDerivatite, DCAlpha, DCDeltaT, DCIntegralAboveLimit, DCIntegralBelowLimit, DCSumAboveLimit, DCSumBelowLimit);
   Pid_SetParam(&PID_DC_POS, DCProportionPOS, DCIntegralPOS, DCDerivatitePOS, DCAlphaPOS, DCDeltaTPOS, DCIntegralAboveLimitPOS, DCIntegralBelowLimitPOS, DCSumAboveLimitPOS, DCSumBelowLimitPOS);
 
@@ -392,6 +392,7 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartCalPIDDC */
+int countX1;
 void StartCalPIDDC(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -400,7 +401,9 @@ void StartCalPIDDC(void const * argument)
   {
 //	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTest_DC_Speed, TIM_CHANNEL_3, TIM_CHANNEL_4);
 //	SpeedReadNonReset(&ENC_DC);
-	PIDDCSPEED();
+//	PIDDCSPEED();
+	  Degree = CountRead(&ENC_DC, count_ModeDegree);
+	  countX1 = CountRead(&ENC_DC, countX1);
 //	PIDDCPOS();
     osDelay(1);
   }
