@@ -18,7 +18,7 @@ void SpeedReadOnly(EncoderRead *enc)
 	enc->count_Timer = __HAL_TIM_GET_COUNTER(enc->htim);
 	enc->count_X4 += enc->count_Timer;
 	__HAL_TIM_SET_COUNTER(enc->htim,0);
-	enc->vel_Real = (enc->count_X4/enc->deltaT)/(enc->count_PerRevol)*60;
+	enc->vel_Real = (enc->count_X4/enc->deltaT)/(enc->count_PerRevol*4)*60;
 	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
 	enc->vel_Pre = enc->vel_Real;
 	enc->count_X4 = 0;

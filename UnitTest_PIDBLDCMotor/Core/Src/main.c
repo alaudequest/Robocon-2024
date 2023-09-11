@@ -41,9 +41,9 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:PID BLDC Macro---------------------------*/
-//#define BLDCPropotion				0.2
-//#define BLDCIntergral				10
-//#define BLDCDerivative				0
+#define BLDCPropotion				0.2
+#define BLDCIntergral				10
+#define BLDCDerivative				0
 #define BLDCAlpha					0
 #define BLDCDeltaT					0.001
 #define BLDCClockWise				1
@@ -55,9 +55,9 @@
 #define BLDCEncoderPerRound			200
 #define BLDCGearRatio 				2.5
 
-double BLDCPropotion;
-double BLDCIntergral;
-double BLDCDerivative;
+//double BLDCPropotion;
+//double BLDCIntergral;
+//double BLDCDerivative;
 /*-----------------------------End:PID BLDC Macro-----------------------------*/
 /* USER CODE END PM */
 
@@ -134,7 +134,7 @@ int main(void)
 
   EncoderSetting(&ENC_BLDC, &htim4, BLDCEncoderPerRound*BLDCGearRatio, BLDCDeltaT);
 
-//  Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
+  Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -371,15 +371,36 @@ void StartCalPIDBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	SpeedReadNonReset(&ENC_BLDC);
+//	SpeedReadNonReset(&ENC_BLDC);
 //	BLDC_Drive_RedBoard(&BLDC, &htim2, -SpeedTestBLDC, TIM_CHANNEL_2);
 //	SpeedReadOnly(&ENC_BLDC);
-	Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
+//	Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
 
 	PIDBLDC();
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
