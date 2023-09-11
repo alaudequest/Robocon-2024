@@ -42,7 +42,7 @@
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:PID DC Macro(SPEED)----------------------*/
 #define DCProportion 			5
-#define DCIntegral				250
+#define DCIntegral				300
 #define DCDerivatite			0
 #define DCAlpha					0
 #define DCDeltaT				0.001
@@ -61,7 +61,7 @@ double SpeedTest_DC_Speed;
 
 
 /*-----------------------------Begin:PID DC Macro(POS)------------------------*/
-#define DCProportionPOS 				0
+#define DCProportionPOS 				10
 #define DCIntegralPOS					0
 #define DCDerivatitePOS					0
 #define DCAlphaPOS						0
@@ -402,9 +402,9 @@ void StartCalPIDDC(void const * argument)
 //	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTest_DC_Speed, TIM_CHANNEL_3, TIM_CHANNEL_4);
 //	SpeedReadNonReset(&ENC_DC);
 //	PIDDCSPEED();
-	  Degree = CountRead(&ENC_DC, count_ModeDegree);
-	  countX1 = CountRead(&ENC_DC, countX1);
-//	PIDDCPOS();
+	Degree = CountRead(&ENC_DC, count_ModeDegree);
+	countX1 = CountRead(&ENC_DC, countX1);
+	PIDDCPOS();
     osDelay(1);
   }
   /* USER CODE END 5 */
