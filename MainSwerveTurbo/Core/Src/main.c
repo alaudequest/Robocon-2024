@@ -791,6 +791,11 @@ double absDouble(double num)
 
 
 double TargetPoint[2];
+double PrevTarget[2];
+uint8_t NextIndex;
+
+
+
 void PurePursuilt(void)
 {
 	pathlen = sizeof(Points)/sizeof(Points[0]);
@@ -878,18 +883,27 @@ void PurePursuilt(void)
 					GoalPtn[0] = Points[i+1][0];
 					GoalPtn[1] = Points[i+1][1];
 					LFIndex = i+1;
-//					lmao++;
                 }
             else{
             	LFIndex = i+1;
             }
 			}
+			else{
+				IntersectionFound = 0;
+				GoalPtn[0] = PrevTarget[0];
+				GoalPtn[1] = PrevTarget[1];
+			}
 		}else{
 			IntersectionFound = 0;
+			NextIndex = LFIndex+1;
+			if(NextIndex>pathlen-1)NextIndex=pathlen-1;
 			GoalPtn[0] = Points[LFIndex][0];
 			GoalPtn[1] = Points[LFIndex][1];
 		}
 	}
+	PrevTarget[0] = GoalPtn[0];
+	PrevTarget[1] = GoalPtn[1];
+
 	TargetPoint[0]=GoalPtn[0];
 	TargetPoint[1]=GoalPtn[1];
 }
@@ -1016,7 +1030,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
- HAL_Init();
++
+HAL_Init();
 
   /* USER CODE BEGIN Init */
   /* USER CODE END Init */
