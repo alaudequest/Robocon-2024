@@ -41,14 +41,14 @@
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:BLDC Macro-------------------------------*/
 #define _BLDCDeltaT							0.001
-#define _BLDCEncoderPerRound 				 2000
+#define _BLDCEncoderPerRound 				  200
 #define _BLDCGearRatio 						  2.5
 /*-----------------------------End:BLDC Macro---------------------------------*/
 
 /*-----------------------------Begin:DC Macro---------------------------------*/
 #define DCDeltaT 							0.001
-#define DCEncoderPerRound 					68000
-#define DCGearRatio 						    0
+#define DCEncoderPerRound 					 1000
+#define DCGearRatio 						3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
 /* USER CODE END PM */
@@ -128,7 +128,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 
   EncoderSetting(&ENC_BLDC, &htim4, _BLDCEncoderPerRound*_BLDCGearRatio, _BLDCDeltaT);
-  EncoderSetting(&ENC_DC, &htim3, DCEncoderPerRound, DCDeltaT);
+  EncoderSetting(&ENC_DC, &htim3, DCEncoderPerRound * DCGearRatio, DCDeltaT);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */

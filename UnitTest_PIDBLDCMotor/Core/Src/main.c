@@ -371,12 +371,9 @@ void StartCalPIDBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	SpeedReadNonReset(&ENC_BLDC);
-//	BLDC_Drive_RedBoard(&BLDC, &htim2, -SpeedTestBLDC, TIM_CHANNEL_2);
-//	SpeedReadOnly(&ENC_BLDC);
-//	Pid_SetParam(&PID_BLDC, BLDCPropotion, BLDCIntergral, BLDCDerivative, BLDCAlpha, BLDCDeltaT, BLDCIntergralAboveLimit, BLDCIntergralBelowLimit, BLDCSumAboveLimit, BLDCSumBelowLimit);
-
-	PIDBLDC();
+	SpeedReadNonReset(&ENC_BLDC);
+//	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedTestBLDC, TIM_CHANNEL_2);
+//	PIDBLDC();
     osDelay(1);
   }
   /* USER CODE END 5 */

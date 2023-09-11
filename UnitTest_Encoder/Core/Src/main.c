@@ -38,15 +38,15 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 /*-----------------------------Begin:BLDC Macro-------------------------------*/
-#define _BLDCEncoderPerRound 				 2000
+#define _BLDCEncoderPerRound 				  200
 #define _BLDCGearRatio 						  2.5
 #define _BLDCDeltaT							0.001
 /*-----------------------------End:BLDC Macro---------------------------------*/
 
 /*-----------------------------Begin:DC Macro---------------------------------*/
 #define DCDeltaT 							0.001
-#define DCEncoderPerRound 					68000
-#define DCGearRatio 						    0
+#define DCEncoderPerRound 					 1000
+#define DCGearRatio 						3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
 /* USER CODE END PM */
