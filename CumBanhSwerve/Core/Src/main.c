@@ -779,12 +779,12 @@ void StartCalPIDDC(void const * argument)
   {
 
 
-//	if((HomeStatus)&&(RunStatus != AccurateFindingState)){
-//		PIDDCPos();
-//	}
-//	else{
-//		PIDDCSpeed();
-//	}
+	if((HomeStatus)&&(RunStatus != AccurateFindingState)){
+		PIDDCPos();
+	}
+	else{
+		PIDDCSpeed();
+	}
 
 	osDelay(1);
 
@@ -841,15 +841,15 @@ void StartLogicControl(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	if(HomeFound == 0)
-//	{
-//		HomeFinding();
-//	}
-//	else
-//	{
+	if(HomeFound == 0)
+	{
+		HomeFinding();
+	}
+	else
+	{
 		target_BLDC_Speed = SpeedBLDC;
-//		target_DC_POS = DCDegree;
-//	}
+		target_DC_POS = DCDegree;
+	}
     osDelay(1);
   }
 

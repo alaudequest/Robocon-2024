@@ -296,7 +296,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
 			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
-			  Xright =((GamePad.XRight-120)/10)*30/12;
+			  Xright =0.785/33*((GamePad.XRight-120)/10)*30/12;
 		}
 		else{
 			GamePad.Status = 0;
@@ -479,6 +479,59 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 
 
+float H ;
+float Lenght = 58;
+float Width = 0;
+float Gamma ;
+float gamma1,gamma2 ;
+float gamma01 = 0*M_PI/180,gamma02 = 180*M_PI/180;
+
+float Rcp,Phicl = 0.785;
+float R1,R2;
+float Phi1,Phi2;
+float velFactor1,velFactor2;
+
+double max(double a,double b)
+{
+	double max;
+	max = a;
+	if (b>=max)
+	{
+		max = b;
+	}
+	return max;
+}
+//
+//float uSnake = 0,v = 1;
+
+void SnakeTurn(double u,double v)
+{
+	if(Phicl!=0){
+		 H = sqrt(pow(Lenght,2)+pow(Width,2))/2;
+		    Gamma = atan2(u,v) ;
+			gamma1 = Gamma + gamma01;
+			gamma2 = Gamma + gamma02;
+
+
+			Rcp = H/tan(Phicl);
+
+			R1 = sqrt(pow(H,2)*pow(cos(gamma1),2)+pow((Rcp-H*sin(gamma1)),2));
+			R2 = sqrt(pow(H,2)*pow(cos(gamma2),2)+pow((Rcp-H*sin(gamma2)),2));
+
+			Phi1 = ((Phicl)*asin(H*cos(gamma1)/R1));
+			Phi2 = ((Phicl)*asin(H*cos(gamma2)/R2));
+
+			velFactor1 = R1/max(R1, R2);
+			velFactor2 = R2/max(R1, R2);
+	}else{
+		Phi1 = 0;
+		Phi2 = 0;
+		velFactor1 = 1;
+		velFactor2 = 1;
+	}
+
+}
+
 
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
@@ -493,35 +546,63 @@ Optimizer Swerve2;
 //Ham tinh dong hoc nghich cho robot dua vao van toc chuyen vi theo cac phuong
 void InverseKine(float u,float v ,float r)
 {
-
+	Phicl = r;
 	wheel_Vel_X1 = v;
-	wheel_Vel_Y1 = u-robot_Lenght*r;
+	wheel_Vel_Y1 = u;
+
+	SnakeTurn(u,v);
+//			-robot_Lenght*r;
 
 	wheel_Vel_X2 = v;
-	wheel_Vel_Y2 = u+robot_Lenght*r;
+	wheel_Vel_Y2 = u;
+//			+robot_Lenght*r;
 
 	currQuad1 = quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1);
 	currQuad2 = quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2);
+
+
+
 	if(currQuad1 == 0)
 		{
 			OptimizeAngle(&Swerve1, preQuad1);
 		}
 	else{
-		OptimizeAngle(&Swerve1, atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI);
-		preQuad1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI;
-	}
-	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+		if ((Phicl == 0)){
+			OptimizeAngle(&Swerve1, (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI);
+			preQuad1 = (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI;
+		}else {
+			if(v==0){
+				OptimizeAngle(&Swerve1, (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI);
+				preQuad1 = (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI;
+			}else {
+				OptimizeAngle(&Swerve1, Phi1*180/M_PI);
+				preQuad1 = Phi1*180/M_PI;
+			}
+		}
+		}
+	wheel_AngleVel1 = velFactor1*Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
 
 	if(currQuad2 == 0)
 	{
 		OptimizeAngle(&Swerve2, preQuad2);
 	}
 	else{
-		OptimizeAngle(&Swerve2, atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI);
-		preQuad2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI;
+		if((Phicl == 0)){
+			OptimizeAngle(&Swerve2, (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI);
+			preQuad2 = (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI;
+		}else{
+			if(v == 0){
+				OptimizeAngle(&Swerve2, (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI);
+				preQuad2 = (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI;
+			}
+			else{
+				OptimizeAngle(&Swerve2, Phi2*180/M_PI);
+				preQuad2 = Phi2*180/M_PI;
+			}
+		}
 	}
 
-	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+	wheel_AngleVel2 = -velFactor2*Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
 
 
 	//Góc phần tư đầu tiên :
@@ -772,16 +853,7 @@ double min(double a,double b)
 	return min;
 }
 
-double max(double a,double b)
-{
-	double max;
-	max = a;
-	if (b>=max)
-	{
-		max = b;
-	}
-	return max;
-}
+
 
 double absDouble(double num)
 {
@@ -1030,7 +1102,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-+
+
 HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -1417,6 +1489,7 @@ static void MX_GPIO_Init(void)
   * @param  argument: Not used
   * @retval None
   */
+
 /* USER CODE END Header_PathTracking */
 void PathTracking(void const * argument)
 {
@@ -1424,34 +1497,27 @@ void PathTracking(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-  if (GamePad.Touch == 1)
-	  {
-		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
-	  }
-  else if(GamePad.Cross == 1)
-  {
-	  ControlDriver(1,2,0,90,2,2,0,90);
-  }
-	  else {
-			 if(GamePad.Triangle == 1){
-				 OdoFlag2 = 0;
-			 }else if(GamePad.Circle == 1)
-			 {
-				 OdoFlag2 = 1;
-				 TargetAngle = CurrAngle;
-			 }else if(GamePad.Square == 1){
-				 OdoFlag2 = 2;
-			 }
-		 }
-
-	  if(OdoFlag2==1){
-		  OdoCountLogic();
-		  PurePursuilt();
-		  PIDCalFlag = 1;
-	  }else if (OdoFlag2 == 2){
-		InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
-		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-	  }
+//	 if(GamePad.Triangle == 1){
+//		 OdoFlag2 = 0;
+//	 }else if(GamePad.Circle == 1)
+//	 {
+//		 OdoFlag2 = 1;
+//	 }else if(GamePad.Square == 1){
+//		 OdoFlag2 = 2;
+//	 }
+//
+//
+//	if (OdoFlag2 == 2)
+//	{
+	  	  if (GamePad.Touch == 1)
+	  	  {
+	  		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
+	  	  }else {
+	  		  InverseKine(Yleft,Xleft,Xright);
+			ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+//	}
+	  	  }
+//	  SnakeTurn();
     osDelay(T*1000);
   }
   /* USER CODE END 5 */
@@ -1470,12 +1536,7 @@ void StartTask02(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-  if(PIDCalFlag==1){
-	PIDPathFollow();
-	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
-	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-	PIDCalFlag = 0;
-  }
+
     osDelay(1);
   }
   /* USER CODE END StartTask02 */
