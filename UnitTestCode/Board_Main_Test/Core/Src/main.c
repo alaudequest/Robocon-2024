@@ -43,7 +43,9 @@
 CAN_HandleTypeDef hcan1;
 
 /* USER CODE BEGIN PV */
-
+CAN_TxHeaderTypeDef TxHeader;
+uint32_t TxMailBox[3];
+uint8_t txdata[8];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,13 +91,31 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_CAN_Start(&hcan1);
 
+  TxHeader.DLC = 8;
+  TxHeader.ExtId = 0;
+  TxHeader.IDE = CAN_ID_STD;
+  TxHeader.RTR = CAN_RTR_DATA;
+  TxHeader.StdId = 0x101;
+  TxHeader.TransmitGlobalTime = DISABLE;
+
+  txdata[0] = 0x01;
+  txdata[1] = 0x02;
+  txdata[2] = 0x03;
+  txdata[3] = 0x04;
+  txdata[4] = 0x05;
+  txdata[5] = 0x06;
+  txdata[6] = 0x07;
+  txdata[7] = 0x08;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_CAN_AddTxMessage(&hcan1, &TxHeader, txdata, TxMailBox);
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

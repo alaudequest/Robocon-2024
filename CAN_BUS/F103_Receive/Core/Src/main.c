@@ -62,31 +62,68 @@ static void MX_CAN_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void CAN_FILTER_CONFIG(){
-	CAN_FilterTypeDef canfilterconfig;
+void CAN_FILTER0_CONFIG(){
+	CAN_FilterTypeDef canfilter0config;
 
-	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-	canfilterconfig.FilterBank = 0;
-	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	canfilterconfig.FilterIdHigh = 0x100 << 5;
-	canfilterconfig.FilterMaskIdHigh = 0x100 << 5;
-	canfilterconfig.FilterIdLow = 0x0000;
-	canfilterconfig.FilterMaskIdLow = 0x0000;
-	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	canfilterconfig.SlaveStartFilterBank = 13;
+	canfilter0config.FilterActivation = CAN_FILTER_ENABLE;
+	canfilter0config.FilterBank = 2;
+	canfilter0config.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	canfilter0config.FilterIdHigh = 0x200 << 5;
+	canfilter0config.FilterMaskIdHigh = 0x200 << 5;
+	canfilter0config.FilterIdLow = 0x0000;
+	canfilter0config.FilterMaskIdLow = 0x0000;
+	canfilter0config.FilterMode = CAN_FILTERMODE_IDMASK;
+	canfilter0config.FilterScale = CAN_FILTERSCALE_32BIT;
+	canfilter0config.SlaveStartFilterBank = 13;
 
-	HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
+	HAL_CAN_ConfigFilter(&hcan, &canfilter0config);
+}
+
+void CAN_FILTER1_CONFIG(){
+	CAN_FilterTypeDef canfilter1config;
+
+	canfilter1config.FilterActivation = CAN_FILTER_ENABLE;
+	canfilter1config.FilterBank = 1;
+	canfilter1config.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	canfilter1config.FilterIdHigh = 0x7FF << 5;
+	canfilter1config.FilterMaskIdHigh = 0x7FF << 5;
+	canfilter1config.FilterIdLow = 0x0000;
+	canfilter1config.FilterMaskIdLow = 0x0000;
+	canfilter1config.FilterMode = CAN_FILTERMODE_IDMASK;
+	canfilter1config.FilterScale = CAN_FILTERSCALE_32BIT;
+	canfilter1config.SlaveStartFilterBank = 13;
+
+	HAL_CAN_ConfigFilter(&hcan, &canfilter1config);
+}
+
+void CAN_FILTER2_CONFIG(){
+	CAN_FilterTypeDef canfilter2config;
+
+	canfilter2config.FilterActivation = CAN_FILTER_ENABLE;
+	canfilter2config.FilterBank = 0;
+	canfilter2config.FilterFIFOAssignment = CAN_FILTER_FIFO1;
+	canfilter2config.FilterIdHigh = 0x7FA << 5;
+	canfilter2config.FilterMaskIdHigh = 0x7FA << 5;
+	canfilter2config.FilterIdLow = 0x0000;
+	canfilter2config.FilterMaskIdLow = 0x0000;
+	canfilter2config.FilterMode = CAN_FILTERMODE_IDMASK;
+	canfilter2config.FilterScale = CAN_FILTERSCALE_32BIT;
+	canfilter2config.SlaveStartFilterBank = 13;
+
+	HAL_CAN_ConfigFilter(&hcan, &canfilter2config);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, float_byte.rxdata) == HAL_OK){
-		if(RxHeader.StdId == 0x103){
+		if(RxHeader.StdId == 0x202){
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		}else if(RxHeader.StdId == 0x102){
+		}else if(RxHeader.StdId == 0x201){
 			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);
 		}
 	}
+}
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	__NOP();
 }
 /* USER CODE END 0 */
 
@@ -120,9 +157,11 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-  CAN_FILTER_CONFIG();
+  CAN_FILTER0_CONFIG();
+  CAN_FILTER1_CONFIG();
+  CAN_FILTER2_CONFIG();
   HAL_CAN_Start(&hcan);
-  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -227,7 +266,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
