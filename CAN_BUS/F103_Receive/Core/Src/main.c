@@ -113,6 +113,9 @@ void CAN_FILTER2_CONFIG(){
 	HAL_CAN_ConfigFilter(&hcan, &canfilter2config);
 }
 
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, float_byte.rxdata);
+}
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, float_byte.rxdata) == HAL_OK){
 		if(RxHeader.StdId == 0x202){
@@ -121,9 +124,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);
 		}
 	}
-}
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	__NOP();
 }
 /* USER CODE END 0 */
 
