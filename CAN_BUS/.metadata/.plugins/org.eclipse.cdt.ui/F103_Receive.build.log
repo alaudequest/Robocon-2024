@@ -1,0 +1,10 @@
+23:30:59 **** Incremental Build of configuration Debug for project F103_Receive ****
+make -j8 all 
+arm-none-eabi-size   F103_Receive.elf 
+   text	   data	    bss	    dec	    hex	filename
+   7996	     20	   1644	   9660	   25bc	F103_Receive.elf
+Finished building: default.size.stdout
+ 
+
+23:30:59 Build Finished. 0 errors, 0 warnings. (took 917ms)
+
