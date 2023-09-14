@@ -60,8 +60,8 @@ all: main-build
 main-build: Slave_Driver.elf secondary-outputs
 
 # Tool invocations
-Slave_Driver.elf Slave_Driver.map: $(OBJS) $(USER_OBJS) D:\Robocon2024\Slave_Driver\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Slave_Driver.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Robocon2024\Slave_Driver\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Slave_Driver.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Slave_Driver.elf Slave_Driver.map: $(OBJS) $(USER_OBJS) G:\Robocon\Robocon-2024\Slave_Driver\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Slave_Driver.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"G:\Robocon\Robocon-2024\Slave_Driver\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Slave_Driver.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

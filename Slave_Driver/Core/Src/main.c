@@ -46,7 +46,8 @@ CAN_HandleTypeDef hcan;
 uint32_t ID = 0;
 uint8_t fifo = CAN_FILTER_FIFO0;
 uint32_t filterbank = 1;
-uint8_t rxdata[8];
+uint8_t rxData[8] = {0};
+uint8_t txData[8] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,31 +60,32 @@ static void MX_CAN_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void CAN_FILTER0_CONFIG(){
-	CAN_FilterTypeDef canfilter0config;
-
-	canfilter0config.FilterActivation = CAN_FILTER_ENABLE;
-	canfilter0config.FilterBank = 0;
-	canfilter0config.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	canfilter0config.FilterIdHigh = 0x200 << 5;
-	canfilter0config.FilterMaskIdHigh = 0x200 << 5;
-	canfilter0config.FilterIdLow = 0x0000;
-	canfilter0config.FilterMaskIdLow = 0x0000;
-	canfilter0config.FilterMode = CAN_FILTERMODE_IDMASK;
-	canfilter0config.FilterScale = CAN_FILTERSCALE_32BIT;
-	canfilter0config.SlaveStartFilterBank = 13;
-
-	HAL_CAN_ConfigFilter(&hcan, &canfilter0config);
+void canctrl_SetFilterTest1(){
+	canctrl_FilCfg(&hcan, 0x205, 1, CAN_FILTER_FIFO0);
+}
+void canctrl_SetFilterTest2(){
+	canctrl_FilCfg(&hcan, 0x206, 2, CAN_FILTER_FIFO1);
+}
+void canctrl_SetFilterBrake(){
+	canctrl_FilCfg(&hcan, 0x001, 0, CAN_FILTER_FIFO0);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	__NOP();
+	canctrl_Receive(hcan, rxData, CAN_RX_FIFO0);
+	canctrl_Send(hcan,txData, sizeof(txData));
 }
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	__NOP();
+	canctrl_Receive(hcan, rxData, CAN_RX_FIFO0);
+	canctrl_Send(hcan,txData, sizeof(txData));
 }
 
+HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
+	HAL_CAN_Start(can);
+	canctrl_SetFilterTest2();
+	canctrl_MakeStdTxHeader(0x200, 1, CAN_RTR_DATA);
+	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+}
 /* USER CODE END 0 */
 
 /**
@@ -116,9 +118,8 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-  canctrl_Init(&hcan);
-//  canctrl_SetFilter(&hcan, fifo, ID, filterbank);
-  CAN_FILTER0_CONFIG();
+  txData[0] = 51;
+  while(canctrl_Init(&hcan) != HAL_OK);
   /* USER CODE END 2 */
 
   /* Infinite loop */
