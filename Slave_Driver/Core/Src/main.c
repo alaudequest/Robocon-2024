@@ -43,11 +43,6 @@
 CAN_HandleTypeDef hcan;
 
 /* USER CODE BEGIN PV */
-uint32_t ID = 0;
-uint8_t fifo = CAN_FILTER_FIFO0;
-uint32_t filterbank = 1;
-uint8_t rxData[8] = {0};
-uint8_t txData[8] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +56,7 @@ static void MX_CAN_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void canctrl_SetFilterTest1(){
-	canctrl_FilCfg(&hcan, 0x205, 1, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, 0x215, 1, CAN_FILTER_FIFO0);
 }
 void canctrl_SetFilterTest2(){
 	canctrl_FilCfg(&hcan, 0x206, 2, CAN_FILTER_FIFO1);
@@ -71,18 +66,19 @@ void canctrl_SetFilterBrake(){
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, rxData, CAN_RX_FIFO0);
-	canctrl_Send(hcan,txData, sizeof(txData));
+	canctrl_Receive(hcan, CAN_RX_FIFO0);
+//	canctrl_Send(hcan,txData, sizeof(txData));
 }
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, rxData, CAN_RX_FIFO0);
-	canctrl_Send(hcan,txData, sizeof(txData));
+	canctrl_Receive(hcan, CAN_RX_FIFO0);
+//	canctrl_Send(hcan,txData, sizeof(txData));
 }
 
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
 	HAL_CAN_Start(can);
 	canctrl_SetFilterTest2();
+	canctrl_SetFilterTest1();
 	canctrl_MakeStdTxHeader(0x200, 1, CAN_RTR_DATA);
 	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 }
@@ -118,7 +114,7 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-  txData[0] = 51;
+  canctrl_PutMessage(1000);
   while(canctrl_Init(&hcan) != HAL_OK);
   /* USER CODE END 2 */
 

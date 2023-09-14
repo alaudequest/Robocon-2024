@@ -6,6 +6,7 @@
  */
 #include "CAN_Control.h"
 #include <stdio.h>
+#include <string.h>
 uint32_t TxMailBox[3];
 CAN_TxHeaderTypeDef txHeader;
 CAN_RxHeaderTypeDef rxHeader;
@@ -28,7 +29,7 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can)
 {
 //	HAL_CAN_GetTxMailboxesFreeLevel(can);
 	HAL_StatusTypeDef ret = HAL_OK;
-	ret = HAL_CAN_AddTxMessage(can, &txHeader, txdata, TxMailBox);
+	ret = HAL_CAN_AddTxMessage(can, &txHeader, txData, TxMailBox);
 	memset(txData,0,sizeof(txData));
 	txHeader.DLC = 0;
 	return ret;
@@ -37,7 +38,7 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can)
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 {
 //	if(FIFO != CAN_RX_FIFO0 || FIFO != CAN_RX_FIFO1) return HAL_ERROR;
-	return HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxdata);
+	return HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 }
 
 void canctrl_GetRxData(uint8_t *outData){
@@ -51,6 +52,7 @@ uint32_t canctrl_GetID(){return txHeader.StdId;}
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;
 	txHeader.StdId = ID;
+	return HAL_OK;
 }
 HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
 {
