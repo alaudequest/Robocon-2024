@@ -56,14 +56,16 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 }
 HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
 {
-	if(!data) return HAL_ERROR;
-	for(uint8_t i = 0; i < sizeof(txData);i++){
-		txData[i] = data & (0xff << i*8);
-		if(!txData[i]){
-			txHeader.DLC = i + 1;
-			break;
+	if(!data || txHeader.DLC) return HAL_ERROR;
+	uint8_t temp;
+	for(int8_t i = sizeof(txData) - 1; i > -1 ;i--){
+		temp = (data >> i*8) & 0xff;
+		if(temp){
+			if(!txHeader.DLC) txHeader.DLC = i;
+			txData[txHeader.DLC - i] = temp;
 		}
 	}
+	txHeader.DLC ++;
 	return HAL_OK;
 }
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}

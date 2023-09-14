@@ -6,8 +6,8 @@
 ../Core/Src/CAN_Control.c:49:10:canctrl_GetDLC	1
 ../Core/Src/CAN_Control.c:51:10:canctrl_GetID	1
 ../Core/Src/CAN_Control.c:52:19:canctrl_SetID	2
-../Core/Src/CAN_Control.c:57:19:canctrl_PutMessage	4
-../Core/Src/CAN_Control.c:69:6:canctrl_RTR_SetToData	1
-../Core/Src/CAN_Control.c:70:6:canctrl_RTR_SetToRemote	1
-../Core/Src/CAN_Control.c:75:21:canctrl_GetRxHeader	1
-../Core/Src/CAN_Control.c:76:19:canctrl_FilCfg	1
+../Core/Src/CAN_Control.c:57:19:canctrl_PutMessage	6
+../Core/Src/CAN_Control.c:71:6:canctrl_RTR_SetToData	1
+../Core/Src/CAN_Control.c:72:6:canctrl_RTR_SetToRemote	1
+../Core/Src/CAN_Control.c:77:21:canctrl_GetRxHeader	1
+../Core/Src/CAN_Control.c:78:19:canctrl_FilCfg	1

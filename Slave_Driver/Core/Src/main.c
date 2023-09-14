@@ -71,7 +71,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 }
 
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, CAN_RX_FIFO0);
+	canctrl_Receive(hcan, CAN_RX_FIFO1);
 //	canctrl_Send(hcan,txData, sizeof(txData));
 }
 
@@ -79,7 +79,7 @@ HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
 	HAL_CAN_Start(can);
 	canctrl_SetFilterTest2();
 	canctrl_SetFilterTest1();
-	canctrl_MakeStdTxHeader(0x200, 1, CAN_RTR_DATA);
+	canctrl_MakeStdTxHeader(0x200, 0, CAN_RTR_DATA);
 	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 }
 /* USER CODE END 0 */
@@ -114,14 +114,14 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-  canctrl_PutMessage(1000);
   while(canctrl_Init(&hcan) != HAL_OK);
   /* USER CODE END 2 */
-
+  uint64_t data = 1000000;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  canctrl_PutMessage(data);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
