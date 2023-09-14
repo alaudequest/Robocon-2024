@@ -35,13 +35,13 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can,uint8_t *rxdata, uint32
 	return HAL_CAN_GetRxMessage(can, FIFO, &RxHeader, rxdata);
 }
 
-HAL_StatusTypeDef canctrl_SetFilter(CAN_HandleTypeDef *can, uint32_t FIFO, uint32_t ID){
+HAL_StatusTypeDef canctrl_SetFilter(CAN_HandleTypeDef *can, uint32_t FIFO, uint32_t ID, uint8_t filterbank){
 	CAN_FilterTypeDef canfilterconfig;
 
 	if(FIFO != CAN_FILTER_FIFO0 || FIFO != CAN_FILTER_FIFO1) return HAL_ERROR;
 
 	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-	canfilterconfig.FilterBank = 0;
+	canfilterconfig.FilterBank = filterbank;
 	canfilterconfig.FilterFIFOAssignment = FIFO;
 	canfilterconfig.FilterIdHigh = ID << 5;
 	canfilterconfig.FilterIdLow = 0x0000;
@@ -53,4 +53,25 @@ HAL_StatusTypeDef canctrl_SetFilter(CAN_HandleTypeDef *can, uint32_t FIFO, uint3
 
 	HAL_CAN_ConfigFilter(can, &canfilterconfig);
 	return HAL_OK;
+}
+
+HAL_StatusTypeDef canctrl_Brake(CAN_HandleTypeDef *can){
+	CAN_FilterTypeDef canfilterconfig;
+
+	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
+	canfilterconfig.FilterBank = 0;
+	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	canfilterconfig.FilterIdHigh = 0x50 << 5;
+	canfilterconfig.FilterMaskIdHigh = 0x80 << 5;
+	canfilterconfig.FilterIdLow = 0x0000;
+	canfilterconfig.FilterMaskIdLow = 0x0000;
+	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	canfilterconfig.SlaveStartFilterBank = 13;
+
+	HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
+}
+
+HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
+	canctrl_Brake(can);
 }

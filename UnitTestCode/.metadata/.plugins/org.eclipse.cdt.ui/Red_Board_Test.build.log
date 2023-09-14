@@ -1,0 +1,10 @@
+19:00:10 **** Incremental Build of configuration Debug for project Red_Board_Test ****
+make -j8 all 
+arm-none-eabi-size   Red_Board_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+   7008	     20	   1644	   8672	   21e0	Red_Board_Test.elf
+Finished building: default.size.stdout
+ 
+
+19:00:11 Build Finished. 0 errors, 0 warnings. (took 261ms)
+
