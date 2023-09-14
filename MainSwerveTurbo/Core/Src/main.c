@@ -296,7 +296,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
 			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
-			  Xright =0.785/33*((GamePad.XRight-120)/10)*30/12;
+			  Xright =((GamePad.XRight-120)/10)*30/12;
 		}
 		else{
 			GamePad.Status = 0;
@@ -479,17 +479,20 @@ void OptimizeAngle (Optimizer *Swerve,float InPut)
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 
 
-float H ;
-float Lenght = 58;
-float Width = 0;
 float Gamma ;
-float gamma1,gamma2 ;
+float gamma1,gamma2;
 float gamma01 = 0*M_PI/180,gamma02 = 180*M_PI/180;
 
-float Rcp,Phicl = 0.785;
-float R1,R2;
-float Phi1,Phi2;
-float velFactor1,velFactor2;
+float l = 0.58;
+float w = 0;
+
+float h,v;
+float Vx1,Vy1;
+float Vx2,Vy2;
+
+float V1,V2;
+float GocLaBan;
+float Angle1,Angle2;
 
 double max(double a,double b)
 {
@@ -501,36 +504,24 @@ double max(double a,double b)
 	}
 	return max;
 }
-//
-//float uSnake = 0,v = 1;
 
-void SnakeTurn(double u,double v)
+void ocelotMode(float u, float v, float r, float Field)
 {
-	if(Phicl!=0){
-		 H = sqrt(pow(Lenght,2)+pow(Width,2))/2;
-		    Gamma = atan2(u,v) ;
-			gamma1 = Gamma + gamma01;
-			gamma2 = Gamma + gamma02;
+    h = sqrt(pow(l,2)+pow(w,2))/2;
+    Gamma = atan2(u,v) + Field*M_PI/180 ;
+    gamma1 = Gamma + gamma01;
+    gamma2 = Gamma + gamma02;
 
+//    Vx1 = v - h*r*sin(gamma1);
+//    Vy1 = u - h*r*cos(gamma1);
+//
+//    Vx2 = v - h*r*sin(gamma2);
+//    Vy2 = u - h*r*cos(gamma2);
+//
+//    Angle1 = atan2(Vy1,Vx1)*180/M_PI;
+//    Angle2 = atan2(Vy2,Vx2)*180/M_PI;
+ }
 
-			Rcp = H/tan(Phicl);
-
-			R1 = sqrt(pow(H,2)*pow(cos(gamma1),2)+pow((Rcp-H*sin(gamma1)),2));
-			R2 = sqrt(pow(H,2)*pow(cos(gamma2),2)+pow((Rcp-H*sin(gamma2)),2));
-
-			Phi1 = ((Phicl)*asin(H*cos(gamma1)/R1));
-			Phi2 = ((Phicl)*asin(H*cos(gamma2)/R2));
-
-			velFactor1 = R1/max(R1, R2);
-			velFactor2 = R2/max(R1, R2);
-	}else{
-		Phi1 = 0;
-		Phi2 = 0;
-		velFactor1 = 1;
-		velFactor2 = 1;
-	}
-
-}
 
 
 
@@ -546,16 +537,12 @@ Optimizer Swerve2;
 //Ham tinh dong hoc nghich cho robot dua vao van toc chuyen vi theo cac phuong
 void InverseKine(float u,float v ,float r)
 {
-	Phicl = r;
-	wheel_Vel_X1 = v;
-	wheel_Vel_Y1 = u;
 
-	SnakeTurn(u,v);
-//			-robot_Lenght*r;
+	wheel_Vel_X1 = v-h*r*sin(gamma1);
+	wheel_Vel_Y1 = u-h*r*cos(gamma1);
 
-	wheel_Vel_X2 = v;
-	wheel_Vel_Y2 = u;
-//			+robot_Lenght*r;
+	wheel_Vel_X2 = v-h*r*sin(gamma2);
+	wheel_Vel_Y2 = u-h*r*cos(gamma2);
 
 	currQuad1 = quadrantCheck(wheel_Vel_X1,wheel_Vel_Y1);
 	currQuad2 = quadrantCheck(wheel_Vel_X2,wheel_Vel_Y2);
@@ -567,42 +554,24 @@ void InverseKine(float u,float v ,float r)
 			OptimizeAngle(&Swerve1, preQuad1);
 		}
 	else{
-		if ((Phicl == 0)){
 			OptimizeAngle(&Swerve1, (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI);
 			preQuad1 = (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI;
-		}else {
-			if(v==0){
-				OptimizeAngle(&Swerve1, (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI);
-				preQuad1 = (atan2(wheel_Vel_Y1,wheel_Vel_X1))*180/M_PI;
-			}else {
-				OptimizeAngle(&Swerve1, Phi1*180/M_PI);
-				preQuad1 = Phi1*180/M_PI;
-			}
 		}
-		}
-	wheel_AngleVel1 = velFactor1*Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+
+	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+
+
 
 	if(currQuad2 == 0)
 	{
 		OptimizeAngle(&Swerve2, preQuad2);
-	}
-	else{
-		if((Phicl == 0)){
-			OptimizeAngle(&Swerve2, (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI);
-			preQuad2 = (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI;
-		}else{
-			if(v == 0){
-				OptimizeAngle(&Swerve2, (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI);
-				preQuad2 = (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI;
-			}
-			else{
-				OptimizeAngle(&Swerve2, Phi2*180/M_PI);
-				preQuad2 = Phi2*180/M_PI;
-			}
+	}else{
+		OptimizeAngle(&Swerve2, (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI);
+		preQuad2 = (atan2(wheel_Vel_Y2,wheel_Vel_X2))*180/M_PI;
 		}
-	}
 
-	wheel_AngleVel2 = -velFactor2*Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+
+	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
 
 
 	//Góc phần tư đầu tiên :
@@ -738,6 +707,70 @@ void InverseKine(float u,float v ,float r)
 if (Swerve1.Ycoef<0)Swerve1.Ycoef=Swerve1.Ycoef*-1;
 }
 
+float Angle1,Angle2,PreAngle1,PreAngle2;
+
+void OcelotKinematic(float u, float v, float r, float Field)
+{
+	h = sqrt(pow(l,2)+pow(w,2))/2;
+	if ((u == 0)&&(v == 0)&&(r == 0))
+	{
+		OptimizeAngle(&Swerve1, PreAngle1);
+		OptimizeAngle(&Swerve2, PreAngle2);
+		wheel_Vel_X1 = 0;
+		wheel_Vel_Y1 = 0;
+
+		wheel_Vel_X2 = 0;
+		wheel_Vel_Y2 = 0;
+	}
+	else
+	{
+		if((u == 0)&&(v == 0))
+		{
+			wheel_Vel_X1 = v;
+			wheel_Vel_Y1 = u - h*r;
+
+			wheel_Vel_X2 = v;
+			wheel_Vel_Y2 = u + h*r;
+
+			Angle1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI ;
+			Angle2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI ;
+
+		}
+		else if (( r == 0 ))
+		{
+			wheel_Vel_X1 = v;
+			wheel_Vel_Y1 = u - h*r;
+
+			wheel_Vel_X2 = v;
+			wheel_Vel_Y2 = u + h*r;
+
+			Angle1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI - Field;
+			Angle2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI - Field;
+		}
+		else
+		{
+			Gamma = atan2(u,v) + Field*M_PI/180 ;
+			gamma1 = Gamma + gamma01;
+			gamma2 = Gamma + gamma02;
+
+			wheel_Vel_X1 = v*sin(Gamma) - h*r*sin(gamma1);
+			wheel_Vel_Y1 = u*cos(Gamma) - h*r*cos(gamma1);
+
+			wheel_Vel_X2 = v*sin(Gamma) - h*r*sin(gamma2);
+			wheel_Vel_Y2 = u*cos(Gamma) - h*r*cos(gamma2);
+
+			Angle1 = atan2(wheel_Vel_Y1,wheel_Vel_X1)*180/M_PI ;
+			Angle2 = atan2(wheel_Vel_Y2,wheel_Vel_X2)*180/M_PI ;
+		}
+		OptimizeAngle(&Swerve1, Angle1);
+		OptimizeAngle(&Swerve2, Angle2);
+		PreAngle1 = Angle1;
+		PreAngle2 = Angle2;
+	}
+
+	wheel_AngleVel1 = Swerve1.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X1,2)+pow(wheel_Vel_Y1,2)))/ 0.1047198;
+	wheel_AngleVel2 = -Swerve2.Direc*(1/robot_WheelR)*(sqrt(pow(wheel_Vel_X2,2)+pow(wheel_Vel_Y2,2)))/0.1047198;
+}
 //----------------------------------------End:Kinematics---------------------------------------//
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 
@@ -1179,27 +1212,6 @@ HAL_Init();
   while (1)
   {
 
-//	  if (GamePad.Touch == 1)
-//	  {
-//		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
-//	  }
-//	  else {
-//			 if(GamePad.Square == 1){
-//				 OdoFlag2 = 0;
-//			 }else if(GamePad.Circle == 1)
-//			 {
-//				 OdoFlag2 = 1;
-//			 }
-//	  	 }
-//
-//	  OdoCountLogic();
-//	  if(OdoFlag2==1){
-//		  PurePursuilt();
-//		  PIDPathFollow();
-//	  }
-//	  InverseKine(uT,vT,rT);
-//	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-//	  HAL_Delay(T*1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1254,7 +1266,7 @@ void SystemClock_Config(void)
 
 /**
   * @brief TIM2 Initialization Function
-  * @param None
+  * @param Noneocelot
   * @retval None
   */
 static void MX_TIM2_Init(void)
@@ -1497,27 +1509,15 @@ void PathTracking(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	 if(GamePad.Triangle == 1){
-//		 OdoFlag2 = 0;
-//	 }else if(GamePad.Circle == 1)
-//	 {
-//		 OdoFlag2 = 1;
-//	 }else if(GamePad.Square == 1){
-//		 OdoFlag2 = 2;
-//	 }
-//
-//
-//	if (OdoFlag2 == 2)
-//	{
+
 	  	  if (GamePad.Touch == 1)
 	  	  {
-	  		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
+	  		 ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  	  }else {
-	  		  InverseKine(Yleft,Xleft,Xright);
+	  		OcelotKinematic(Yleft,Xleft,Xright*M_PI/180,CurrAngle);
 			ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-//	}
 	  	  }
-//	  SnakeTurn();
+
     osDelay(T*1000);
   }
   /* USER CODE END 5 */
