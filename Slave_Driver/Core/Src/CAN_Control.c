@@ -5,75 +5,90 @@
  *      Author: KHOA
  */
 #include "CAN_Control.h"
-
+#include <stdio.h>
+#include <string.h>
 uint32_t TxMailBox[3];
-CAN_TxHeaderTypeDef TxHeader;
-CAN_RxHeaderTypeDef RxHeader;
+CAN_TxHeaderTypeDef txHeader;
+CAN_RxHeaderTypeDef rxHeader;
+uint8_t txData[8] = {0};
+uint8_t rxData[8] = {0};
 union float_byte{
 	float floatdata[2];
 	uint8_t bytedata[8];
 }float_byte;
-
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t DLC, uint32_t RTR)
 {
-	  TxHeader.IDE = CAN_ID_STD;
-	  TxHeader.RTR = RTR;
-	  TxHeader.StdId = ID;
-	  TxHeader.DLC = DLC;
+	  txHeader.IDE = CAN_ID_STD;
+	  txHeader.RTR = RTR;
+	  txHeader.StdId = ID;
+	  txHeader.DLC = DLC;
 	  return HAL_OK;
 }
 
-HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can,uint8_t *txdata, uint16_t txDataSize)
+HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can)
 {
-	HAL_CAN_GetTxMailboxesFreeLevel(can);
-	return HAL_CAN_AddTxMessage(can, &TxHeader, txdata, TxMailBox);
+//	HAL_CAN_GetTxMailboxesFreeLevel(can);
+	if(!txHeader.DLC) return HAL_ERROR;
+	HAL_StatusTypeDef ret = HAL_OK;
+	ret = HAL_CAN_AddTxMessage(can, &txHeader, txData, TxMailBox);
+	memset(txData,0,sizeof(txData));
+	txHeader.DLC = 0;
+	return ret;
 }
 
-HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can,uint8_t *rxdata, uint32_t FIFO)
+HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 {
-	if(FIFO != CAN_RX_FIFO0 || FIFO != CAN_RX_FIFO1) return HAL_ERROR;
-	return HAL_CAN_GetRxMessage(can, FIFO, &RxHeader, rxdata);
+//	if(FIFO != CAN_RX_FIFO0 || FIFO != CAN_RX_FIFO1) return HAL_ERROR;
+	return HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 }
 
-HAL_StatusTypeDef canctrl_SetFilter(CAN_HandleTypeDef *can, uint32_t FIFO, uint32_t ID, uint8_t filterbank){
-	CAN_FilterTypeDef canfilterconfig;
-
-//	if(FIFO != CAN_FILTER_FIFO0 || FIFO != CAN_FILTER_FIFO1) return HAL_ERROR;
-
-	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-	canfilterconfig.FilterBank = filterbank;
-	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	canfilterconfig.FilterIdHigh = ID << 5;
-	canfilterconfig.FilterIdLow = 0x0000;
-	canfilterconfig.FilterMaskIdHigh = ID << 5;
-	canfilterconfig.FilterMaskIdLow = 0x0000;
-	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	canfilterconfig.SlaveStartFilterBank = 13;
-
-	return HAL_CAN_ConfigFilter(can, &canfilterconfig);
+void canctrl_GetRxData(uint8_t *outData){
+	memcpy(outData,rxData,sizeof(rxData));
 }
 
-HAL_StatusTypeDef canctrl_Brake(CAN_HandleTypeDef *can){
-	CAN_FilterTypeDef canfilterconfig;
+void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
+uint32_t canctrl_GetDLC(){return txHeader.DLC;}
 
-	canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-	canfilterconfig.FilterBank = 0;
-	canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	canfilterconfig.FilterIdHigh = 0x500 << 5;
-	canfilterconfig.FilterMaskIdHigh = 0x500 << 5;
-	canfilterconfig.FilterIdLow = 0x0000;
-	canfilterconfig.FilterMaskIdLow = 0x0000;
-	canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	canfilterconfig.SlaveStartFilterBank = 13;
-
-	return HAL_CAN_ConfigFilter(can, &canfilterconfig);
-}
-
-HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
-	HAL_CAN_Start(can);
-	HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-//	canctrl_Brake(can);
+uint32_t canctrl_GetID(){return txHeader.StdId;}
+HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
+	if(ID > 0x7ff) return HAL_ERROR;
+	txHeader.StdId = ID;
 	return HAL_OK;
 }
+HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
+{
+	if(!data || txHeader.DLC) return HAL_ERROR;
+	uint8_t temp;
+	for(int8_t i = sizeof(txData) - 1; i > -1 ;i--){
+		temp = (data >> i*8) & 0xff;
+		if(temp){
+			if(!txHeader.DLC) txHeader.DLC = i;
+			txData[txHeader.DLC - i] = temp;
+		}
+	}
+	txHeader.DLC ++;
+	return HAL_OK;
+}
+void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
+void canctrl_RTR_SetToRemote(){
+	txHeader.RTR = CAN_RTR_REMOTE;
+	txHeader.DLC = 0;
+}
+
+CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
+HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO){
+	CAN_FilterTypeDef canFilCfg;
+	canFilCfg.FilterActivation = CAN_FILTER_ENABLE;
+	canFilCfg.FilterBank = filBank;
+	canFilCfg.FilterFIFOAssignment = FIFO;
+	canFilCfg.FilterIdHigh = filterID << 5;
+	canFilCfg.FilterMaskIdHigh = filterID << 5;
+	canFilCfg.FilterIdLow = 0x0000;
+	canFilCfg.FilterMaskIdLow = 0x0000;
+	canFilCfg.FilterMode = CAN_FILTERMODE_IDMASK;
+	canFilCfg.FilterScale = CAN_FILTERSCALE_32BIT;
+	canFilCfg.SlaveStartFilterBank = 13;
+	return HAL_CAN_ConfigFilter(can, &canFilCfg);
+}
+
+

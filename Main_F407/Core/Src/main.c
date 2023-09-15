@@ -91,16 +91,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan1);
   canData[0] = 10;
-  if(canctrl_MakeStdTxHeader(0x7ff, 1, CAN_RTR_DATA) != HAL_OK){
+  if(canctrl_MakeStdTxHeader(0x215, 1, CAN_RTR_DATA) != HAL_OK){
 	  __NOP();
   }
-  canctrl_Send(&hcan1, canData, sizeof(canData));
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  canctrl_Send(&hcan1, canData, sizeof(canData));
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

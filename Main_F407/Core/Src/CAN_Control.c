@@ -69,9 +69,11 @@ HAL_StatusTypeDef canctrl_Brake(CAN_HandleTypeDef *can){
 	canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
 	canfilterconfig.SlaveStartFilterBank = 13;
 
-	HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
+	HAL_CAN_ConfigFilter(can, &canfilterconfig);
+	return HAL_OK;
 }
 
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
 	canctrl_Brake(can);
+	return HAL_OK;
 }
