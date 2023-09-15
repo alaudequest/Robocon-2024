@@ -1,0 +1,12 @@
+../Core/Src/CAN_Control.c:20:6:canctrl_SetDLC	1
+../Core/Src/CAN_Control.c:21:10:canctrl_GetDLC	1
+../Core/Src/CAN_Control.c:23:19:canctrl_SetID	2
+../Core/Src/CAN_Control.c:28:10:canctrl_GetID	1
+../Core/Src/CAN_Control.c:30:6:canctrl_RTR_SetToData	1
+../Core/Src/CAN_Control.c:31:6:canctrl_RTR_SetToRemote	1
+../Core/Src/CAN_Control.c:36:19:canctrl_Send	2
+../Core/Src/CAN_Control.c:49:19:canctrl_Receive	1
+../Core/Src/CAN_Control.c:55:6:canctrl_GetRxData	1
+../Core/Src/CAN_Control.c:60:19:canctrl_PutMessage	6
+../Core/Src/CAN_Control.c:76:19:canctrl_MakeStdTxHeader	1
+../Core/Src/CAN_Control.c:87:19:canctrl_FilCfg	1
