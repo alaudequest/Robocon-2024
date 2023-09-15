@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "CAN_Control.h"
+//#include "CAN_Control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +43,29 @@
 CAN_HandleTypeDef hcan;
 
 /* USER CODE BEGIN PV */
-uint8_t flag1=0,flag2=0;
+CAN_TxHeaderTypeDef TxHeader1;
+uint32_t TxMailBox1;
+
+uint8_t TxData1[1];
+uint8_t TxData2[8];
+
+void ControlDriver(uint8_t Mode1,float BLDCSpeed1,float DCPos1)
+{
+	uint8_t *pByte = NULL;
+	pByte = &Mode1;
+	TxData1[0] = pByte[0];
+	HAL_CAN_AddTxMessage(&hcan, &TxHeader1, TxData1, &TxMailBox1);
+	pByte = &BLDCSpeed1;
+	for(uint8_t i=0;i<4;i++){
+		TxData2[i]= pByte[i];
+	}
+	pByte = &DCPos1;
+ 	for(uint8_t i=4;i<8;i++){
+		TxData2[i]=pByte[i-4];
+	}
+ 	HAL_CAN_AddTxMessage(&hcan, &TxHeader1, TxData2, &TxMailBox1);
+}
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,33 +78,7 @@ static void MX_CAN_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void canctrl_SetFilterTest1(){
-	canctrl_FilCfg(&hcan, 0x215, 1, CAN_FILTER_FIFO0);
-}
-void canctrl_SetFilterTest2(){
-	canctrl_FilCfg(&hcan, 0x206, 2, CAN_FILTER_FIFO1);
-}
-void canctrl_SetFilterBrake(){
-	canctrl_FilCfg(&hcan, 0x001, 0, CAN_FILTER_FIFO0);
-}
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, CAN_RX_FIFO0);
-	flag1 = 1;
-}
 
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, CAN_RX_FIFO1);
-	flag2 = 1;
-}
-
-HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
-	HAL_CAN_Start(can);
-	canctrl_SetFilterTest2();
-	canctrl_SetFilterTest1();
-	canctrl_SetID(0x215);
-	canctrl_SetDLC(0);
-	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-}
 /* USER CODE END 0 */
 
 /**
@@ -115,25 +111,36 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
-  while(canctrl_Init(&hcan) != HAL_OK);
-  canctrl_PutMessage(100);
-  canctrl_Send(&hcan);
+//  canctrl_Init(&hcan);
+//  canctrl_PutMessage();
+//  while(canctrl_Send(&hcan) != HAL_OK);
+
+
+  HAL_CAN_Start(&hcan);
+
+  	TxHeader1.IDE = CAN_ID_STD;
+    TxHeader1.RTR = CAN_RTR_DATA;
+    TxHeader1.ExtId = 0;
+    TxHeader1.TransmitGlobalTime = DISABLE;
+    TxHeader1.StdId = 0x123;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(flag1){
-		  flag1 = 0;
-		  canctrl_Send(&hcan);
-		  HAL_Delay(1000);
-	  }
-	  if(flag2){
-		  flag2 = 0;
-		  canctrl_Send(&hcan);
-		  HAL_Delay(1000);
-	  }
+	  ControlDriver(2, 200, 150);
+
+	  	  TxHeader1.DLC = 1;
+	  	  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) != 3) {
+	  		  HAL_Delay(10);
+	  	  }
+
+	  	  TxHeader1.DLC = 8;
+	  	  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) != 3) {
+	  		  HAL_Delay(10);
+	  	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -224,12 +231,24 @@ static void MX_CAN_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
