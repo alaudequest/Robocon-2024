@@ -74,14 +74,16 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
 	flag2 = 1;
 }
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan){
+	__NOP();
+}
 
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can){
 	HAL_CAN_Start(can);
 	canctrl_SetFilterTest2();
 	canctrl_SetFilterTest1();
-	canctrl_SetID(0x215);
-	canctrl_SetDLC(0);
-	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	canctrl_MakeStdTxHeader(0x103, 8, CAN_RTR_DATA);
+	return HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY);
 }
 /* USER CODE END 0 */
 
@@ -117,23 +119,24 @@ int main(void)
   /* USER CODE BEGIN 2 */
   while(canctrl_Init(&hcan) != HAL_OK);
   canctrl_PutMessage(100);
-  canctrl_Send(&hcan);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(flag1){
-		  flag1 = 0;
-		  canctrl_Send(&hcan);
-		  HAL_Delay(1000);
-	  }
-	  if(flag2){
-		  flag2 = 0;
-		  canctrl_Send(&hcan);
-		  HAL_Delay(1000);
-	  }
+	  canctrl_Send(&hcan);
+	  HAL_Delay(500);
+//	  if(flag1){
+//		  flag1 = 0;
+//		  canctrl_Send(&hcan);
+//		  HAL_Delay(1000);
+//	  }
+//	  if(flag2){
+//		  flag2 = 0;
+//		  canctrl_Send(&hcan);
+//		  HAL_Delay(1000);
+//	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
