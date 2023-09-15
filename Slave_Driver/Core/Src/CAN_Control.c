@@ -28,6 +28,7 @@ HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t DLC, uint32_t RT
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can)
 {
 //	HAL_CAN_GetTxMailboxesFreeLevel(can);
+	if(!txHeader.DLC) return HAL_ERROR;
 	HAL_StatusTypeDef ret = HAL_OK;
 	ret = HAL_CAN_AddTxMessage(can, &txHeader, txData, TxMailBox);
 	memset(txData,0,sizeof(txData));
