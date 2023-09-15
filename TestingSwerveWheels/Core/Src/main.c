@@ -299,6 +299,8 @@ float BLDCSpeed;
 float DCPos;
 uint8_t *pFloat = NULL;
 
+
+
 void DecodeData(uint8_t* dataArr)
 {
 	if(dataArr[0] == ID)
@@ -835,10 +837,11 @@ void StartLogicTask(void const * argument)
 	{
 		HomeFinding();
 	}
-	else
+	else if(HomeFound == 1)
 	{
 		SpeedTest_DC_POS = DCPos;
-		SpeedTest_DC_Speed = BLDCSpeed;
+		SpeedTestBLDC = BLDCSpeed;
+		HAL_UART_Transmit(&huart1, ID, 1, 1000);
 	}
     osDelay(1);
   }

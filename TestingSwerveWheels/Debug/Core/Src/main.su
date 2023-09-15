@@ -16,5 +16,5 @@
 ../Core/Src/main.c:779:6:StartPID_BLDC	16	static
 ../Core/Src/main.c:800:6:StartPID_DC	16	static
 ../Core/Src/main.c:828:6:StartLogicTask	16	static
-../Core/Src/main.c:856:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:873:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:857:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:874:6:Error_Handler	4	static,ignoring_inline_asm
