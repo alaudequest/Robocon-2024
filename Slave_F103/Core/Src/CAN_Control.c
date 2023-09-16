@@ -12,11 +12,15 @@ CAN_TxHeaderTypeDef txHeader;
 CAN_RxHeaderTypeDef rxHeader;
 uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
-union float_byte{
-	float floatdata[2];
-	uint8_t bytedata[8];
-}float_byte;
+union fByte{
+	float floatData[2];
+	uint8_t byteData[8];
+}fByte;
 
+union iByte{
+	uint64_t intData;
+	uint8_t byteData[8];
+}iByte;
 void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
 uint32_t canctrl_GetDLC(){return txHeader.DLC;}
 
@@ -26,7 +30,7 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	return HAL_OK;
 }
 uint32_t canctrl_GetID(){return txHeader.StdId;}
-
+CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){
 	txHeader.RTR = CAN_RTR_REMOTE;
@@ -35,7 +39,8 @@ void canctrl_RTR_SetToRemote(){
 
 HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
 {
-	if(!data || txHeader.DLC) return HAL_ERROR;
+	memset(txData,0,sizeof(txData));
+	txHeader.DLC = 0;
 	uint8_t temp;
 	for(int8_t i = sizeof(txData) - 1; i > -1 ;i--){
 		temp = (data >> i*8) & 0xff;
@@ -50,11 +55,10 @@ HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID)
 {
+	if(!txHeader.DLC) return HAL_ERROR;
 	txHeader.IDE = CAN_ID_STD;
 	canctrl_RTR_SetToData();
 	canctrl_SetID(ID);
-	if(!txHeader.DLC) return HAL_ERROR;
-	for(uint8_t i = 0; i < txHeader.DLC; i++ )
 	HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
 	return HAL_OK;
 }
@@ -66,17 +70,36 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 }
 
 void canctrl_GetRxData(uint8_t *outData){
-	memcpy(outData,rxData,sizeof(rxData));
+	memcpy(outData,rxData,rxHeader.DLC);
 }
 
-HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t DLC, uint32_t RTR)
+void convBigEndianToLittleEndian(uint8_t *data, size_t length){
+	if (length < 2 || length > 8) return;
+
+	uint8_t *bytes = (uint8_t *)data;
+
+	// Swap the bytes to convert from Big Endian to Little Endian
+	for (size_t i = 0; i < length / 2; i++) {
+		uint8_t temp = bytes[i];
+		bytes[i] = bytes[length - 1 - i];
+		bytes[length - 1 - i] = temp;
+	}
+}
+
+uint64_t canctrl_GetIntNum()
 {
-//	  txHeader.IDE = CAN_ID_STD;
-//	  if(!RTR) canctrl_RTR_SetToData();
-//	  else canctrl_RTR_SetToRemote();
-//	  txHeader.RTR = RTR;
-//	  canctrl_SetID(ID);
-//	  canctrl_SetDLC(DLC);
+	canctrl_GetRxData(iByte.byteData);
+	convBigEndianToLittleEndian(iByte.byteData,rxHeader.DLC);
+	memset(rxData,0,sizeof(rxData));
+	rxHeader.DLC = 0;
+	return iByte.intData;
+}
+HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR)
+{
+	  txHeader.IDE = CAN_ID_STD;
+	  if(RTR == CAN_RTR_DATA) canctrl_RTR_SetToData();
+	  else canctrl_RTR_SetToRemote();
+	  canctrl_SetID(ID);
 	  return HAL_OK;
 }
 

@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "CAN_Control.h"
+#include "CAN_Control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,6 +45,9 @@ CAN_HandleTypeDef hcan;
 /* USER CODE BEGIN PV */
 uint8_t flag1 = 0;
 uint8_t flag0 = 0;
+uint16_t arrayID[] = {0x101,0x215,0x065,0x043};
+uint64_t dataInt = 0;
+uint64_t dataInt2 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,17 +62,20 @@ static void MX_CAN_Init(void);
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO0);
+	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 	flag0 = 1;
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
-	flag1 = 0;
+	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	flag1 = 1;
 }
 
 void CAN_Init(){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	canctrl_FilCfg(&hcan, 0x100, 0, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, 0x020, 1, CAN_FILTER_FIFO0);
 }
 /* USER CODE END 0 */
 
@@ -100,6 +106,7 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+
   MX_GPIO_Init();
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
@@ -111,8 +118,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  canctrl_Send(&hcan, 0x103);
-	  HAL_Delay(1000);
+	  if(flag0){
+		  flag0 = 0;
+		  CAN_RxHeaderTypeDef rxhd;
+		  rxhd = canctrl_GetRxHeader();
+		  if(rxhd.StdId & 0x100) dataInt = canctrl_GetIntNum();
+		  if(rxhd.StdId & 0x020) dataInt2 = canctrl_GetIntNum();
+	  }
+//	  for(uint8_t i = 0;i < sizeof(arrayID)/sizeof(uint16_t); i++){
+//		  canctrl_Send(&hcan, arrayID[i]);
+//		  canctrl_PutMessage((uint64_t)dataTest);
+//		  dataTest+=1000;
+//		  HAL_Delay(100);
+//	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -208,30 +226,19 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin : UserLED_Pin */
+  GPIO_InitStruct.Pin = UserLED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : LED_Pin */
-  GPIO_InitStruct.Pin = LED_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(UserLED_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
