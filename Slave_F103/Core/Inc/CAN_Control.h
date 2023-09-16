@@ -20,6 +20,7 @@ HAL_StatusTypeDef canctrl_PutMessage(uint64_t data);
 void canctrl_RTR_SetToData();
 void canctrl_RTR_SetToRemote();
 CAN_RxHeaderTypeDef canctrl_GetRxHeader();
+float canctrl_GetFloatNum();
 uint64_t canctrl_GetIntNum();
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can);

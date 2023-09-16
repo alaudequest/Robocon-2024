@@ -1,0 +1,39 @@
+/*
+ * Encoder.h
+ *
+ *  Created on: Sep 16, 2023
+ *      Author: KHOA
+ */
+
+#ifndef INC_ENCODER_H_
+#define INC_ENCODER_H_
+
+//------------------------Begin: Struct of Encoder Read----------------------------//
+#include "main.h"
+#include "stdbool.h"
+#define count_ModeX1 0
+#define count_ModeX4 1
+#define count_ModeDegree 2
+
+typedef struct Encoder_t{
+//------------------------Timer & Count--------------//
+	TIM_HandleTypeDef *htim;
+	int count_X4;
+	int count_X1;
+	int count_Pre;
+	int count_PerRevol;
+	uint8_t count_Mode;
+//------------------------Speed Val-----------------//
+	double vel_Real;
+	double vel_Pre;
+	double vel_Fil;
+//------------------------Pos Cal-------------------//
+	double Degree;
+	double deltaT;
+}Encoder_t;
+void encoder_ResetCount(Encoder_t *enc);
+void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
+double encoder_GetSpeed(Encoder_t *enc, bool resetPulse);
+double encoder_GetPulse(Encoder_t *enc, bool resetPulse);
+void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
+#endif /* INC_ENCODER_H_ */

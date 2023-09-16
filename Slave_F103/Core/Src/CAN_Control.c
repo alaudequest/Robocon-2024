@@ -13,8 +13,8 @@ CAN_RxHeaderTypeDef rxHeader;
 uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
 union fByte{
-	float floatData[2];
-	uint8_t byteData[8];
+	float floatData;
+	uint8_t byteData[4];
 }fByte;
 
 union iByte{
@@ -94,6 +94,17 @@ uint64_t canctrl_GetIntNum()
 	rxHeader.DLC = 0;
 	return iByte.intData;
 }
+
+float canctrl_GetFloatNum()
+{
+	canctrl_GetRxData(fByte.byteData);
+	convBigEndianToLittleEndian(fByte.byteData,rxHeader.DLC);
+	memset(rxData,0,sizeof(rxData));
+	rxHeader.DLC = 0;
+	return fByte.floatData;
+}
+
+
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR)
 {
 	  txHeader.IDE = CAN_ID_STD;
