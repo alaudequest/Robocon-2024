@@ -294,9 +294,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 
 
-			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
-			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
-			  Xright =((GamePad.XRight-120)/10)*30/12;
+			  Xleft = ((GamePad.XLeft-125)/10)*0.8/12;
+			  Yleft = ((GamePad.YLeft-125)/10)*0.8/12;
+			  Xright =((GamePad.XRight-120)/10)*40/12;
 		}
 		else{
 			GamePad.Status = 0;
@@ -490,7 +490,15 @@ int OdoPos,OdoFlag1,OdoFlag2,OdorCnt;
 Optimizer Swerve1;
 Optimizer Swerve2;
 
+float uOut,vOut;
+
 //Ham tinh dong hoc nghich cho robot dua vao van toc chuyen vi theo cac phuong
+
+void FieldOrientedCotrol(float u , float v, float Angle)
+{
+	uOut = u*cos(Angle*M_PI/180)-v*sin(Angle*M_PI/180);
+	vOut = u*sin(Angle*M_PI/180)+v*cos(Angle*M_PI/180);
+}
 void InverseKine(float u,float v ,float r)
 {
 
@@ -1030,7 +1038,6 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-+
 HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -1428,28 +1435,9 @@ void PathTracking(void const * argument)
 	  {
 		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  }
-  else if(GamePad.Cross == 1)
-  {
-	  ControlDriver(1,2,0,90,2,2,0,90);
-  }
 	  else {
-			 if(GamePad.Triangle == 1){
-				 OdoFlag2 = 0;
-			 }else if(GamePad.Circle == 1)
-			 {
-				 OdoFlag2 = 1;
-				 TargetAngle = CurrAngle;
-			 }else if(GamePad.Square == 1){
-				 OdoFlag2 = 2;
-			 }
-		 }
-
-	  if(OdoFlag2==1){
-		  OdoCountLogic();
-		  PurePursuilt();
-		  PIDCalFlag = 1;
-	  }else if (OdoFlag2 == 2){
-		InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
+		FieldOrientedCotrol(Yleft,-Xleft,CurrAngle);
+		InverseKine(uOut,vOut,-Xright*M_PI/180);
 		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
 	  }
     osDelay(T*1000);
@@ -1470,12 +1458,12 @@ void StartTask02(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-  if(PIDCalFlag==1){
-	PIDPathFollow();
-	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
-	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-	PIDCalFlag = 0;
-  }
+//  if(PIDCalFlag==1){
+//	PIDPathFollow();
+//	InverseKine(PIDOdoU.u,PIDOdoV.u,-PIDAngle.u*M_PI/180);
+//	ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
+//	PIDCalFlag = 0;
+//  }
     osDelay(1);
   }
   /* USER CODE END StartTask02 */
