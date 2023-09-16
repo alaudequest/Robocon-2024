@@ -400,11 +400,11 @@ void StartCalPIDDC(void const * argument)
   for(;;)
   {
 //	DC_Drive_BTS(&DC, &htim2, motor_Reserve, SpeedTest_DC_Speed, TIM_CHANNEL_3, TIM_CHANNEL_4);
-	SpeedReadNonReset(&ENC_DC);
+//	SpeedReadNonReset(&ENC_DC);
 //	PIDDCSPEED();
 	Degree = CountRead(&ENC_DC, count_ModeDegree);
 	countX1 = CountRead(&ENC_DC, countX1);
-//	PIDDCPOS();
+	PIDDCPOS();
     osDelay(1);
   }
   /* USER CODE END 5 */

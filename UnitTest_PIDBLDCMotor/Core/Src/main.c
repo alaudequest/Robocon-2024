@@ -371,9 +371,9 @@ void StartCalPIDBLDC(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	SpeedReadNonReset(&ENC_BLDC);
+//	SpeedReadNonReset(&ENC_BLDC);
 //	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedTestBLDC, TIM_CHANNEL_2);
-//	PIDBLDC();
+	PIDBLDC();
     osDelay(1);
   }
   /* USER CODE END 5 */

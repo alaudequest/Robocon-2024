@@ -122,7 +122,7 @@ int main(void)
   while (1)
   {
 	  HAL_GPIO_WritePin(Break_GPIO_Port, Break_Pin, 0);
-	  ControlBLDC(1, 1000);
+//	  ControlBLDC(1, 1000);
 	  sensor = HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin);
 
     /* USER CODE END WHILE */
