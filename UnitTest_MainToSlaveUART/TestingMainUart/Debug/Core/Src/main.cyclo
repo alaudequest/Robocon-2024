@@ -1,0 +1,9 @@
+../Core/Src/main.c:69:6:ControlDriver	9
+../Core/Src/main.c:151:6:commandTask	5
+../Core/Src/main.c:197:5:main	1
+../Core/Src/main.c:252:6:SystemClock_Config	3
+../Core/Src/main.c:298:13:MX_TIM2_Init	4
+../Core/Src/main.c:343:13:MX_USART1_UART_Init	2
+../Core/Src/main.c:376:13:MX_GPIO_Init	1
+../Core/Src/main.c:402:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:419:6:Error_Handler	1
