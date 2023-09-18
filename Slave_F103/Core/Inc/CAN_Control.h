@@ -8,6 +8,7 @@
 #ifndef INC_CAN_CONTROL_H_
 #define INC_CAN_CONTROL_H_
 #include "main.h"
+#include "stdbool.h"
 
 #define CAN_EVT_CHECKFLAG(FlagBit) ((((canEvent) & (1 << FlagBit)) == (FlagBit)) ? 1 : 0)
 #define CAN_EVT_SETFLAG(FlagBit) ((canEvent) |= (1 << FlagBit))
@@ -47,6 +48,9 @@ uint32_t canctrl_GetID();
 void canctrl_SetDLC(uint8_t DLC);
 void canctrl_RTR_SetToData();
 void canctrl_RTR_SetToRemote();
+void canctrl_SetFlag(CAN_EVT flag);
+void canctrl_ClearFlag(CAN_EVT flag);
+bool canctrl_CheckFlag(CAN_EVT flag);
 void canctrl_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID);

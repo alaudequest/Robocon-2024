@@ -96,6 +96,15 @@ void CAN_Init(){
 	canctrl_FilCfg(&hcan, CANCTRL_ID_ENCODER_POS, 2, CAN_FILTER_FIFO0);
 	canctrl_FilCfg(&hcan, CANCTRL_ID_SPEED_ANGLE_MOTOR_POS, 3, CAN_FILTER_FIFO0);
 }
+
+void CAN_HandleCmd()
+{
+	if(canctrl_CheckFlag(CAN_EVT_BRAKE_MOTOR)){
+		canctrl_ClearFlag(CAN_EVT_BRAKE_MOTOR);
+	} else if (canctrl_CheckFlag(CAN_EVT_SPEED_ANGLE)){
+		canctrl_ClearFlag(CAN_EVT_SPEED_ANGLE);
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -132,7 +141,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   Init();
-//  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
+  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -143,6 +152,7 @@ int main(void)
 	  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
 	  canctrl_MotorPutEncoderPulse(CANCTRL_ID_MOTOR_CONTROLLER_2, encPulseBLDC, encPulseDC);
 	  canctrl_Send(&hcan, canctrl_GetID());
+	  HAL_Delay(400);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
