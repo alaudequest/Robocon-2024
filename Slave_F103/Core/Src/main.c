@@ -58,14 +58,13 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-uint8_t flag1 = 0;
-uint8_t flag0 = 0;
+
 uint16_t arrayID[] = {0x101,0x215,0x065,0x043};
 uint64_t dataInt = 0;
 uint64_t dataInt2 = 0;
 Encoder_t enDC,enBLDC;
-int16_t enPulseBLDC = -3;
-int16_t enPulseDC = 0;
+int16_t encPulseBLDC = -3;
+int16_t encPulseDC = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,20 +83,18 @@ void Init();
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO0);
-	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
-	flag0 = 1;
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
-	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
-	flag1 = 1;
 }
 
 void CAN_Init(){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-	canctrl_FilCfg(&hcan, 0x040, 0, CAN_FILTER_FIFO0);
-	canctrl_FilCfg(&hcan, 0x020, 1, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, CANCTRL_ID_MOTOR_CONTROLLER_1 << CANCTRL_ID_DEVICE_POS, 0, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, CANCTRL_ID_BRAKE_MOTOR_POS, 1, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, CANCTRL_ID_ENCODER_POS, 2, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, CANCTRL_ID_SPEED_ANGLE_MOTOR_POS, 3, CAN_FILTER_FIFO0);
 }
 /* USER CODE END 0 */
 
@@ -134,9 +131,7 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
   Init();
-
 //  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
   /* USER CODE END 2 */
 
@@ -144,21 +139,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(flag0){
-		  flag0 = 0;
-		  CAN_RxHeaderTypeDef rxhd;
-		  rxhd = canctrl_GetRxHeader();
-		  if(rxhd.StdId & 0x040) enPulseDC = canctrl_GetIntNum();
-		  if(rxhd.StdId & 0x020) enPulseBLDC = canctrl_GetIntNum();
-	  }
-//	  enPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
-//	  enPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
-//	  HAL_Delay(50);
-//	  canctrl_PutMessage(enPulseBLDC);
-//	  canctrl_Send(&hcan, 0x020);
-//	  HAL_Delay(50);
-//	  canctrl_PutMessage(enPulseDC);
-//	  canctrl_Send(&hcan, 0x040);
+	  encPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
+	  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
+	  canctrl_MotorPutEncoderPulse(CANCTRL_ID_MOTOR_CONTROLLER_2, encPulseBLDC, encPulseDC);
+	  canctrl_Send(&hcan, canctrl_GetID());
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

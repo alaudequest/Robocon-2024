@@ -7,20 +7,27 @@
 #include "CAN_Control.h"
 #include <stdio.h>
 #include <string.h>
-uint32_t txMailBox[3];
-CAN_TxHeaderTypeDef txHeader;
-CAN_RxHeaderTypeDef rxHeader;
-uint8_t txData[8] = {0};
-uint8_t rxData[8] = {0};
+
+
 union fByte{
 	float floatData;
 	uint8_t byteData[4];
 }fByte;
 
+
 union iByte{
 	uint64_t intData;
 	uint8_t byteData[8];
 }iByte;
+
+uint32_t txMailBox[3];
+CAN_TxHeaderTypeDef txHeader;
+CAN_RxHeaderTypeDef rxHeader;
+uint8_t txData[8] = {0};
+uint8_t rxData[8] = {0};
+union fByte speedMotor,angleMotor;
+uint32_t canEvent;
+
 void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
 uint32_t canctrl_GetDLC(){return txHeader.DLC;}
 
@@ -37,22 +44,20 @@ void canctrl_RTR_SetToRemote(){
 //	txHeader.DLC = 0;
 }
 
-HAL_StatusTypeDef canctrl_PutMessage(uint64_t data)
+HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
 	memset(txData,0,sizeof(txData));
 	txHeader.DLC = 0;
-	uint8_t temp;
-	for(int8_t i = sizeof(txData) - 1; i > -1 ;i--){
-		temp = (data >> i*8) & 0xff;
-		if(temp){
+	uint8_t *temp = (uint8_t*)data;
+	for(int8_t i = dataSize - 1; i > -1 ;i--){
+		if(*(temp+i)){
 			if(!txHeader.DLC) txHeader.DLC = i;
-			txData[txHeader.DLC - i] = temp;
+			txData[txHeader.DLC - i] = *(temp+i);
 		}
 	}
 	txHeader.DLC ++;
 	return HAL_OK;
 }
-
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID)
 {
 	if(!txHeader.DLC) return HAL_ERROR;
@@ -66,6 +71,15 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID)
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 {
 //	if(FIFO != CAN_RX_FIFO0 || FIFO != CAN_RX_FIFO1) return HAL_ERROR;
+
+	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	if(FIFO == CAN_RX_FIFO0) CAN_EVT_SETFLAG(CAN_EVT_RX_FIFO0);
+	else if(FIFO == CAN_RX_FIFO1) CAN_EVT_SETFLAG(CAN_EVT_RX_FIFO1);
+	else return HAL_ERROR;
+
+	if(rxHeader.StdId & CAN_ID_BRAKE_MASK) CAN_EVT_SETFLAG(CAN_EVT_BRAKE_MOTOR);
+	else if(rxHeader.StdId & CAN_ID_ENCODER_MASK) CAN_EVT_SETFLAG(CAN_EVT_GET_ENCODER);
+
 	return HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 }
 
@@ -97,11 +111,45 @@ uint64_t canctrl_GetIntNum()
 
 float canctrl_GetFloatNum()
 {
+	if(rxHeader.DLC > 4) return 0;
 	canctrl_GetRxData(fByte.byteData);
 	convBigEndianToLittleEndian(fByte.byteData,rxHeader.DLC);
 	memset(rxData,0,sizeof(rxData));
 	rxHeader.DLC = 0;
 	return fByte.floatData;
+}
+
+HAL_StatusTypeDef canctrl_MotorPutEncoderPulse(CAN_ID motorCtrlID, int16_t encBLDC, int16_t encDC)
+{
+	if(motorCtrlID > 4 || !motorCtrlID) return HAL_ERROR;
+	canctrl_SetID((motorCtrlID << CANCTRL_ID_DEVICE_POS) | CAN_ID_ENCODER_MASK);
+	uint32_t temp = encBLDC << 16 | encDC;
+	canctrl_PutMessage((void*)&temp, 4);
+	return HAL_OK;
+}
+
+void canctrl_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC)
+{
+	if(!CAN_EVT_CHECKFLAG(CAN_EVT_GET_ENCODER)) return;
+	memcpy(encBLDC,rxData,2);
+	memcpy(encDC,rxData + 2,2);
+	convBigEndianToLittleEndian((uint8_t*)encBLDC, 2);
+	convBigEndianToLittleEndian((uint8_t*)encDC, 2);
+	CAN_EVT_CLEARFLAG(CAN_EVT_GET_ENCODER);
+}
+
+
+HAL_StatusTypeDef canctrl_MotorSetSpeedAndRotation(CAN_ID motorCtrlID, float speed, float angle)
+{
+	if(angle > 360 || motorCtrlID > 4) return HAL_ERROR;
+	canctrl_SetID(motorCtrlID << CANCTRL_ID_DEVICE_POS | CAN_ID_SPEED_ANGLE_MASK);
+	speedMotor.floatData = speed;
+	angleMotor.floatData = angle;
+	uint8_t canData[8] = {0};
+	memcpy(canData,speedMotor.byteData,sizeof(speedMotor.byteData));
+	memcpy(canData + sizeof(speedMotor.byteData),angleMotor.byteData,sizeof(angleMotor.byteData));
+	canctrl_PutMessage((void*)canData, sizeof(canData));
+	return HAL_OK;
 }
 
 
