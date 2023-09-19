@@ -48,9 +48,9 @@ void canctrl_RTR_SetToRemote(){
 
 void canctrl_SetFlag(CAN_EVT flag){CAN_EVT_SETFLAG(flag);}
 void canctrl_ClearFlag(CAN_EVT flag){CAN_EVT_CLEARFLAG(flag);}
-bool canctrl_CheckFlag(CAN_EVT flag){
-	return CAN_EVT_CHECKFLAG(flag);
-}
+bool canctrl_CheckFlag(CAN_EVT flag){return CAN_EVT_CHECKFLAG(flag);}
+
+
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
 	memset(txData,0,sizeof(txData));
@@ -65,6 +65,7 @@ HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 	txHeader.DLC ++;
 	return HAL_OK;
 }
+
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID)
 {
 	if(!txHeader.DLC) return HAL_ERROR;
@@ -85,9 +86,11 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 	else if(FIFO == CAN_RX_FIFO1) CAN_EVT_SETFLAG(CAN_EVT_RX_FIFO1);
 	else return HAL_ERROR;
 
+
 	if(rxHeader.StdId & CAN_ID_BRAKE_MASK) CAN_EVT_SETFLAG(CAN_EVT_BRAKE_MOTOR);
 	else if(rxHeader.StdId & CAN_ID_ENCODER_MASK) CAN_EVT_SETFLAG(CAN_EVT_GET_ENCODER);
 	else if(rxHeader.StdId & CAN_ID_SPEED_ANGLE_MASK) CAN_EVT_SETFLAG(CAN_EVT_SPEED_ANGLE);
+	else if(rxHeader.StdId & CAN_ID_SET_HOME) CAN_EVT_SETFLAG(CAN_EVT_SET_HOME);
 	return HAL_OK;
 }
 
@@ -108,6 +111,7 @@ void convBigEndianToLittleEndian(uint8_t *data, size_t length){
 	}
 }
 
+
 uint64_t canctrl_GetIntNum()
 {
 	canctrl_GetRxData(iByte.byteData);
@@ -127,10 +131,10 @@ float canctrl_GetFloatNum()
 	return fByte.floatData;
 }
 
-void canctrl_MotorSendBrakeMessage(CAN_HandleTypeDef *can, CAN_ID motorCtrlID)
+void canctrl_MotorSendBrakeMessage(CAN_HandleTypeDef *can, CAN_ID motorCtrlID, bool brake)
 {
 	canctrl_SetID((motorCtrlID << CANCTRL_ID_DEVICE_POS) | CAN_ID_BRAKE_MASK);
-	canctrl_RTR_SetToRemote();
+	canctrl_PutMessage((void*)&brake, 1);
 	canctrl_Send(can, canctrl_GetID());
 }
 

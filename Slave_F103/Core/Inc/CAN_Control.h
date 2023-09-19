@@ -19,12 +19,13 @@ typedef enum Command_ID_List{
 	CANCTRL_ID_ENCODER_POS = 2,
 	CANCTRL_ID_DEVICE_POS = 3,
 	CANCTRL_ID_BRAKE_MOTOR_POS = 6,
+	CANCTRL_ID_SET_HOME = 7,
 }Command_ID_List;
 
 #define CAN_ID_ENCODER_MASK (1 << CANCTRL_ID_ENCODER_POS)
 #define CAN_ID_BRAKE_MASK (1 << CANCTRL_ID_BRAKE_MOTOR_POS)
 #define CAN_ID_SPEED_ANGLE_MASK (1 << CANCTRL_ID_SPEED_ANGLE_MOTOR_POS)
-
+#define CAN_ID_SET_HOME (1 << CANCTRL_ID_SET_HOME)
 typedef enum CAN_ID{
 	CANCTRL_ID_MOTOR_CONTROLLER_1 = 1,
 	CANCTRL_ID_MOTOR_CONTROLLER_2,
@@ -36,6 +37,7 @@ typedef enum CAN_ID{
 typedef enum CAN_EVT{
 	CAN_EVT_RX_FIFO0,
 	CAN_EVT_RX_FIFO1,
+	CAN_EVT_SET_HOME,
 	CAN_EVT_SPEED_ANGLE,
 	CAN_EVT_BRAKE_MOTOR,
 	CAN_EVT_GET_ENCODER,
@@ -51,6 +53,7 @@ void canctrl_RTR_SetToRemote();
 void canctrl_SetFlag(CAN_EVT flag);
 void canctrl_ClearFlag(CAN_EVT flag);
 bool canctrl_CheckFlag(CAN_EVT flag);
+void canctrl_MotorSendBrakeMessage(CAN_HandleTypeDef *can, CAN_ID motorCtrlID, bool brake);
 void canctrl_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC);
 void canctrl_MotorGetSpeedAndRotation(float *speed, float *angle);
 HAL_StatusTypeDef canctrl_MotorPutEncoderPulse(uint8_t slaveID, int16_t encBLDC, int16_t encDC);

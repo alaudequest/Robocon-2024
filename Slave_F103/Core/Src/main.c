@@ -97,13 +97,18 @@ void CAN_Init(CAN_ID ID){
 void CAN_HandleCmd()
 {
 	if(canctrl_CheckFlag(CAN_EVT_BRAKE_MOTOR)){
-		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
+		uint8_t brake;
+		canctrl_GetRxData(&brake);
+		if(brake) HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
+		else HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
 		canctrl_ClearFlag(CAN_EVT_BRAKE_MOTOR);
 	} else if (canctrl_CheckFlag(CAN_EVT_SPEED_ANGLE)){
 		float bldcSpeed = 0, dcAngle = 0;
 		canctrl_MotorGetSpeedAndRotation(&bldcSpeed, &dcAngle);
 		 __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,bldcSpeed);
 		canctrl_ClearFlag(CAN_EVT_SPEED_ANGLE);
+	} else if(canctrl_CheckFlag(CAN_EVT_SET_HOME)){
+		__NOP();
 	}
 }
 
