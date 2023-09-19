@@ -53,6 +53,7 @@ void canctrl_RTR_SetToRemote();
 void canctrl_SetFlag(CAN_EVT flag);
 void canctrl_ClearFlag(CAN_EVT flag);
 bool canctrl_CheckFlag(CAN_EVT flag);
+void canctrl_GetRxData(uint8_t *outData);
 void canctrl_MotorSendBrakeMessage(CAN_HandleTypeDef *can, CAN_ID motorCtrlID, bool brake);
 void canctrl_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC);
 void canctrl_MotorGetSpeedAndRotation(float *speed, float *angle);
