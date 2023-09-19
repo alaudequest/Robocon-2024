@@ -24,28 +24,20 @@ Mcu.Name=STM32F103C(8-B)Tx
 Mcu.Package=LQFP48
 Mcu.Pin0=PD0-OSC_IN
 Mcu.Pin1=PD1-OSC_OUT
-<<<<<<< HEAD:Slave_Driver/Slave_Driver.ioc
-Mcu.Pin2=PA11
-Mcu.Pin3=PA12
-Mcu.Pin4=PA13
-Mcu.Pin5=PA14
-Mcu.Pin6=PB3
-Mcu.PinsNb=7
-=======
-Mcu.Pin10=PA14
-Mcu.Pin11=PB3
-Mcu.Pin12=PB6
-Mcu.Pin13=PB7
+Mcu.Pin10=PA13
+Mcu.Pin11=PA14
+Mcu.Pin12=PB3
+Mcu.Pin13=PB6
+Mcu.Pin14=PB7
 Mcu.Pin2=PA1
 Mcu.Pin3=PA2
 Mcu.Pin4=PA3
-Mcu.Pin5=PA6
-Mcu.Pin6=PA7
-Mcu.Pin7=PA11
-Mcu.Pin8=PA12
-Mcu.Pin9=PA13
-Mcu.PinsNb=14
->>>>>>> 628b84b3c42009f50182ff5439ee0d100bd17c37:Slave_F103/Slave_F103.ioc
+Mcu.Pin5=PA4
+Mcu.Pin6=PA6
+Mcu.Pin7=PA7
+Mcu.Pin8=PA11
+Mcu.Pin9=PA12
+Mcu.PinsNb=15
 Mcu.ThirdPartyNb=0
 Mcu.UserConstants=
 Mcu.UserName=STM32F103C8Tx
@@ -74,14 +66,12 @@ PA13.Mode=Serial_Wire
 PA13.Signal=SYS_JTMS-SWDIO
 PA14.Mode=Serial_Wire
 PA14.Signal=SYS_JTCK-SWCLK
-<<<<<<< HEAD:Slave_Driver/Slave_Driver.ioc
-PB3.GPIOParameters=GPIO_Label
-PB3.GPIO_Label=LED
-PB3.Locked=true
-PB3.Signal=GPIO_Output
-=======
 PA2.Signal=S_TIM2_CH3
 PA3.Signal=S_TIM2_CH4
+PA4.GPIOParameters=GPIO_Label
+PA4.GPIO_Label=BLDC_BRAKE
+PA4.Locked=true
+PA4.Signal=GPIO_Output
 PA6.Signal=S_TIM3_CH1
 PA7.Signal=S_TIM3_CH2
 PB3.GPIOParameters=GPIO_Label
@@ -90,7 +80,6 @@ PB3.Locked=true
 PB3.Signal=GPIO_Output
 PB6.Signal=S_TIM4_CH1
 PB7.Signal=S_TIM4_CH2
->>>>>>> 628b84b3c42009f50182ff5439ee0d100bd17c37:Slave_F103/Slave_F103.ioc
 PD0-OSC_IN.Mode=HSE-External-Oscillator
 PD0-OSC_IN.Signal=RCC_OSC_IN
 PD1-OSC_OUT.Mode=HSE-External-Oscillator
@@ -126,11 +115,7 @@ ProjectManager.ToolChainLocation=
 ProjectManager.UAScriptAfterPath=
 ProjectManager.UAScriptBeforePath=
 ProjectManager.UnderRoot=true
-<<<<<<< HEAD:Slave_Driver/Slave_Driver.ioc
-ProjectManager.functionlistsort=1-SystemClock_Config-RCC-false-HAL-false,2-MX_GPIO_Init-GPIO-false-HAL-true,3-MX_CAN_Init-CAN-false-HAL-true
-=======
-ProjectManager.functionlistsort=1-SystemClock_Config-RCC-false-HAL-false,2-MX_GPIO_Init-GPIO-false-HAL-true,3-MX_CAN_Init-CAN-false-HAL-true,4-MX_TIM3_Init-TIM3-false-HAL-true,5-MX_TIM4_Init-TIM4-false-HAL-true
->>>>>>> 628b84b3c42009f50182ff5439ee0d100bd17c37:Slave_F103/Slave_F103.ioc
+ProjectManager.functionlistsort=1-SystemClock_Config-RCC-false-HAL-false,2-MX_GPIO_Init-GPIO-false-HAL-true,3-MX_CAN_Init-CAN-false-HAL-true,4-MX_TIM3_Init-TIM3-false-HAL-true,5-MX_TIM4_Init-TIM4-false-HAL-true,6-MX_TIM2_Init-TIM2-false-HAL-true
 RCC.ADCFreqValue=36000000
 RCC.AHBFreq_Value=72000000
 RCC.APB1CLKDivider=RCC_HCLK_DIV2

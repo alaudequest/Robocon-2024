@@ -10,7 +10,7 @@
 #include "main.h"
 #include "stdbool.h"
 
-#define CAN_EVT_CHECKFLAG(FlagBit) ((((canEvent) & (1 << FlagBit)) == (FlagBit)) ? 1 : 0)
+#define CAN_EVT_CHECKFLAG(FlagBit) ((((canEvent) & (1 << FlagBit)) == (1 << FlagBit)) ? 1 : 0)
 #define CAN_EVT_SETFLAG(FlagBit) ((canEvent) |= (1 << FlagBit))
 #define CAN_EVT_CLEARFLAG(FlagBit) ((canEvent) &= ~(1 << FlagBit))
 
@@ -52,13 +52,14 @@ void canctrl_SetFlag(CAN_EVT flag);
 void canctrl_ClearFlag(CAN_EVT flag);
 bool canctrl_CheckFlag(CAN_EVT flag);
 void canctrl_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC);
+void canctrl_MotorGetSpeedAndRotation(float *speed, float *angle);
+HAL_StatusTypeDef canctrl_MotorPutEncoderPulse(uint8_t slaveID, int16_t encBLDC, int16_t encDC);
+HAL_StatusTypeDef canctrl_MotorSetSpeedAndRotation(uint8_t slaveID, float speed, float angle);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
-HAL_StatusTypeDef canctrl_MotorPutEncoderPulse(uint8_t slaveID, int16_t encBLDC, int16_t encDC);
-HAL_StatusTypeDef canctrl_MotorSetSpeedAndRotation(uint8_t slaveID, float speed, float angle);
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can);
 #endif /* INC_CAN_CONTROL_H_ */

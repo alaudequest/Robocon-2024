@@ -59,9 +59,6 @@ TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 
-uint16_t arrayID[] = {0x101,0x215,0x065,0x043};
-uint64_t dataInt = 0;
-uint64_t dataInt2 = 0;
 Encoder_t enDC,enBLDC;
 int16_t encPulseBLDC = -3;
 int16_t encPulseDC = 0;
@@ -88,10 +85,10 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
 }
 
-void CAN_Init(){
+void CAN_Init(CAN_ID ID){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-	canctrl_FilCfg(&hcan, CANCTRL_ID_MOTOR_CONTROLLER_1 << CANCTRL_ID_DEVICE_POS, 0, CAN_FILTER_FIFO0);
+	canctrl_FilCfg(&hcan, ID << CANCTRL_ID_DEVICE_POS, 0, CAN_FILTER_FIFO0);
 	canctrl_FilCfg(&hcan, CANCTRL_ID_BRAKE_MOTOR_POS, 1, CAN_FILTER_FIFO0);
 	canctrl_FilCfg(&hcan, CANCTRL_ID_ENCODER_POS, 2, CAN_FILTER_FIFO0);
 	canctrl_FilCfg(&hcan, CANCTRL_ID_SPEED_ANGLE_MOTOR_POS, 3, CAN_FILTER_FIFO0);
@@ -100,9 +97,39 @@ void CAN_Init(){
 void CAN_HandleCmd()
 {
 	if(canctrl_CheckFlag(CAN_EVT_BRAKE_MOTOR)){
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
 		canctrl_ClearFlag(CAN_EVT_BRAKE_MOTOR);
 	} else if (canctrl_CheckFlag(CAN_EVT_SPEED_ANGLE)){
+		float bldcSpeed = 0, dcAngle = 0;
+		canctrl_MotorGetSpeedAndRotation(&bldcSpeed, &dcAngle);
+		 __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,bldcSpeed);
 		canctrl_ClearFlag(CAN_EVT_SPEED_ANGLE);
+	}
+}
+
+void MotorController1_Run(){
+	CAN_Init(CANCTRL_ID_MOTOR_CONTROLLER_1);
+	__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
+	while(1){
+	  CAN_HandleCmd();
+	  encPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
+	  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
+	  canctrl_MotorPutEncoderPulse(CANCTRL_ID_MOTOR_CONTROLLER_2, encPulseBLDC, encPulseDC);
+	  canctrl_Send(&hcan, canctrl_GetID());
+	  HAL_Delay(1000);
+	}
+}
+
+void MotorController2_Run()
+{
+	CAN_Init(CANCTRL_ID_MOTOR_CONTROLLER_2);
+	uint16_t pwm = 0;
+	while(1){
+		canctrl_MotorSetSpeedAndRotation(CANCTRL_ID_MOTOR_CONTROLLER_1, pwm, 50);
+		canctrl_Send(&hcan,canctrl_GetID());
+		if(pwm >= 500) pwm = 0;
+ 		else pwm +=50;
+		HAL_Delay(10000);
 	}
 }
 /* USER CODE END 0 */
@@ -141,18 +168,16 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   Init();
-  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  encPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
-	  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
-	  canctrl_MotorPutEncoderPulse(CANCTRL_ID_MOTOR_CONTROLLER_2, encPulseBLDC, encPulseDC);
-	  canctrl_Send(&hcan, canctrl_GetID());
-	  HAL_Delay(400);
+	  MotorController1_Run();
+//	  MotorController2_Run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -408,7 +433,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : BLDC_BRAKE_Pin */
+  GPIO_InitStruct.Pin = BLDC_BRAKE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(BLDC_BRAKE_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : UserLED_Pin */
   GPIO_InitStruct.Pin = UserLED_Pin;
@@ -425,7 +460,6 @@ static void MX_GPIO_Init(void)
 void Init(){
 	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
-	CAN_Init();
 	encoder_Init(&enDC, &htim3, DCEncoderPerRound, DCDeltaT);
 	encoder_Init(&enBLDC, &htim4, _BLDCEncoderPerRound, _BLDCDeltaT);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);

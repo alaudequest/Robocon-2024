@@ -48,7 +48,9 @@ void canctrl_RTR_SetToRemote(){
 
 void canctrl_SetFlag(CAN_EVT flag){CAN_EVT_SETFLAG(flag);}
 void canctrl_ClearFlag(CAN_EVT flag){CAN_EVT_CLEARFLAG(flag);}
-bool canctrl_CheckFlag(CAN_EVT flag){return CAN_EVT_CHECKFLAG(flag);}
+bool canctrl_CheckFlag(CAN_EVT flag){
+	return CAN_EVT_CHECKFLAG(flag);
+}
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
 	memset(txData,0,sizeof(txData));
@@ -68,7 +70,7 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, uint32_t ID)
 	if(!txHeader.DLC) return HAL_ERROR;
 	txHeader.IDE = CAN_ID_STD;
 	canctrl_RTR_SetToData();
-	canctrl_SetID(ID);
+//	canctrl_SetID(ID);
 	HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
 	return HAL_OK;
 }
@@ -78,6 +80,7 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 //	if(FIFO != CAN_RX_FIFO0 || FIFO != CAN_RX_FIFO1) return HAL_ERROR;
 
 	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 	if(FIFO == CAN_RX_FIFO0) CAN_EVT_SETFLAG(CAN_EVT_RX_FIFO0);
 	else if(FIFO == CAN_RX_FIFO1) CAN_EVT_SETFLAG(CAN_EVT_RX_FIFO1);
 	else return HAL_ERROR;
@@ -85,8 +88,7 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 	if(rxHeader.StdId & CAN_ID_BRAKE_MASK) CAN_EVT_SETFLAG(CAN_EVT_BRAKE_MOTOR);
 	else if(rxHeader.StdId & CAN_ID_ENCODER_MASK) CAN_EVT_SETFLAG(CAN_EVT_GET_ENCODER);
 	else if(rxHeader.StdId & CAN_ID_SPEED_ANGLE_MASK) CAN_EVT_SETFLAG(CAN_EVT_SPEED_ANGLE);
-
-	return HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
+	return HAL_OK;
 }
 
 void canctrl_GetRxData(uint8_t *outData){
@@ -160,9 +162,21 @@ HAL_StatusTypeDef canctrl_MotorSetSpeedAndRotation(CAN_ID motorCtrlID, float spe
 	angleMotor.floatData = angle;
 	uint8_t canData[8] = {0};
 	memcpy(canData,speedMotor.byteData,sizeof(speedMotor.byteData));
-	memcpy(canData + sizeof(speedMotor.byteData),angleMotor.byteData,sizeof(angleMotor.byteData));
+	memcpy(canData + sizeof(float),angleMotor.byteData,sizeof(float));
 	canctrl_PutMessage((void*)canData, sizeof(canData));
+
 	return HAL_OK;
+}
+
+void canctrl_MotorGetSpeedAndRotation(float *speed, float *angle)
+{
+	if(!CAN_EVT_CHECKFLAG(CAN_EVT_SPEED_ANGLE)) return;
+	memcpy(speedMotor.byteData,rxData + sizeof(float),sizeof(float));
+	memcpy(angleMotor.byteData,rxData,sizeof(float));
+	convBigEndianToLittleEndian(speedMotor.byteData, 4);
+	convBigEndianToLittleEndian(angleMotor.byteData, 4);
+	*speed = speedMotor.floatData;
+	*angle = angleMotor.floatData;
 }
 
 
