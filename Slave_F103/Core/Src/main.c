@@ -102,13 +102,18 @@ void CAN_HandleCmd()
 		if(brake) HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
 		else HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
 		canctrl_ClearFlag(CAN_EVT_BRAKE_MOTOR);
-	} else if (canctrl_CheckFlag(CAN_EVT_SPEED_ANGLE)){
+	}
+	if (canctrl_CheckFlag(CAN_EVT_SPEED_ANGLE)){
 		float bldcSpeed = 0, dcAngle = 0;
 		canctrl_MotorGetSpeedAndRotation(&bldcSpeed, &dcAngle);
 		 __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,bldcSpeed);
 		canctrl_ClearFlag(CAN_EVT_SPEED_ANGLE);
-	} else if(canctrl_CheckFlag(CAN_EVT_SET_HOME)){
+	}
+	if(canctrl_CheckFlag(CAN_EVT_SET_HOME)){
 		__NOP();
+	}
+	if(canctrl_CheckFlag(CAN_EVT_GET_ENCODER)){
+		canctrl_MotorGetEncoderPulse(&encPulseBLDC, &encPulseDC);
 	}
 }
 
@@ -130,14 +135,16 @@ void MotorController2_Run()
 	CAN_Init(CANCTRL_ID_MOTOR_CONTROLLER_2);
 	uint16_t pwm = 0;
 	while(1){
+		CAN_HandleCmd();
 		canctrl_MotorSendBrakeMessage(&hcan,CANCTRL_ID_MOTOR_CONTROLLER_1, 0);
-		HAL_Delay(1);
+		HAL_Delay(1000);
 		canctrl_MotorSetSpeedAndRotation(CANCTRL_ID_MOTOR_CONTROLLER_1, pwm, 50);
 		canctrl_Send(&hcan,canctrl_GetID());
 		if(pwm >= 500) pwm = 0;
  		else pwm +=50;
 		HAL_Delay(5000);
 		canctrl_MotorSendBrakeMessage(&hcan,CANCTRL_ID_MOTOR_CONTROLLER_1, 1);
+		HAL_Delay(5000);
 	}
 }
 /* USER CODE END 0 */
