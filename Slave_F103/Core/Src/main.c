@@ -130,11 +130,14 @@ void MotorController2_Run()
 	CAN_Init(CANCTRL_ID_MOTOR_CONTROLLER_2);
 	uint16_t pwm = 0;
 	while(1){
+		canctrl_MotorSendBrakeMessage(&hcan,CANCTRL_ID_MOTOR_CONTROLLER_1, 0);
+		HAL_Delay(1);
 		canctrl_MotorSetSpeedAndRotation(CANCTRL_ID_MOTOR_CONTROLLER_1, pwm, 50);
 		canctrl_Send(&hcan,canctrl_GetID());
 		if(pwm >= 500) pwm = 0;
  		else pwm +=50;
-		HAL_Delay(10000);
+		HAL_Delay(5000);
+		canctrl_MotorSendBrakeMessage(&hcan,CANCTRL_ID_MOTOR_CONTROLLER_1, 1);
 	}
 }
 /* USER CODE END 0 */
@@ -181,8 +184,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  MotorController1_Run();
-//	  MotorController2_Run();
+//	  MotorController1_Run();
+	  MotorController2_Run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
