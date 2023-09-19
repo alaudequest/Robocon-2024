@@ -380,8 +380,8 @@ typedef struct Optimizer{
 	uint8_t OdoFlagX;
 	uint8_t OdoFlagY;
 	double Xcoef,Ycoef;
-	double XCurrPos;
-	double YCurrPos;
+	double XCurrCnt;
+	double YCurrCnt;
 }Optimizer;
 
 
@@ -489,6 +489,14 @@ int OdoPos,OdoFlag1,OdoFlag2,OdorCnt;
 
 Optimizer Swerve1;
 Optimizer Swerve2;
+
+float uOut,vOut;
+
+void FieldOrientedCotrol(float u , float v, float Angle)
+{
+	uOut = u*cos(Angle*M_PI/180)-v*sin(Angle*M_PI/180);
+	vOut = u*sin(Angle*M_PI/180)+v*cos(Angle*M_PI/180);
+}
 
 //Ham tinh dong hoc nghich cho robot dua vao van toc chuyen vi theo cac phuong
 void InverseKine(float u,float v ,float r)
@@ -674,14 +682,15 @@ double TargetAngle = 0;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if(OdoFlag2!=0){
 		if (GPIO_Pin == Odo_Extio_Pin)
 		{
 			if(HAL_GPIO_ReadPin(Odo_Input_GPIO_Port, Odo_Input_Pin)==0)OdorCnt++;
 			else OdorCnt--;
 		}
-	}
 }
+#define RobotLenght 0.58
+#define CountPerRevolTrackingWheel 1000
+#define RadiusTrackingWheel 0.06
 
 
 
@@ -690,32 +699,48 @@ void OdoCountLogic(void){
 	//Xac dinh chuyen vi theo phuong X:
 	if (Swerve1.OdoFlagX == 0)
 	{
-		Swerve1.XCurrPos += (0.054*M_PI/1000)*OdorCnt*Swerve1.Xcoef;
+		Swerve1.XCurrCnt += OdorCnt*Swerve1.Xcoef;
 	}
 	else if (Swerve1.OdoFlagX == 1)
 	{
-		Swerve1.XCurrPos -= (0.054*M_PI/1000)*OdorCnt*Swerve1.Xcoef;
+		Swerve1.XCurrCnt -= OdorCnt*Swerve1.Xcoef;
 	}
 	else if (Swerve1.OdoFlagX == 2)
 	{
-		Swerve1.XCurrPos += 0;
+		Swerve1.XCurrCnt += 0;
 	}
 	//Xac dinh chuyen vi theo phuong Y:
 	if (Swerve1.OdoFlagY == 0)
 	{
-		Swerve1.YCurrPos += (0.054*M_PI/1000)*OdorCnt*Swerve1.Ycoef;
+		Swerve1.YCurrCnt += OdorCnt*Swerve1.Ycoef;
 	}
 	else if (Swerve1.OdoFlagY == 1)
 	{
-		Swerve1.YCurrPos -= (0.054*M_PI/1000)*OdorCnt*Swerve1.Ycoef;
+		Swerve1.YCurrCnt -= OdorCnt*Swerve1.Ycoef;
 	}
 	else if (Swerve1.OdoFlagY == 2)
 	{
-		Swerve1.YCurrPos += 0;
+		Swerve1.YCurrCnt += 0;
 	}
 	OdorCnt = 0;
 }
 
+float CurrentXPos,CurrentYPos,C;
+float DeltaX,DeltaY,DeltaAngle,PreAngle;
+void PositionTracking(void)
+{
+	C = 2*M_PI*RadiusTrackingWheel/CountPerRevolTrackingWheel;
+	OdoCountLogic();
+	DeltaAngle = (CurrAngle - PreAngle)*M_PI/180;
+	DeltaX = C*(Swerve1.XCurrCnt);
+	DeltaY = C*(Swerve1.YCurrCnt-RobotLenght/2*DeltaAngle);
+
+	CurrentXPos += DeltaX*cos(CurrAngle*M_PI/180)-DeltaY*sin(CurrAngle*M_PI/180);
+	CurrentYPos += DeltaX*sin(CurrAngle*M_PI/180)+DeltaY*cos(CurrAngle*M_PI/180);
+	Swerve1.XCurrCnt = 0;
+	Swerve1.YCurrCnt = 0;
+	PreAngle = CurrAngle;
+}
 //----------------------------------------End:Position Track-----------------------------------//
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 
@@ -725,7 +750,7 @@ void OdoCountLogic(void){
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 //----------------------------------------Begin:PurePursuilt-----------------------------------//
 
-double Points[5][2] = {{0,0},{0,0.5},{1,1},{0,2},{0,0}};
+double Points[5][2] = {{0,0},{0,5},{1,1},{0,2},{0,0}};
 double CurrPosition[2] = {0,0};
 double LookAheadDis = 0.3;
 
@@ -801,18 +826,18 @@ void PurePursuilt(void)
 	pathlen = sizeof(Points)/sizeof(Points[0]);
 	STIndex = LFIndex;
 	IntersectionFound = 0;
-	CurrPosition[0]=Swerve1.XCurrPos;
-	CurrPosition[1]=Swerve1.YCurrPos;
+	CurrPosition[0]=CurrentXPos;
+	CurrPosition[1]=CurrentYPos;
 	for (int i = STIndex;i<pathlen-1;i++)
 	{
 		EndOfPath = 0;
 
-		X1 = Points[i][0]-Swerve1.XCurrPos;
-		Y1 = Points[i][1]-Swerve1.YCurrPos;
+		X1 = Points[i][0]-CurrentXPos;
+		Y1 = Points[i][1]-CurrentYPos;
 
 
-		X2 = Points[i+1][0]-Swerve1.XCurrPos;
-		Y2 = Points[i+1][1]-Swerve1.YCurrPos;
+		X2 = Points[i+1][0]-CurrentXPos;
+		Y2 = Points[i+1][1]-CurrentYPos;
 
 		dx = X2-X1;
 		dy = Y2-Y1;
@@ -830,11 +855,11 @@ void PurePursuilt(void)
 			Soly1 = (-D*dx+absDouble(dy)*sqrt(discriminant))/pow(dr,2);
 			Soly2 = (-D*dx-absDouble(dy)*sqrt(discriminant))/pow(dr,2);
 
-			Solptn1[0]=Solx1+Swerve1.XCurrPos;
-			Solptn1[1]=Soly1+Swerve1.YCurrPos;
+			Solptn1[0]=Solx1+CurrentXPos;
+			Solptn1[1]=Soly1+CurrentYPos;
 
-			Solptn2[0]=Solx2+Swerve1.XCurrPos;
-			Solptn2[1]=Soly2+Swerve1.YCurrPos;
+			Solptn2[0]=Solx2+CurrentXPos;
+			Solptn2[1]=Soly2+CurrentYPos;
 
 			minX = min(Points[i][0],Points[i+1][0]);
 			minY = min(Points[i][1],Points[i+1][1]);
@@ -904,8 +929,8 @@ void PurePursuilt(void)
 	PrevTarget[0] = GoalPtn[0];
 	PrevTarget[1] = GoalPtn[1];
 
-	TargetPoint[0]=GoalPtn[0];
-	TargetPoint[1]=GoalPtn[1];
+	TargetPoint[0]= GoalPtn[0];
+	TargetPoint[1]= GoalPtn[1];
 }
 
 //----------------------------------------End:PurePursuilt-------------------------------------//
@@ -923,7 +948,7 @@ uint8_t esTablished,establishCheck;
 void SteadyStateCheck(void)
 {
 
-	if ((abs(e_CalOnly(&PIDOdoU,Solptn1[0],Swerve1.XCurrPos))<0.01) && (abs(e_CalOnly(&PIDOdoV,Solptn1[1],Swerve1.YCurrPos))<0.01))
+	if ((abs(e_CalOnly(&PIDOdoU,Solptn1[0],Swerve1.XCurrCnt))<0.01) && (abs(e_CalOnly(&PIDOdoV,Solptn1[1],Swerve1.YCurrCnt))<0.01))
 	{
 		establishCheck+=1;
 		if(establishCheck>3)
@@ -958,8 +983,8 @@ void PIDPathFollow(void)
 	  {
 		  SteadyStateCheck();
 	  }
-	  Pid_Cal(&PIDOdoV,TargetPoint[0],Swerve1.XCurrPos);
-	  Pid_Cal(&PIDOdoU,TargetPoint[1],Swerve1.YCurrPos);
+	  Pid_Cal(&PIDOdoV,TargetPoint[0],CurrentXPos);
+	  Pid_Cal(&PIDOdoU,TargetPoint[1],CurrentYPos);
 	  if (esTablished!= 1)
 	  {
 		  Pid_Cal(&PIDAngle,TargetAngle,CurrAngle);
@@ -1030,7 +1055,6 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-+
 HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -1055,7 +1079,7 @@ HAL_Init();
   SwerveInit(&Swerve2);
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_TIM_Base_Start_IT(&htim2);
-  HAL_Delay(5000);
+//  HAL_Delay(5000);
 //  HAL_UART_Receive_IT(&huart2, (uint8_t *)uart2_ds, 5);
 
   HAL_UARTEx_ReceiveToIdle_DMA(&huart2, uart2_ds, 5);
@@ -1107,27 +1131,6 @@ HAL_Init();
   while (1)
   {
 
-//	  if (GamePad.Touch == 1)
-//	  {
-//		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
-//	  }
-//	  else {
-//			 if(GamePad.Square == 1){
-//				 OdoFlag2 = 0;
-//			 }else if(GamePad.Circle == 1)
-//			 {
-//				 OdoFlag2 = 1;
-//			 }
-//	  	 }
-//
-//	  OdoCountLogic();
-//	  if(OdoFlag2==1){
-//		  PurePursuilt();
-//		  PIDPathFollow();
-//	  }
-//	  InverseKine(uT,vT,rT);
-//	  ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-//	  HAL_Delay(T*1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1428,30 +1431,31 @@ void PathTracking(void const * argument)
 	  {
 		  ControlDriver(1,2,0,Swerve1.CurrentAngle,2,2,0,Swerve2.CurrentAngle);
 	  }
-  else if(GamePad.Cross == 1)
-  {
-	  ControlDriver(1,2,0,90,2,2,0,90);
-  }
-	  else {
-			 if(GamePad.Triangle == 1){
-				 OdoFlag2 = 0;
-			 }else if(GamePad.Circle == 1)
-			 {
-				 OdoFlag2 = 1;
-				 TargetAngle = CurrAngle;
-			 }else if(GamePad.Square == 1){
-				 OdoFlag2 = 2;
-			 }
-		 }
+	 if(GamePad.Triangle == 1){
+		 OdoFlag2 = 0;
+	 }else if(GamePad.Circle == 1)
+	 {
+		 OdoFlag2 = 1;
+		 TargetAngle = CurrAngle;
+	 }else if(GamePad.Square == 1){
+		 OdoFlag2 = 2;
+	 }
 
-	  if(OdoFlag2==1){
-		  OdoCountLogic();
+
+	 if(OdoFlag2==1){
+		  //OdoCountLogic();
+		  PositionTracking();
+
 		  PurePursuilt();
 		  PIDCalFlag = 1;
-	  }else if (OdoFlag2 == 2){
+	  }else if (OdoFlag2 == 2)
+  	  {
+		//OdoCountLogic();
+		PositionTracking();
+
 		InverseKine(Yleft,-Xleft,-Xright*M_PI/180);
 		ControlDriver(1,1,wheel_AngleVel1,Swerve1.CurrentAngle,2,1,wheel_AngleVel2,Swerve2.CurrentAngle);
-	  }
+  	  }
     osDelay(T*1000);
   }
   /* USER CODE END 5 */
@@ -1494,10 +1498,6 @@ void KinematicCal(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	 if(OdoFlag2 == 1)
-//	 {
-//		osDelay(T*1000);
-//	 }
 	  osDelay(1);
   }
   /* USER CODE END KinematicCal */
