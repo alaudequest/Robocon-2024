@@ -81,6 +81,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 osThreadId CalPIDDCHandle;
+osThreadId TaskLogicHandle;
 /* USER CODE BEGIN PV */
 EncoderRead ENC_DC;
 
@@ -96,6 +97,7 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 void StartCalPIDDC(void const * argument);
+void StartLogic(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -181,6 +183,10 @@ int main(void)
   /* definition and creation of CalPIDDC */
   osThreadDef(CalPIDDC, StartCalPIDDC, osPriorityNormal, 0, 128);
   CalPIDDCHandle = osThreadCreate(osThread(CalPIDDC), NULL);
+
+  /* definition and creation of TaskLogic */
+  osThreadDef(TaskLogic, StartLogic, osPriorityBelowNormal, 0, 128);
+  TaskLogicHandle = osThreadCreate(osThread(TaskLogic), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -392,7 +398,6 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartCalPIDDC */
-int countX1;
 void StartCalPIDDC(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -403,11 +408,33 @@ void StartCalPIDDC(void const * argument)
 //	SpeedReadNonReset(&ENC_DC);
 //	PIDDCSPEED();
 	Degree = CountRead(&ENC_DC, count_ModeDegree);
-	countX1 = CountRead(&ENC_DC, countX1);
+//	countX1 = CountRead(&ENC_DC, countX1);
 	PIDDCPOS();
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartLogic */
+/**
+* @brief Function implementing the TaskLogic thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartLogic */
+void StartLogic(void const * argument)
+{
+  /* USER CODE BEGIN StartLogic */
+  /* Infinite loop */
+  for(;;)
+  {
+//	SpeedTest_DC_POS = 360;
+//	HAL_Delay(1000);
+//	SpeedTest_DC_POS = 0;
+//	HAL_Delay(1000);
+    osDelay(1);
+  }
+  /* USER CODE END StartLogic */
 }
 
 /**
