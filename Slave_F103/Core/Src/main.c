@@ -63,6 +63,8 @@ TIM_HandleTypeDef htim4;
 Encoder_t enDC,enBLDC;
 int16_t encPulseBLDC = -3;
 int16_t encPulseDC = 0;
+uint16_t ledDelay = 0;
+bool brake = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,7 +82,7 @@ void Init();
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, CAN_RX_FIFO0);
+	 canctrl_Receive(hcan, CAN_RX_FIFO0);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
@@ -89,17 +91,49 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 void CAN_Init(CAN_DEVICE_ID ID){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	uint16_t deviceID = ID << CAN_DEVICE_POS;
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_ENCODER,
+			deviceID | CANCTRL_MODE_LED_BLINK,
+			deviceID | CANCTRL_MODE_LED_STATE,
+			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			0, CAN_RX_FIFO0);
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_PID_BLDC,
+			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
+			deviceID | CANCTRL_MODE_PID_DC_SPEED,
+			deviceID,
+			1, CAN_RX_FIFO0);
+}
+
+
+void ledBlink(uint16_t delay)
+{
+	static uint32_t tick = 0;
+	static uint16_t internalDelay = 100;
+	if(delay) internalDelay = delay;
+	if(HAL_GetTick() - tick > internalDelay){
+		tick = HAL_GetTick();
+		HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	}
+}
+void ledState(bool state){
+	HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, state);
 }
 
 void handleFunc(CAN_MODE_ID func){
+
 	switch(func){
 	case CANCTRL_MODE_LED_STATE:
+		ledState(canctrl_GetIntNum());
 		break;
 	case CANCTRL_MODE_LED_BLINK:// only do once
+		ledBlink(canctrl_GetIntNum());
 		break;
 	case CANCTRL_MODE_SHOOT:
 		break;
 	case CANCTRL_MODE_ENCODER:
+		canfunc_MotorGetEncoderPulse(&encPulseBLDC, &encPulseDC);
 		break;
 	case CANCTRL_MODE_SET_HOME:
 		__NOP();
@@ -108,9 +142,9 @@ void handleFunc(CAN_MODE_ID func){
 		float bldcSpeed = 0, dcAngle = 0;
 		canfunc_MotorGetSpeedAndRotation(&bldcSpeed, &dcAngle);
 		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,bldcSpeed);
-		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,bldcSpeed);
 		break;
 	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, canfunc_MotorGetBrake());
 		break;
 	case CANCTRL_MODE_PID_DC_SPEED:
 		break;
@@ -127,12 +161,17 @@ void handleFunc(CAN_MODE_ID func){
 void MotorController1_Run(){
 	CAN_Init(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 	__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,100);
+	static uint32_t tick = 0;
 	while(1){
-	  canfunc_HandleRxEvent(&handleFunc);
-	  encPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
-	  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
-	  canfunc_MotorPutEncoderPulse(encPulseBLDC, encPulseDC);
-	  canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_1); HAL_Delay(1000);
+		canfunc_HandleRxEvent(&handleFunc);
+		ledBlink(0);
+		if(HAL_GetTick() - tick > 1000){
+		  tick = HAL_GetTick();
+		  encPulseBLDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim4);
+		  encPulseDC = (int16_t)__HAL_TIM_GET_COUNTER(&htim3);
+		  canfunc_MotorPutEncoderPulse(encPulseBLDC, encPulseDC);
+		  canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
+		}
 	}
 }
 
@@ -140,20 +179,34 @@ void MotorController2_Run()
 {
 	CAN_Init(CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
 	uint16_t pwm = 0;
+	static uint32_t tick = 0;
+
 	canctrl_SetTargetDevice(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 	while(1){
+		ledBlink(0);
 		canfunc_HandleRxEvent(&handleFunc);
-		canfunc_MotorBrake(1);
-		canctrl_Send(&hcan,0);
-		HAL_Delay(1000);
-		canfunc_MotorPutSpeedAndRotation(pwm, 50);
-		canctrl_Send(&hcan,0);
-		if(pwm >= 500) pwm = 0;
- 		else pwm +=50;
-		HAL_Delay(5000);
-		canfunc_MotorBrake(1);
-		canctrl_Send(&hcan,0);
-		HAL_Delay(5000);
+		if(HAL_GetTick() - tick > 1000){
+			tick = HAL_GetTick();
+			canctrl_SetID(CANCTRL_MODE_LED_BLINK);
+			canctrl_PutMessage((void*)&ledDelay, 2);
+			canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
+			canctrl_SetID(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
+			canfunc_MotorBrake()
+		}
+
+
+
+//		canfunc_MotorBrake(1);
+//		canctrl_Send(&hcan,0);
+//		HAL_Delay(1000);
+//		canfunc_MotorPutSpeedAndRotation(pwm, 50);
+//		canctrl_Send(&hcan,0);
+//		if(pwm >= 500) pwm = 0;
+// 		else pwm +=50;
+//		HAL_Delay(5000);
+//		canfunc_MotorBrake(1);
+//		canctrl_Send(&hcan,0);
+//		HAL_Delay(5000);
 	}
 }
 /* USER CODE END 0 */
@@ -201,7 +254,7 @@ int main(void)
   while (1)
   {
 //	  MotorController1_Run();
-//	  MotorController2_Run();
+	  MotorController2_Run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

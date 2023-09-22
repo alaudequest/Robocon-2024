@@ -39,16 +39,17 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
+
 	memset(txData,0,sizeof(txData));
 	txHeader.DLC = 0;
 	uint8_t *temp = (uint8_t*)data;
-	for(int8_t i = dataSize - 1; i > -1 ;i--){
+//	uint8_t *temp = &data2;
+	for(int8_t i = 0; i < dataSize;i++){
 		if(*(temp+i)){
-			if(!txHeader.DLC) txHeader.DLC = i;
-			txData[txHeader.DLC - i] = *(temp+i);
+			if(!txHeader.DLC) txHeader.DLC = dataSize - i;
+			txData[i] = *(temp+i);
 		}
 	}
-	txHeader.DLC ++;
 	return HAL_OK;
 }
 
@@ -64,7 +65,10 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID ID)
 
 void checkEventFromRxHeader(){
 	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END - 1;i++){
-		if(rxHeader.StdId & i)	CAN_EVT_SETFLAG(i);
+		if(rxHeader.StdId & i)	{
+			CAN_EVT_SETFLAG(i);
+			break;
+		}
 	}
 }
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
@@ -81,25 +85,12 @@ void canctrl_GetRxData(uint8_t *outData)
 	memcpy(outData,rxData,rxHeader.DLC);
 }
 
-void convBigEndianToLittleEndian(uint8_t *data, size_t length)
-{
-	if (length < 2 || length > 8) return;
 
-	uint8_t *bytes = (uint8_t *)data;
-
-	// Swap the bytes to convert from Big Endian to Little Endian
-	for (size_t i = 0; i < length / 2; i++) {
-		uint8_t temp = bytes[i];
-		bytes[i] = bytes[length - 1 - i];
-		bytes[length - 1 - i] = temp;
-	}
-}
 
 
 uint64_t canctrl_GetIntNum()
 {
 	canctrl_GetRxData(ibyte.byteData);
-	convBigEndianToLittleEndian(ibyte.byteData,rxHeader.DLC);
 	memset(rxData,0,sizeof(rxData));
 	rxHeader.DLC = 0;
 	return ibyte.intData;
@@ -109,7 +100,6 @@ float canctrl_GetFloatNum()
 {
 	if(rxHeader.DLC > 4) return 0;
 	canctrl_GetRxData(fbyte.byteData);
-	convBigEndianToLittleEndian(fbyte.byteData,rxHeader.DLC);
 	memset(rxData,0,sizeof(rxData));
 	rxHeader.DLC = 0;
 	return fbyte.floatData;
@@ -132,15 +122,16 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID3,
 												uint16_t ID4,
 												uint32_t filBank,
-												uint32_t FIFO){
+												uint32_t FIFO)
+{
 	CAN_FilterTypeDef canFilCfg;
 	canFilCfg.FilterActivation = CAN_FILTER_ENABLE;
 	canFilCfg.FilterBank = filBank;
 	canFilCfg.FilterFIFOAssignment = FIFO;
-	canFilCfg.FilterIdLow = 		ID1;
-	canFilCfg.FilterIdHigh = 		ID2;
-	canFilCfg.FilterMaskIdLow = 	ID3;
-	canFilCfg.FilterMaskIdHigh = 	ID4;
+	canFilCfg.FilterIdLow = 		ID1 << 5;
+	canFilCfg.FilterIdHigh = 		ID2 << 5;
+	canFilCfg.FilterMaskIdLow = 	ID3 << 5;
+	canFilCfg.FilterMaskIdHigh = 	ID4 << 5;
 	canFilCfg.FilterMode = CAN_FILTERMODE_IDLIST;
 	canFilCfg.FilterScale = CAN_FILTERSCALE_16BIT;
 	canFilCfg.SlaveStartFilterBank = 13;

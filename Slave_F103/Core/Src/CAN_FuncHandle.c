@@ -30,16 +30,25 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 }
 
 
-void canfunc_MotorBrake(bool brake)
+void canfunc_MotorSetBrake(bool brake)
 {
 	canctrl_SetID(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
 	canctrl_PutMessage((void*)&brake, 1);
 }
 
-HAL_StatusTypeDef canfunc_MotorPutEncoderPulse(int16_t encBLDC, int16_t encDC)
+bool canfunc_MotorGetBrake()
+{
+	if(!canctrl_CheckFlag(CANCTRL_MODE_MOTOR_BLDC_BRAKE)) return;
+	uint8_t rxData[8] = {0};
+	canctrl_GetRxData(rxData);
+	return canctrl_GetIntNum();
+}
+
+HAL_StatusTypeDef canfunc_MotorPutEncoderPulse(uint16_t encBLDC, uint16_t encDC)
 {
 	canctrl_SetID(CANCTRL_MODE_ENCODER);
-	uint32_t temp = encBLDC << 16 | encDC;
+	uint32_t temp = 0;
+	temp = encDC | encBLDC << 16;
 	canctrl_PutMessage((void*)&temp, 4);
 	return HAL_OK;
 }
@@ -51,8 +60,8 @@ void canfunc_MotorGetEncoderPulse(int16_t *encBLDC, int16_t *encDC)
 	canctrl_GetRxData(rxData);
 	memcpy(encBLDC,rxData,2);
 	memcpy(encDC,rxData + 2,2);
-	convBigEndianToLittleEndian((uint8_t*)encBLDC, 2);
-	convBigEndianToLittleEndian((uint8_t*)encDC, 2);
+//	convBigEndianToLittleEndian((uint8_t*)encBLDC, 2);
+//	convBigEndianToLittleEndian((uint8_t*)encDC, 2);
 	canctrl_CheckFlag(CANCTRL_MODE_ENCODER);
 }
 
@@ -77,8 +86,8 @@ void canfunc_MotorGetSpeedAndRotation(float *speed, float *angle)
 	canctrl_GetRxData(rxData);
 	memcpy(speedMotor.byteData,rxData + sizeof(float),sizeof(float));
 	memcpy(angleMotor.byteData,rxData,sizeof(float));
-	convBigEndianToLittleEndian(speedMotor.byteData, 4);
-	convBigEndianToLittleEndian(angleMotor.byteData, 4);
+//	convBigEndianToLittleEndian(speedMotor.byteData, 4);
+//	convBigEndianToLittleEndian(angleMotor.byteData, 4);
 	*speed = speedMotor.floatData;
 	*angle = angleMotor.floatData;
 }

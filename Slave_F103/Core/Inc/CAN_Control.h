@@ -73,5 +73,12 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can);
-void convBigEndianToLittleEndian(uint8_t *data, size_t length);
+HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
+												uint16_t ID1,
+												uint16_t ID2,
+												uint16_t ID3,
+												uint16_t ID4,
+												uint32_t filBank,
+												uint32_t FIFO);
+//void convBigEndianToLittleEndian(uint8_t *data, size_t length);
 #endif /* INC_CAN_CONTROL_H_ */
