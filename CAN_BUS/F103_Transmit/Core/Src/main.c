@@ -114,9 +114,30 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  TxHeader.StdId = 0x103;
 	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
 		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		  HAL_Delay(1000);
+		  HAL_Delay(3000);
+	  }
+	  TxHeader.StdId = 0x210;
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+		  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		  HAL_Delay(3000);
+	  }
+	  TxHeader.StdId = 0x213;
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+	  	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  	  HAL_Delay(3000);
+	  }
+	  TxHeader.StdId = 0x105;
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+	  	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  	  HAL_Delay(3000);
+	  }
+	  TxHeader.StdId = 0x101;
+	  if(HAL_CAN_AddTxMessage(&hcan, &TxHeader, txdata, TxMailBox) == HAL_OK){
+	  	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  	  HAL_Delay(3000);
 	  }
     /* USER CODE END WHILE */
 
@@ -213,18 +234,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
