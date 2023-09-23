@@ -1,4 +1,0 @@
-../Core/Src/CAN_Control.c:17:19:canctrl_MakeStdTxHeader	24	static
-../Core/Src/CAN_Control.c:26:19:canctrl_Send	24	static
-../Core/Src/CAN_Control.c:32:19:canctrl_Receive	24	static
-../Core/Src/CAN_Control.c:38:19:canctrl_SetFilter	64	static

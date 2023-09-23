@@ -1,0 +1,3 @@
+../Core/Src/74hc595.c:11:6:hc595_TestAllOutput	16	static
+../Core/Src/74hc595.c:22:6:hc595_SetOutput	16	static
+../Core/Src/74hc595.c:25:6:hc595_ClearOutput	16	static
