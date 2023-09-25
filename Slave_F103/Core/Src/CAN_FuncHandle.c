@@ -38,7 +38,6 @@ void canfunc_MotorSetBrake(bool brake)
 
 bool canfunc_MotorGetBrake()
 {
-	if(!canctrl_CheckFlag(CANCTRL_MODE_MOTOR_BLDC_BRAKE)) return;
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
 	return canctrl_GetIntNum();

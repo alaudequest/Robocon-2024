@@ -24,6 +24,7 @@
 #include "CAN_Control.h"
 #include "CAN_FuncHandle.h"
 #include "Encoder.h"
+#include "BoardParameter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,22 +34,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define FLASH_ADDR_BASE 0x08000000
+#define FLASH_ADDR_TARGET_PAGE 64
+#define FLASH_ADDR_TARGET (FLASH_ADDR_BASE + 1024*FLASH_ADDR_TARGET_PAGE)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-/*-----------------------------Begin:BLDC Macro-------------------------------*/
-#define _BLDCEncoderPerRound 				  200
-#define _BLDCGearRatio 						  2.5
-#define _BLDCDeltaT							0.001
-/*-----------------------------End:BLDC Macro---------------------------------*/
 
-/*-----------------------------Begin:DC Macro---------------------------------*/
-#define DCDeltaT 							0.001
-#define DCEncoderPerRound 					 1000
-#define DCGearRatio 						3.535
-/*-----------------------------End:DC Macro-----------------------------------*/
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -95,14 +88,14 @@ void CAN_Init(CAN_DEVICE_ID ID){
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLINK,
-			deviceID | CANCTRL_MODE_LED_STATE,
+			deviceID | CANCTRL_MODE_ENCODER_SEND_ENABLE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
-			deviceID | CANCTRL_MODE_PID_BLDC,
+			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-			deviceID,
+			deviceID | CANCTRL_MODE_SET_HOME,
 			1, CAN_RX_FIFO0);
 }
 
@@ -124,16 +117,17 @@ void ledState(bool state){
 void handleFunc(CAN_MODE_ID func){
 
 	switch(func){
+	case CANCTRL_MODE_ENCODER_SEND_ENABLE:
+		break;
 	case CANCTRL_MODE_LED_STATE:
-		ledState(canctrl_GetIntNum());
+		break;
+	case CANCTRL_MODE_ENCODER:
+		canfunc_MotorGetEncoderPulse(&encPulseBLDC, &encPulseDC);
 		break;
 	case CANCTRL_MODE_LED_BLINK:// only do once
 		ledBlink(canctrl_GetIntNum());
 		break;
 	case CANCTRL_MODE_SHOOT:
-		break;
-	case CANCTRL_MODE_ENCODER:
-		canfunc_MotorGetEncoderPulse(&encPulseBLDC, &encPulseDC);
 		break;
 	case CANCTRL_MODE_SET_HOME:
 		__NOP();
@@ -150,7 +144,7 @@ void handleFunc(CAN_MODE_ID func){
 		break;
 	case CANCTRL_MODE_PID_DC_ANGLE:
 		break;
-	case CANCTRL_MODE_PID_BLDC:
+	case CANCTRL_MODE_PID_BLDC_SPEED:
 		break;
 	case CANCTRL_MODE_START:
 	case CANCTRL_MODE_END:
@@ -178,7 +172,6 @@ void MotorController1_Run(){
 void MotorController2_Run()
 {
 	CAN_Init(CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
-	uint16_t pwm = 0;
 	static uint32_t tick = 0;
 
 	canctrl_SetTargetDevice(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
@@ -191,7 +184,6 @@ void MotorController2_Run()
 			canctrl_PutMessage((void*)&ledDelay, 2);
 			canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 			canctrl_SetID(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
-			canfunc_MotorBrake()
 		}
 
 
@@ -208,6 +200,26 @@ void MotorController2_Run()
 //		canctrl_Send(&hcan,0);
 //		HAL_Delay(5000);
 	}
+}
+
+void Flash_Write(CAN_DEVICE_ID ID){
+	uint32_t targetAddr = FLASH_ADDR_BASE + 1024*64;
+	  FLASH_EraseInitTypeDef fe;
+	  fe.TypeErase = FLASH_TYPEERASE_PAGES;
+	  fe.PageAddress = targetAddr;
+	  fe.NbPages = 1;
+	  fe.Banks = FLASH_BANK_1;
+	  uint32_t pageErr = 0;
+	  HAL_FLASH_Unlock();
+	  if(HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK){
+//		 return HAL_FLASH_GetError();
+		  while(1);
+	  }
+	  if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET,(uint32_t)ID) != HAL_OK){
+//		 return HAL_FLASH_GetError();
+		  while(1);
+	  }
+	  HAL_FLASH_Lock();
 }
 /* USER CODE END 0 */
 
@@ -244,9 +256,11 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  Init();
-  __HAL_DBGMCU_FREEZE_CAN1();
+//  Init();
+//  Flash_Write(ID);
+  uint32_t canSlaveAddr = *(__IO uint32_t*)FLASH_ADDR_TARGET;
 
+//  __HAL_DBGMCU_FREEZE_CAN1();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -254,7 +268,7 @@ int main(void)
   while (1)
   {
 //	  MotorController1_Run();
-	  MotorController2_Run();
+//	  MotorController2_Run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
