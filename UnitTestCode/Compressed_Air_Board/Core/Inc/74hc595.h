@@ -12,16 +12,31 @@
 #define HC595_SETFLAG(flag)		(hc595event |= (1<<flag))
 #define HC595_CLEARFLAG(flag)	(hc595event &= ~(1<<flag))
 #define HC595_CHECKFLAG(flag)	((hc595event & (1<<flag)) == (1<<flag) ? 1 : 0)
+//#define VAN1	(1<<7)
+//#define VAN2	(1<<6)
+//#define VAN3	(1<<5)
+//#define VAN4	(1<<4)
+//#define VAN5	(1<<3)
+//#define VAN6	(1<<2)
+//#define VAN7	(1<<1)
+//#define VAN8	(1<<0)
+
 typedef enum{
-	VAN1,
-	VAN2,
-	VAN3,
-	VAN4,
-	VAN5,
-	VAN6,
-	VAN7,
 	VAN8,
-}VanNum;
+	VAN7,
+	VAN6,
+	VAN5,
+	VAN4,
+	VAN3,
+	VAN2,
+	VAN1,
+}vanNum;
+typedef enum{
+	HC595_DSI,
+	HC595_CLK,
+	HC595_RCK,
+	HC595_OE,
+}pinName;
 typedef struct HC595{
 	uint8_t data;
 }HC595;

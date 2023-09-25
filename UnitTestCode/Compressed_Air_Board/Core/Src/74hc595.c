@@ -19,23 +19,37 @@ void hc595_TestAllOutput()
 	HAL_GPIO_WritePin(HC595_RCK_GPIO_Port, HC595_RCK_Pin, 1);
 	HAL_GPIO_WritePin(HC595_RCK_GPIO_Port, HC595_RCK_Pin, 0);
 }
+void HC595_AsignPin(pinName pin){
+	switch(pin){
+	case HC595_DSI:
+		break;
+	case HC595_CLK:
+		break;
+	case HC595_RCK:
+		break;
+	case HC595_OE:
+		break;
+	}
+}
 void hc595_ShiftOut(void* data)
 {
 	for(uint8_t i = 0;i<8;i++){
 		if(!(data&0x01))	HAL_GPIO_WritePin(HC595_DSI_GPIO_Port, HC595_DSI_Pin, 0);
 		else	HAL_GPIO_WritePin(HC595_DSI_GPIO_Port, HC595_DSI_Pin, 1);
+		HAL_GPIO_WritePin(HC595_CLK_GPIO_Port, HC595_CLK_Pin, 1);
+		HAL_GPIO_WritePin(HC595_CLK_GPIO_Port, HC595_CLK_Pin, 0);
 		data = data >> 1;
 	}
 	HAL_GPIO_WritePin(HC595_RCK_GPIO_Port, HC595_RCK_Pin, 1);
 	HAL_GPIO_WritePin(HC595_RCK_GPIO_Port, HC595_RCK_Pin, 0);
 }
-void hc595_SetOutput(uint8_t pos)
+void hc595_SetOutput(vanNum vanNum)
 {
-	hc595->data|=(1UL<<pos);
+	hc595->data|=(1UL<<vanNum);
 }
-void hc595_ClearOutput(uint8_t pos)
+void hc595_ClearOutput(vanNum vanNum)
 {
-	hc595->data&=~(1UL<<pos);
+	hc595->data&=~(1UL<<vanNum);
 }
 void hc595_OutputEnable()
 {
