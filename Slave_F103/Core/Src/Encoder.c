@@ -31,8 +31,8 @@ double encoder_GetSpeed(Encoder_t *enc, bool resetPulse)
 	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
 	enc->vel_Pre = enc->vel_Real;
 
-	enc->count_Pre = enc->count_X4;// ??
-	enc->count_X4 = 0;// ??
+	enc->count_Pre = enc->count_X4;
+	enc->count_X4 = 0;
 	return enc->vel_Real;
 }
 

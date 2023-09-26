@@ -68,7 +68,7 @@ void canctrl_ClearFlag(CAN_MODE_ID flag);
 bool canctrl_CheckFlag(CAN_MODE_ID flag);
 void canctrl_GetRxData(uint8_t *outData);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);
-HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID ID);
+HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
@@ -81,5 +81,11 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID4,
 												uint32_t filBank,
 												uint32_t FIFO);
-//void convBigEndianToLittleEndian(uint8_t *data, size_t length);
+HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
+												uint16_t highID,
+												uint16_t lowID,
+												uint16_t maskHigh,
+												uint16_t maskLow,
+												uint32_t filBank,
+												uint32_t FIFO);
 #endif /* INC_CAN_CONTROL_H_ */

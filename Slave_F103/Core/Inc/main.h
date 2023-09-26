@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define BLDC_DIR_Pin GPIO_PIN_0
+#define BLDC_DIR_GPIO_Port GPIOA
 #define BLDC_BRAKE_Pin GPIO_PIN_4
 #define BLDC_BRAKE_GPIO_Port GPIOA
 #define UserLED_Pin GPIO_PIN_3
