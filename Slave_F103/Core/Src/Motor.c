@@ -49,6 +49,7 @@ void MotorBLDC_Brake(MotorBLDC *bldcMotor,bool brake)
 {
 	HAL_GPIO_WritePin(bldcMotor->brakePort, bldcMotor->brakePin, brake);
 }
+
 void MotorBLDC_Drive(MotorBLDC *bldcMotor, int32_t speedInput)
 {
 	__HAL_TIM_SET_COMPARE(bldcMotor->timBLDC,bldcMotor->Channel, 0);

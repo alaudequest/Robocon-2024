@@ -55,6 +55,10 @@ TIM_HandleTypeDef htim4;
 PID_Param pid;
 bool enableSendPID = 0;
 PID_type type;
+
+float bldcSpeed = 500.35;
+float dcAngle = 20.24;
+bool enableSendSpeedAndAngle = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,9 +78,11 @@ void SendEncoderX4BLDC(CAN_DEVICE_ID targetID);
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 canctrl_Receive(hcan, CAN_RX_FIFO0);
+	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
+	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 
 void CAN_Init(){
@@ -238,7 +244,9 @@ int main(void)
   {
 	  canfunc_HandleRxEvent(&handleFunc);
 	  SendPID(pid, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, type, &enableSendPID);
+	  SendSpeedAndRotation(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
     /* USER CODE END WHILE */
+
 
     /* USER CODE BEGIN 3 */
   }
@@ -526,10 +534,10 @@ void SendEncoderX4BLDC(CAN_DEVICE_ID targetID)
 
 void SendSpeedAndRotation(CAN_DEVICE_ID targetID)
 {
-	float bldcSpeed = brd_GetSpeedBLDC();
-	float dcAngle = brd_GetAngleDC();
+	if(!enableSendSpeedAndAngle) return;
 	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
 	canctrl_Send(&hcan, targetID);
+	enableSendSpeedAndAngle = false;
 }
 
 void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
