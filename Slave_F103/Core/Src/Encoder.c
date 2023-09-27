@@ -8,11 +8,6 @@
 #include "Encoder.h"
 #include "stdbool.h"
 
-void encoder_ResetCount(Encoder_t *enc);
-void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
-double encoder_GetSpeed(Encoder_t *enc, bool resetPulse);
-double encoder_GetPulse(Encoder_t *enc, bool resetPulse);
-void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
 
 void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT)
 {
@@ -31,8 +26,8 @@ double encoder_GetSpeed(Encoder_t *enc, bool resetPulse)
 	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
 	enc->vel_Pre = enc->vel_Real;
 
-	enc->count_Pre = enc->count_X4;// ??
-	enc->count_X4 = 0;// ??
+	enc->count_Pre = enc->count_X4;
+	enc->count_X4 = 0;
 	return enc->vel_Real;
 }
 

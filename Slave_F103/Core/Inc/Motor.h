@@ -9,7 +9,7 @@
 #define INC_MOTOR_H_
 
 #include "main.h"
-
+#include "stdbool.h"
 typedef enum MotorDirection{
 	DIR_FORWARD,
 	DIR_REVERSE,
@@ -36,4 +36,11 @@ typedef struct MotorBLDC{
 	TIM_HandleTypeDef *timBLDC;
 }MotorBLDC;
 
+void MotorDC_Init(MotorDC *dcMotor,TIM_HandleTypeDef *htim, PWM_Mode pwmMode, uint32_t channel1, uint32_t channel2);
+void MotorDC_Drive(MotorDC *dcMotor, int32_t speedInput);
+void MotorBLDC_Init(MotorBLDC *bldcMotor,TIM_HandleTypeDef *htim, uint32_t channel,
+					GPIO_TypeDef *brakePort, uint16_t brakePin,
+					GPIO_TypeDef *dirPort, uint16_t dirPin);
+void MotorBLDC_Brake(MotorBLDC *bldcMotor,bool brake);
+void MotorBLDC_Drive(MotorBLDC *bldcMotor, int32_t speedInput);
 #endif /* INC_MOTOR_H_ */

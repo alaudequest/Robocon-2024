@@ -8,9 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
-
 uint32_t txMailBox[3];
 CAN_TxHeaderTypeDef txHeader;
 CAN_RxHeaderTypeDef rxHeader;
@@ -43,7 +40,6 @@ HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 	memset(txData,0,sizeof(txData));
 	txHeader.DLC = 0;
 	uint8_t *temp = (uint8_t*)data;
-//	uint8_t *temp = &data2;
 	for(int8_t i = 0; i < dataSize;i++){
 		if(*(temp+i)){
 			if(!txHeader.DLC) txHeader.DLC = dataSize - i;
@@ -53,19 +49,22 @@ HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID ID)
+HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 {
 	if(!txHeader.DLC) return HAL_ERROR;
+	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_ERROR;
 	txHeader.IDE = CAN_ID_STD;
 	canctrl_RTR_SetToData();
-	if(ID) canctrl_SetTargetDevice(ID);
+	if(targetID) canctrl_SetTargetDevice(targetID);
 	HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
+	txHeader.StdId = 0;
+	memset(txData,0,sizeof(txData));
 	return HAL_OK;
 }
 
 void checkEventFromRxHeader(){
-	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END - 1;i++){
-		if(rxHeader.StdId & i)	{
+	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END;i++){
+		if((rxHeader.StdId & 0xff) ==  i)	{
 			CAN_EVT_SETFLAG(i);
 			break;
 		}
@@ -73,8 +72,6 @@ void checkEventFromRxHeader(){
 }
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 {
-	// must be no event to handle before get new message, else rxData will be corrupt
-	if(canEvent) return HAL_ERROR;
 	HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 	checkEventFromRxHeader();
 	return HAL_OK;
@@ -133,6 +130,28 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 	canFilCfg.FilterMaskIdLow = 	ID3 << 5;
 	canFilCfg.FilterMaskIdHigh = 	ID4 << 5;
 	canFilCfg.FilterMode = CAN_FILTERMODE_IDLIST;
+	canFilCfg.FilterScale = CAN_FILTERSCALE_16BIT;
+	canFilCfg.SlaveStartFilterBank = 13;
+	return HAL_CAN_ConfigFilter(can, &canFilCfg);
+}
+
+HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
+										uint16_t highID,
+										uint16_t lowID,
+										uint16_t maskHigh,
+										uint16_t maskLow,
+										uint32_t filBank,
+										uint32_t FIFO)
+{
+	CAN_FilterTypeDef canFilCfg;
+	canFilCfg.FilterActivation = CAN_FILTER_ENABLE;
+	canFilCfg.FilterBank = filBank;
+	canFilCfg.FilterFIFOAssignment = FIFO;
+	canFilCfg.FilterIdLow = 		lowID;
+	canFilCfg.FilterIdHigh = 		highID;
+	canFilCfg.FilterMaskIdLow = 	maskLow;
+	canFilCfg.FilterMaskIdHigh = 	maskHigh;
+	canFilCfg.FilterMode = CAN_FILTERMODE_IDMASK;
 	canFilCfg.FilterScale = CAN_FILTERSCALE_16BIT;
 	canFilCfg.SlaveStartFilterBank = 13;
 	return HAL_CAN_ConfigFilter(can, &canFilCfg);

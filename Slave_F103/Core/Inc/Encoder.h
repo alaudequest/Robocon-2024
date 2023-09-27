@@ -18,18 +18,18 @@
 typedef struct Encoder_t{
 //------------------------Timer & Count--------------//
 	TIM_HandleTypeDef *htim;
-	int count_X4;
-	int count_X1;
-	int count_Pre;
-	int count_PerRevol;
+	int32_t count_X4;
+	int32_t count_X1;
+	int32_t count_Pre;
+	uint32_t count_PerRevol;
 	uint8_t count_Mode;
 //------------------------Speed Val-----------------//
-	double vel_Real;
-	double vel_Pre;
-	double vel_Fil;
+	float vel_Real;
+	float vel_Pre;
+	float vel_Fil;
 //------------------------Pos Cal-------------------//
-	double Degree;
-	double deltaT;
+	float Degree;
+	float deltaT;
 }Encoder_t;
 void encoder_ResetCount(Encoder_t *enc);
 void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
