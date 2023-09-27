@@ -25,6 +25,10 @@ HAL_StatusTypeDef canfunc_MotorPutSpeedAndAngle(float speed, float angle);
 void canfunc_GetPID();
 void canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
+bool canfunc_GetTestMode();
+void canfunc_SetTestMode(bool IsTestMode);
+
 void canfunc_EnableSendPID();
 bool canfunc_GetStateEnableSendPID();
+
 #endif /* INC_CAN_FUNCHANDLE_H_ */

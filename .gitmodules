@@ -1,3 +1,6 @@
 [submodule "Slave_F103/IoTVisionLibrary"]
 	path = Slave_F103/IoTVisionLibrary
 	url = https://github.com/IoTVision/STM32_FirmwareLibrary.git
+[submodule "Main_F407/IoTVisionLibrary"]
+	path = Main_F407/IoTVisionLibrary
+	url = https://github.com/IoTVision/STM32_FirmwareLibrary.git

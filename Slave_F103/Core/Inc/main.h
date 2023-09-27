@@ -63,6 +63,9 @@ void Error_Handler(void);
 #define BLDC_DIR_GPIO_Port GPIOA
 #define BLDC_BRAKE_Pin GPIO_PIN_4
 #define BLDC_BRAKE_GPIO_Port GPIOA
+#define Sensor_U_Pin GPIO_PIN_5
+#define Sensor_U_GPIO_Port GPIOA
+#define Sensor_U_EXTI_IRQn EXTI9_5_IRQn
 #define UserLED_Pin GPIO_PIN_3
 #define UserLED_GPIO_Port GPIOB
 

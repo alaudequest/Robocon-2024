@@ -23,7 +23,19 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 			pCallback(i);
 		}
 	}
+}
 
+bool canfunc_GetTestMode()
+{
+	uint8_t rxData[8] = {0};
+	canctrl_GetRxData(rxData);
+	return canctrl_GetIntNum();
+}
+
+void canfunc_SetTestMode(bool IsTestMode)
+{
+	canctrl_SetID(CANCTRL_MODE_TEST);
+	canctrl_PutMessage((void*)&IsTestMode, 1);
 }
 
 

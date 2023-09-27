@@ -52,13 +52,7 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-PID_Param pid;
-bool enableSendPID = 0;
-PID_type type;
-
-float bldcSpeed = 500.35;
-float dcAngle = 20.24;
-bool enableSendSpeedAndAngle = 0;
+bool TestMode = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,9 +63,9 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID);
-void SendSpeedAndRotation(CAN_DEVICE_ID targetID);
-void SendEncoderX4BLDC(CAN_DEVICE_ID targetID);
+//void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID);
+//void SendSpeedAndRotation(CAN_DEVICE_ID targetID);
+//void SendEncoderX4BLDC(CAN_DEVICE_ID targetID);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -89,51 +83,30 @@ void CAN_Init(){
 
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-//	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
-//	canctrl_Filter_List16(&hcan,
-//			deviceID | CANCTRL_MODE_ENCODER,
-//			deviceID | CANCTRL_MODE_LED_BLINK,
-//			deviceID | CANCTRL_MODE_ENCODER_SEND_ENABLE,
-//			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-//			0, CAN_RX_FIFO0);
-//	canctrl_Filter_List16(&hcan,
-//			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
-//			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
-//			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-//			deviceID | CANCTRL_MODE_SET_HOME,
-//			1, CAN_RX_FIFO0);
-	canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 0, CAN_RX_FIFO0);
+	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_ENCODER,
+			deviceID | CANCTRL_MODE_LED_BLUE,
+			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			deviceID | CANCTRL_MODE_SET_HOME,
+			0, CAN_RX_FIFO0);
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
+			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
+			deviceID | CANCTRL_MODE_PID_DC_SPEED,
+			deviceID | CANCTRL_MODE_TEST,
+			1, CAN_RX_FIFO0);
 }
 
-
-
-void ledBlink(uint16_t delay)
-{
-	static uint32_t tick = 0;
-	static uint16_t internalDelay = 100;
-	if(delay) internalDelay = delay;
-	if(HAL_GetTick() - tick > internalDelay){
-		tick = HAL_GetTick();
-		HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
-	}
-}
-void ledState(bool state){
-	HAL_GPIO_WritePin(UserLED_GPIO_Port, UserLED_Pin, state);
-}
 
 void handleFunc(CAN_MODE_ID func){
 
 	switch(func){
-	case CANCTRL_MODE_ENCODER_SEND_ENABLE:
-		break;
-	case CANCTRL_MODE_LED_STATE:
+	case CANCTRL_MODE_LED_BLUE:
 		break;
 	case CANCTRL_MODE_ENCODER:
 		int32_t count_X4 = (int32_t)canfunc_MotorGetEncoderPulseBLDC();
 		brd_SetEncX4BLDC(count_X4);
-		break;
-	case CANCTRL_MODE_LED_BLINK:// only do once
-		ledBlink(canctrl_GetIntNum());
 		break;
 	case CANCTRL_MODE_SHOOT:
 		break;
@@ -151,10 +124,14 @@ void handleFunc(CAN_MODE_ID func){
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
 		MotorBLDC_Brake(&mbldc, brake);
 		break;
+
 	case CANCTRL_MODE_PID_DC_SPEED:
 	case CANCTRL_MODE_PID_DC_ANGLE:
 	case CANCTRL_MODE_PID_BLDC_SPEED:
 		canfunc_GetPID();
+		break;
+	case CANCTRL_MODE_TEST:
+		TestMode = canfunc_GetTestMode();
 		break;
 	case CANCTRL_MODE_START:
 	case CANCTRL_MODE_END:
@@ -183,15 +160,13 @@ void Flash_Write(CAN_DEVICE_ID ID){
 	  HAL_FLASH_Lock();
 }
 
-void testSetParamPID()
-{
-  pid.kP = 1.02;
-  pid.kI = 0.14;
-  pid.kD = 20.2;
-  pid.alpha = -0.2;
-  pid.deltaT = 0.01;
-  type = PID_BLDC_SPEED;
+void RunTestMode(){
+	MotorBLDC mbldc = brd_GetObjMotorBLDC();
+	if(TestMode)
+	MotorBLDC_Drive(&mbldc, (int32_t)brd_GetSpeedBLDC());
+	else MotorBLDC_Drive(&mbldc, 0);
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -229,12 +204,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   brd_Init();
   CAN_Init();
-  testSetParamPID();
-//  uint8_t data = 10;
-//  canctrl_PutMessage((void*)&data, sizeof(data));
-//  canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
-//  uint32_t canSlaveAddr = *(__IO uint32_t*)FLASH_ADDR_TARGET;
 //  __HAL_DBGMCU_FREEZE_CAN1();
   /* USER CODE END 2 */
 
@@ -243,10 +213,8 @@ int main(void)
   while (1)
   {
 	  canfunc_HandleRxEvent(&handleFunc);
-	  SendPID(pid, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, type, &enableSendPID);
-	  SendSpeedAndRotation(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
+	  RunTestMode();
     /* USER CODE END WHILE */
-
 
     /* USER CODE BEGIN 3 */
   }
@@ -309,7 +277,7 @@ static void MX_CAN_Init(void)
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
@@ -513,6 +481,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Sensor_U_Pin */
+  GPIO_InitStruct.Pin = Sensor_U_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Sensor_U_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : UserLED_Pin */
   GPIO_InitStruct.Pin = UserLED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -520,36 +494,59 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(UserLED_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-void SendEncoderX4BLDC(CAN_DEVICE_ID targetID)
-{
-	Encoder_t encBLDC = brd_GetObjEncBLDC();
-	canfunc_MotorPutEncoderPulseBLDC(encBLDC.count_X4);
-	canctrl_Send(&hcan, targetID);
-}
-
-void SendSpeedAndRotation(CAN_DEVICE_ID targetID)
-{
-	if(!enableSendSpeedAndAngle) return;
-	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
-	canctrl_Send(&hcan, targetID);
-	enableSendSpeedAndAngle = false;
-}
-
-void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
-{
-	if(!canfunc_GetStateEnableSendPID() && *enableSendPID) {
-			canfunc_EnableSendPID();
-			*enableSendPID = 0;
-	}
-	uint32_t canEvent = canctrl_GetEvent();
-	if(canEvent) return;
-	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
-}
+// *-------------*F4 test*-------------*
+//PID_Param pid;
+//bool enableSendPID = 0;
+//PID_type type;
+//
+//float bldcSpeed = 500.35;
+//float dcAngle = 20.24;
+//bool enableSendSpeedAndAngle = 0;
+//
+//
+//void testSetParamPID()
+//{
+//  pid.kP = 1.02;
+//  pid.kI = 0.14;
+//  pid.kD = 20.2;
+//  pid.alpha = -0.2;
+//  pid.deltaT = 0.01;
+//  type = PID_BLDC_SPEED;
+//}
+//void SendEncoderX4BLDC(CAN_DEVICE_ID targetID)
+//{
+//	Encoder_t encBLDC = brd_GetObjEncBLDC();
+//	canfunc_MotorPutEncoderPulseBLDC(encBLDC.count_X4);
+//	canctrl_Send(&hcan, targetID);
+//}
+//
+//void SendSpeedAndRotation(CAN_DEVICE_ID targetID)
+//{
+//	if(!enableSendSpeedAndAngle) return;
+//	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
+//	canctrl_Send(&hcan, targetID);
+//	enableSendSpeedAndAngle = false;
+//}
+//
+//void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
+//{
+//	if(!canfunc_GetStateEnableSendPID() && *enableSendPID) {
+//			canfunc_EnableSendPID();
+//			*enableSendPID = 0;
+//	}
+//	uint32_t canEvent = canctrl_GetEvent();
+//	if(canEvent) return;
+//	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
+//}
 /* USER CODE END 4 */
 
 /**

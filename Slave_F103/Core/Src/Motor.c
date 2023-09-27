@@ -55,7 +55,7 @@ void MotorBLDC_Drive(MotorBLDC *bldcMotor, int32_t speedInput)
 	__HAL_TIM_SET_COMPARE(bldcMotor->timBLDC,bldcMotor->Channel, 0);
 	if(!speedInput) return;
 	uint32_t pwm = abs(speedInput);
-	if(speedInput < 0) 			HAL_GPIO_WritePin(bldcMotor->dirPort, bldcMotor->dirPin, 1);
-	else if(speedInput > 0) 	HAL_GPIO_WritePin(bldcMotor->dirPort, bldcMotor->dirPin, 0);
+	if(speedInput < 0) 			HAL_GPIO_WritePin(bldcMotor->dirPort, bldcMotor->dirPin, DIR_REVERSE);
+	else if(speedInput > 0) 	HAL_GPIO_WritePin(bldcMotor->dirPort, bldcMotor->dirPin, DIR_FORWARD);
 	__HAL_TIM_SET_COMPARE(bldcMotor->timBLDC,bldcMotor->Channel, pwm);
 }
