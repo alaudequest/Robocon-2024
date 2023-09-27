@@ -22,6 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "CAN_Control.h"
+#include "CAN_FuncHandle.h"
+#include "stdbool.h"
+#include "PID.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +46,17 @@
 CAN_HandleTypeDef hcan1;
 
 /* USER CODE BEGIN PV */
-uint8_t canData[8] = {0};
+bool enableSendSpeedAndAngle = false;
+bool enableSendPID = false;
+bool enableSendTestMode = false;
+bool enableSendBrake = false;
+uint8_t testMode = 1;
+uint8_t brake = 1;
+float bldcSpeed = 50;
+float dcAngle;
+CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
+PID_Param pid;
+PID_type type = PID_BLDC_SPEED;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,6 +69,45 @@ static void MX_CAN1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	 canctrl_Receive(hcan, CAN_RX_FIFO0);
+}
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	canctrl_Receive(hcan, CAN_RX_FIFO1);
+}
+
+
+void SendSpeedAndRotation(bool *enable,CAN_DEVICE_ID targetID)
+{
+	if(!*enable) return;
+	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
+	canctrl_Send(&hcan1, targetID);
+	*enable = false;
+}
+
+void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
+{
+	if(!canfunc_GetStateEnableSendPID() && *enableSendPID) {
+			canfunc_EnableSendPID();
+			*enableSendPID = 0;
+	}
+	else canfunc_PutAndSendParamPID(&hcan1,targetID,pid,type);
+}
+
+void SetTestMode(uint8_t testMode, CAN_DEVICE_ID targetID,bool *enable){
+	if(!*enable) return;
+	canfunc_SetTestMode(testMode);
+	canctrl_Send(&hcan1, targetID);
+	*enable = false;
+}
+
+void SetBrake(uint8_t brake, CAN_DEVICE_ID targetID,bool *enable){
+	if(!*enable) return;
+	canfunc_MotorSetBrake(brake);
+	canctrl_Send(&hcan1, targetID);
+	*enable = false;
+}
 
 /* USER CODE END 0 */
 
@@ -89,19 +141,23 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
-//  HAL_CAN_Start(&hcan1);
-  canData[0] = 10;
-  if(canctrl_MakeStdTxHeader(0x215, 1, CAN_RTR_DATA) != HAL_OK){
-	  __NOP();
-  }
+  HAL_CAN_Start(&hcan1);
+  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+  pid.kP = -0.12;
+  pid.kI = 5.32;
+  pid.kD = 20.22;
+  pid.alpha = 5.31;
+  pid.deltaT = 0.001;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  canctrl_Send(&hcan1, canData, sizeof(canData));
-//	  HAL_Delay(1000);
+	  SendSpeedAndRotation(&enableSendSpeedAndAngle, targetID);
+	  SendPID(pid, targetID, type, &enableSendPID);
+	  SetBrake(brake, targetID, &enableSendBrake);
+	  SetTestMode(testMode, targetID, &enableSendTestMode);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
