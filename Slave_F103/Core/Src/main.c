@@ -52,7 +52,7 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-bool TestMode = false;
+uint8_t TestMode = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,7 +88,7 @@ void CAN_Init(){
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_SET_HOME,
+			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
@@ -120,8 +120,10 @@ void handleFunc(CAN_MODE_ID func){
 		brd_SetSpeedBLDC(bldcSpeed);
 		break;
 	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-		bool brake = canfunc_MotorGetBrake();
+		uint8_t brake = canfunc_MotorGetBrake();
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
+		if(brake == 2) brake = 1;
+		else if(brake == 1) brake = 0;
 		MotorBLDC_Brake(&mbldc, brake);
 		break;
 
@@ -162,9 +164,10 @@ void Flash_Write(CAN_DEVICE_ID ID){
 
 void RunTestMode(){
 	MotorBLDC mbldc = brd_GetObjMotorBLDC();
-	if(TestMode)
-	MotorBLDC_Drive(&mbldc, (int32_t)brd_GetSpeedBLDC());
-	else MotorBLDC_Drive(&mbldc, 0);
+	if(TestMode == 1){
+		MotorBLDC_Drive(&mbldc, (int32_t)brd_GetSpeedBLDC());
+	}
+	else if(TestMode == 2) MotorBLDC_Drive(&mbldc, 0);
 }
 
 /* USER CODE END 0 */
@@ -548,6 +551,27 @@ static void MX_GPIO_Init(void)
 //	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
 //}
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

@@ -25,10 +25,11 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 	}
 }
 
-bool canfunc_GetTestMode()
+uint8_t canfunc_GetTestMode()
 {
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
+	canctrl_ClearFlag(CANCTRL_MODE_TEST);
 	return canctrl_GetIntNum();
 }
 
@@ -45,12 +46,12 @@ void canfunc_MotorSetBrake(bool brake)
 	canctrl_PutMessage((void*)&brake, 1);
 }
 
-bool canfunc_MotorGetBrake()
+uint8_t canfunc_MotorGetBrake()
 {
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
-	return canctrl_GetIntNum();
 	canctrl_ClearFlag(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
+	return canctrl_GetIntNum();
 }
 
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)

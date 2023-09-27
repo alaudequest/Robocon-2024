@@ -12,7 +12,7 @@
 #include "BoardParameter.h"
 void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID));
 
-bool canfunc_MotorGetBrake();
+uint8_t canfunc_MotorGetBrake();
 void canfunc_MotorSetBrake(bool brake);
 
 
@@ -25,7 +25,7 @@ HAL_StatusTypeDef canfunc_MotorPutSpeedAndAngle(float speed, float angle);
 void canfunc_GetPID();
 void canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
-bool canfunc_GetTestMode();
+uint8_t canfunc_GetTestMode();
 void canfunc_SetTestMode(bool IsTestMode);
 
 void canfunc_EnableSendPID();
