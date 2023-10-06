@@ -25,9 +25,12 @@ CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
-void canctrl_SetFlag(CAN_MODE_ID flag){CAN_EVT_SETFLAG(flag);}
-void canctrl_ClearFlag(CAN_MODE_ID flag){CAN_EVT_CLEARFLAG(flag);}
-bool canctrl_CheckFlag(CAN_MODE_ID flag){return CAN_EVT_CHECKFLAG(flag);}
+#define TARGET_FLAG_GROUP canEvent
+void canctrl_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
+bool canctrl_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
+void canctrl_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
+
+
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;
 	txHeader.StdId |= ID;
@@ -65,7 +68,7 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 void checkEventFromRxHeader(){
 	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END;i++){
 		if((rxHeader.StdId & 0xff) ==  i)	{
-			CAN_EVT_SETFLAG(i);
+			canctrl_SetFlag(i);
 			break;
 		}
 	}

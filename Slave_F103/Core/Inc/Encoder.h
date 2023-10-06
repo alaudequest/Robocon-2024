@@ -11,9 +11,12 @@
 //------------------------Begin: Struct of Encoder Read----------------------------//
 #include "main.h"
 #include "stdbool.h"
-#define count_ModeX1 0
-#define count_ModeX4 1
-#define count_ModeDegree 2
+
+typedef enum EncoderCountMode{
+	 MODE_X1,
+	 MODE_X4,
+	 MODE_ANGLE,
+}EncoderCountMode;
 
 typedef struct Encoder_t{
 //------------------------Timer & Count--------------//
@@ -22,7 +25,6 @@ typedef struct Encoder_t{
 	int32_t count_X1;
 	int32_t count_Pre;
 	uint32_t count_PerRevol;
-	uint8_t count_Mode;
 //------------------------Speed Val-----------------//
 	float vel_Real;
 	float vel_Pre;
@@ -32,8 +34,8 @@ typedef struct Encoder_t{
 	float deltaT;
 }Encoder_t;
 void encoder_ResetCount(Encoder_t *enc);
-void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
-double encoder_GetSpeed(Encoder_t *enc, bool resetPulse);
-double encoder_GetPulse(Encoder_t *enc, bool resetPulse);
-void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, uint16_t deltaT);
+void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT);
+float encoder_GetSpeed(Encoder_t *enc);
+float encoder_GetPulse(Encoder_t *enc, EncoderCountMode count_Mode);
+float encoder_GetFilterSpeedVal(Encoder_t *enc);
 #endif /* INC_ENCODER_H_ */

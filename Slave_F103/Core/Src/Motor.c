@@ -8,6 +8,16 @@
 #include "Motor.h"
 #include <stdbool.h>
 #include <stdlib.h>
+
+
+/**
+ *
+ * @param dcMotor
+ * @param htim
+ * @param pwmMode
+ * @param channel1
+ * @param channel2
+ */
 void MotorDC_Init(MotorDC *dcMotor,TIM_HandleTypeDef *htim, PWM_Mode pwmMode, uint32_t channel1, uint32_t channel2)
 {
 	dcMotor->Channel1 = channel1;
@@ -45,6 +55,12 @@ void MotorBLDC_Init(MotorBLDC *bldcMotor,TIM_HandleTypeDef *htim, uint32_t chann
 	bldcMotor->dirPort = dirPort;
 	bldcMotor->dirPin = dirPin;
 }
+
+/**
+ *
+ * @param bldcMotor
+ * @param brake
+ */
 void MotorBLDC_Brake(MotorBLDC *bldcMotor,bool brake)
 {
 	HAL_GPIO_WritePin(bldcMotor->brakePort, bldcMotor->brakePin, brake);

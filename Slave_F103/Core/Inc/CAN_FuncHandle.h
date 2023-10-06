@@ -13,7 +13,7 @@
 void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID));
 
 uint8_t canfunc_MotorGetBrake();
-void canfunc_MotorSetBrake(bool brake);
+void canfunc_MotorSetBrake(uint8_t brake);
 
 
 uint32_t canfunc_MotorGetEncoderPulseBLDC();
@@ -26,7 +26,7 @@ void canfunc_GetPID();
 void canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
 uint8_t canfunc_GetTestMode();
-void canfunc_SetTestMode(bool IsTestMode);
+void canfunc_SetTestMode(uint8_t IsTestMode);
 
 void canfunc_EnableSendPID();
 bool canfunc_GetStateEnableSendPID();

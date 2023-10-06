@@ -30,19 +30,22 @@ uint8_t canfunc_GetTestMode()
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
 	canctrl_ClearFlag(CANCTRL_MODE_TEST);
-	return canctrl_GetIntNum();
+	uint8_t testMode = canctrl_GetIntNum();
+	return testMode--;
 }
 
-void canfunc_SetTestMode(bool IsTestMode)
+void canfunc_SetTestMode(uint8_t IsTestMode)
 {
 	canctrl_SetID(CANCTRL_MODE_TEST);
+	IsTestMode++;
 	canctrl_PutMessage((void*)&IsTestMode, 1);
 }
 
 
-void canfunc_MotorSetBrake(bool brake)
+void canfunc_MotorSetBrake(uint8_t brake)
 {
 	canctrl_SetID(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
+	brake++;
 	canctrl_PutMessage((void*)&brake, 1);
 }
 
@@ -51,7 +54,8 @@ uint8_t canfunc_MotorGetBrake()
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
 	canctrl_ClearFlag(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
-	return canctrl_GetIntNum();
+	uint8_t brake = canctrl_GetIntNum();
+	return brake--;
 }
 
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
@@ -232,3 +236,42 @@ void canfunc_GetPID()
 void canfunc_EnableSendPID(){pidSendEnable = 1;}
 bool canfunc_GetStateEnableSendPID(){return pidSendEnable;}
 
+
+/**
+ *
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+uint8_t txData[8] = {0};
+uint8_t rxData[8] = {0};
+typedef struct SpeedBLDC_AngleDC{
+    float bldcSpeed;
+    float dcAngle;
+}SpeedBLDC_AngleDC;
+void canctrl_PutMessage(void *data, size_t dataSize){
+    if(dataSize > 8) return;
+    memcpy(txData,data,sizeof(dataSize));
+}
+void canctrl_Send(){
+    memcpy(rxData,txData,8);
+}
+void canctrl_GetMessage(void *data, size_t dataSize){
+    memcpy(data,rxData,sizeof(dataSize));
+}
+int main()
+{
+    SpeedBLDC_AngleDC a,b;
+    a.bldcSpeed = 10.54;
+    a.dcAngle = -20.33;
+    canctrl_PutMessage((void*)&a,sizeof(SpeedBLDC_AngleDC));
+    canctrl_Send();
+    canctrl_GetMessage((void*)&b,sizeof(SpeedBLDC_AngleDC));
+    printf("b.bldcSpeed:%.2f\nb.dcAngle:%.2f",b.bldcSpeed,b.dcAngle);
+    return 0;
+}
+ *
+ *
+ *
+ *
+ *
+ */

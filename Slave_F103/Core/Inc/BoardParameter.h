@@ -23,6 +23,12 @@
 #define DCGearRatio 						3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
+#define DC_SUM_ABOVE_LIMIT 1000
+#define DC_SUM_BELOW_LIMIT -1000
+#define DC_INTERGRAL_ABOVE_LIMIT 1000
+#define DC_INTERGRAL_BELOW_LIMIT -1000
+
+
 typedef enum PID_type{
 	PID_DC_SPEED = 1,
 	PID_DC_ANGLE,
@@ -61,9 +67,12 @@ void brd_SetObjEncBLDC(Encoder_t encBLDC);
 float brd_GetSpeedBLDC();
 void brd_SetSpeedBLDC(float speed);
 
-float brd_GetAngleDC();
-void brd_SetAngleDC(float angle);
-
 int32_t brd_GetEncX4BLDC();
 void brd_SetEncX4BLDC(int32_t countX4);
+
+float brd_GetTargetAngleDC();
+void brd_SetTargetAngleDC(float angle);
+
+void brd_ResetState();
+float brd_GetAngleDC_Fast();
 #endif /* INC_BOARDPARAMETER_H_ */

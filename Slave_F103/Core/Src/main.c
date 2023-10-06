@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -25,6 +26,8 @@
 #include "CAN_FuncHandle.h"
 #include "Encoder.h"
 #include "BoardParameter.h"
+#include "PID_SwerveModule.h"
+#include "SetHome.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,8 +54,19 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
+osThreadId defaultTaskHandle;
+osThreadId TaskCalcPIDHandle;
+uint32_t TaskCalcPIDBuffer[ 128 ];
+osStaticThreadDef_t TaskCalcPIDControlBlock;
+osThreadId TaskHandleCANHandle;
+uint32_t TaskHandleCANBuffer[ 128 ];
+osStaticThreadDef_t TaskHandleCANControlBlock;
+osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 uint8_t TestMode = 0;
+float dcAngleResult = 0;
+float bldcSpeed = 10;
+float dcAngleSet = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,25 +76,31 @@ static void MX_CAN_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM2_Init(void);
+void StartDefaultTask(void const * argument);
+void StartTaskPID(void const * argument);
+void StartCANbus(void const * argument);
+
 /* USER CODE BEGIN PFP */
-//void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID);
-//void SendSpeedAndRotation(CAN_DEVICE_ID targetID);
-//void SendEncoderX4BLDC(CAN_DEVICE_ID targetID);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 canctrl_Receive(hcan, CAN_RX_FIFO0);
+	 uint32_t canEvent = canctrl_GetEvent();
+	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	 vTaskNotifyGiveFromISR(TaskHandleCANHandle,&HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
+	uint32_t canEvent = canctrl_GetEvent();
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	vTaskNotifyGiveFromISR(TaskHandleCANHandle,&HigherPriorityTaskWoken);
 	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 
 void CAN_Init(){
-
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
@@ -100,7 +120,6 @@ void CAN_Init(){
 
 
 void handleFunc(CAN_MODE_ID func){
-
 	switch(func){
 	case CANCTRL_MODE_LED_BLUE:
 		break;
@@ -116,14 +135,12 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
 		float bldcSpeed,dcAngle;
 		canfunc_MotorGetSpeedAndAngle(&bldcSpeed, &dcAngle);
-		brd_SetAngleDC(dcAngle);
+		brd_SetTargetAngleDC(dcAngle);
 		brd_SetSpeedBLDC(bldcSpeed);
 		break;
 	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 		uint8_t brake = canfunc_MotorGetBrake();
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
-		if(brake == 2) brake = 1;
-		else if(brake == 1) brake = 0;
 		MotorBLDC_Brake(&mbldc, brake);
 		break;
 
@@ -170,6 +187,12 @@ void RunTestMode(){
 	else if(TestMode == 2) MotorBLDC_Drive(&mbldc, 0);
 }
 
+void TestPID(){
+	PID_BLDC_CalSpeed(bldcSpeed);
+	PID_DC_CalPos(dcAngleSet);
+	Encoder_t enDC = brd_GetObjEncDC();
+	dcAngleResult = encoder_GetPulse(&enDC, MODE_ANGLE);
+}
 /* USER CODE END 0 */
 
 /**
@@ -205,18 +228,66 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  __HAL_DBGMCU_FREEZE_TIM2();
   brd_Init();
-  CAN_Init();
+
+
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
+
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* definition and creation of qCAN */
+  osMessageQDef(qCAN, 5, uint16_t);
+  qCANHandle = osMessageCreate(osMessageQ(qCAN), NULL);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of TaskCalcPID */
+  osThreadStaticDef(TaskCalcPID, StartTaskPID, osPriorityNormal, 0, 128, TaskCalcPIDBuffer, &TaskCalcPIDControlBlock);
+  TaskCalcPIDHandle = osThreadCreate(osThread(TaskCalcPID), NULL);
+
+  /* definition and creation of TaskHandleCAN */
+  osThreadStaticDef(TaskHandleCAN, StartCANbus, osPriorityIdle, 0, 128, TaskHandleCANBuffer, &TaskHandleCANControlBlock);
+  TaskHandleCANHandle = osThreadCreate(osThread(TaskHandleCAN), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  canfunc_HandleRxEvent(&handleFunc);
+
+
 	  RunTestMode();
+	  TestPID();
+//	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -484,11 +555,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Sensor_U_Pin */
-  GPIO_InitStruct.Pin = Sensor_U_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pin : Sensor_Home_Pin */
+  GPIO_InitStruct.Pin = Sensor_Home_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Sensor_U_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(Sensor_Home_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : UserLED_Pin */
   GPIO_InitStruct.Pin = UserLED_Pin;
@@ -496,10 +567,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(UserLED_GPIO_Port, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -551,6 +618,69 @@ static void MX_GPIO_Init(void)
 //	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
 //}
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	sethome_Begin();
+	while(!sethome_IsComplete()){
+	  sethome_Procedure();
+	  HAL_Delay(1);
+
+	}
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartTaskPID */
+/**
+* @brief Function implementing the TaskCalcPID thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskPID */
+void StartTaskPID(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskPID */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTaskPID */
+}
+
+/* USER CODE BEGIN Header_StartCANbus */
+/**
+* @brief Function implementing the TaskHandleCAN thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCANbus */
+void StartCANbus(void const * argument)
+{
+  /* USER CODE BEGIN StartCANbus */
+	CAN_Init();
+  /* Infinite loop */
+  for(;;)
+  {
+	if()
+	canfunc_HandleRxEvent(&handleFunc);
+    osDelay(1);
+  }
+  /* USER CODE END StartCANbus */
+}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

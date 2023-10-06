@@ -9,10 +9,8 @@
 #define INC_CAN_CONTROL_H_
 #include "main.h"
 #include "stdbool.h"
+#include "Flag.h"
 
-#define CAN_EVT_CHECKFLAG(FlagBit) ((((canEvent) & (1 << FlagBit)) == (1 << FlagBit)) ? 1 : 0)
-#define CAN_EVT_SETFLAG(FlagBit) ((canEvent) |= (1 << FlagBit))
-#define CAN_EVT_CLEARFLAG(FlagBit) ((canEvent) &= ~(1 << FlagBit))
 #define CAN_DEVICE_POS 8
 typedef enum CAN_MODE_ID{
 	CANCTRL_MODE_START,

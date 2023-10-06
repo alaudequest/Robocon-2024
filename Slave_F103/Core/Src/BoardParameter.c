@@ -13,12 +13,17 @@ extern TIM_HandleTypeDef htim4;
 
 
 
+float brd_GetAngleDC_Fast()
+{
+	return encoder_GetPulse(&brdParam.encDC, MODE_ANGLE);
+}
+
 void brd_Init()
 {
 	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start_IT(&htim4, TIM_CHANNEL_ALL);
-	encoder_Init(&brdParam.encDC, &htim3, DCEncoderPerRound, DCDeltaT);
-	encoder_Init(&brdParam.encBLDC, &htim4, _BLDCEncoderPerRound, _BLDCDeltaT);
+	encoder_Init(&brdParam.encDC, &htim3, DCEncoderPerRound*DCGearRatio, DCDeltaT);
+	encoder_Init(&brdParam.encBLDC, &htim4, _BLDCEncoderPerRound*_BLDCGearRatio, _BLDCDeltaT);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -30,7 +35,41 @@ void brd_Init()
 	MotorDC_Init(&brdParam.mdc, &htim2, MOTOR_PWM_INVERSE,
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
+	brdParam.pidBLDC_Speed.kP = 0.2;
+	brdParam.pidBLDC_Speed.kI = 15;
+	brdParam.pidBLDC_Speed.kD = 0;
+	brdParam.pidBLDC_Speed.alpha = 0;
+	brdParam.pidBLDC_Speed.deltaT = 0.001;
+	brdParam.pidBLDC_Speed.uI_AboveLimit = 1000;
+	brdParam.pidBLDC_Speed.uI_BelowLimit = -1000;
+	brdParam.pidBLDC_Speed.u_AboveLimit = 1000;
+	brdParam.pidBLDC_Speed.u_BelowLimit = -1000;
+
+	brdParam.pidDC_Angle.kP = 10;
+	brdParam.pidDC_Angle.kI = 0;
+	brdParam.pidDC_Angle.kD = 0;
+	brdParam.pidDC_Angle.alpha = 0;
+	brdParam.pidDC_Angle.deltaT = 0.001;
+	brdParam.pidDC_Angle.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
+	brdParam.pidDC_Angle.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
+	brdParam.pidDC_Angle.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
+
+	brdParam.pidDC_Speed.kP = 2;
+	brdParam.pidDC_Speed.kI = 300;
+	brdParam.pidDC_Speed.kD = 0;
+	brdParam.pidDC_Speed.alpha = 0;
+	brdParam.pidDC_Speed.deltaT = 0.001;
+	brdParam.pidDC_Speed.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
+	brdParam.pidDC_Speed.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
+	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+	brdParam.pidDC_Speed.u_BelowLimit = DC_SUM_BELOW_LIMIT;
+
 }
+
+
+
+
 
 void brd_SetPID(PID_Param pid,PID_type type)
 {
@@ -63,6 +102,29 @@ PID_Param brd_GetPID(PID_type type)
 	return brdParam.pidDC_Speed;
 }
 
+void brd_ResetState()
+{
+	brd_SetTargetAngleDC(0);
+	brdParam.pidDC_Speed.uI_AboveLimit = 0;
+	brdParam.pidDC_Speed.uI_BelowLimit = 0;
+	brdParam.pidDC_Speed.u_AboveLimit = 0;
+	brdParam.pidDC_Speed.u_BelowLimit= 0;
+	encoder_ResetCount(&brdParam.encDC);
+	HAL_Delay(1000);
+	brdParam.pidDC_Speed.uI_AboveLimit = 100;
+	brdParam.pidDC_Speed.uI_BelowLimit = -100;
+	brdParam.pidDC_Speed.u_AboveLimit = 100;
+	brdParam.pidDC_Speed.u_BelowLimit= -100;
+//	brdParam.pidDC_Speed.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
+//	brdParam.pidDC_Speed.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
+//	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+//	brdParam.pidDC_Speed.u_BelowLimit= DC_SUM_BELOW_LIMIT;
+
+}
+
+
+float brd_GetTargetAngleDC(){return brdParam.targetAngleDC;}
+void brd_SetTargetAngleDC(float angle){brdParam.targetAngleDC = angle;}
 
 MotorDC brd_GetObjMotorDC(){return brdParam.mdc;}
 void brd_SetObjMotorDC(MotorDC mdc){brdParam.mdc = mdc;}
@@ -78,9 +140,6 @@ Encoder_t brd_GetObjEncDC(){return brdParam.encDC;}
 
 void brd_SetObjEncBLDC(Encoder_t encBLDC){brdParam.encBLDC = encBLDC;}
 Encoder_t brd_GetObjEncBLDC(){return brdParam.encBLDC;}
-
-void brd_SetAngleDC(float angle){brdParam.targetAngleDC = angle;}
-float brd_GetAngleDC(){return brdParam.targetAngleDC;}
 
 void brd_SetEncX4BLDC(int32_t countX4){brdParam.encBLDC.count_X4 = countX4;}
 int32_t brd_GetEncX4BLDC(){return brdParam.encBLDC.count_X4;}
