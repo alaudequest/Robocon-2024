@@ -174,24 +174,26 @@ void OptimizerV2(Optimizer *Swerve, float Input) {
 				}
 			}
 			else if(Swerve->CurAngle>=-90 && Swerve->CurAngle<0) {
-				if(Input>=-270 && Input<-90) {
+				if((Input>=-270 && Input<-90) || (Input>90 && Input<=270) ) {
 					Swerve->Direc *= -1;
-					Swerve->CurAngle = Input + 180;
+					if(Input>90 && Input<=270) Swerve->CurAngle = Input - 180;
+					else Swerve->CurAngle = Input + 180;
 				}
-				else if(Input>=-360 && Input<=-270) {
+				else if((Input>=-360 && Input<=-270) || (Input>=-90 && Input<=90)) {
 					if(Swerve->PreAngle>=-90 && Swerve->PreAngle<0) Swerve->Direc *= 1;
 					else Swerve->Direc *= -1;
-					Swerve->CurAngle = Input + 360;
+					if((Input>=-360 && Input<=-270)) Swerve->CurAngle = Input + 360;
+					else Swerve->CurAngle = Input;
 				}
-				else if(Input>=-90 && Input<=90) {
-					if(Swerve->PreAngle>=-90 && Swerve->PreAngle<0) Swerve->Direc *= 1;
-					else Swerve->Direc *= -1;
-					Swerve->CurAngle = Input;
-				}
-				else if(Input>90 && Input<=270) {
-					Swerve->Direc *= -1;
-					Swerve->CurAngle = Input - 180;
-				}
+//				else if(Input>=-90 && Input<=90) {
+//					if(Swerve->PreAngle>=-90 && Swerve->PreAngle<0) Swerve->Direc *= 1;
+//					else Swerve->Direc *= -1;
+//					Swerve->CurAngle = Input;
+//				}
+//				else if(Input>90 && Input<=270) {
+//					Swerve->Direc *= -1;
+//					Swerve->CurAngle = Input - 180;
+//				}
 			}
 		}
 		Swerve->PreAngle = Input;
