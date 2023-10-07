@@ -67,6 +67,7 @@ uint8_t TestMode = 0;
 float dcAngleResult = 0;
 float bldcSpeed = 10;
 float dcAngleSet = 0;
+QueueHandle_t qPID;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,14 +90,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 canctrl_Receive(hcan, CAN_RX_FIFO0);
 	 uint32_t canEvent = canctrl_GetEvent();
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	 vTaskNotifyGiveFromISR(TaskHandleCANHandle,&HigherPriorityTaskWoken);
+	 xTaskNotifyFromISR(TaskHandleCANHandle,canEvent,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	canctrl_Receive(hcan, CAN_RX_FIFO1);
 	uint32_t canEvent = canctrl_GetEvent();
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR(TaskHandleCANHandle,&HigherPriorityTaskWoken);
+	xTaskNotifyFromISR(TaskHandleCANHandle,canEvent,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 
@@ -230,7 +231,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   __HAL_DBGMCU_FREEZE_TIM2();
   brd_Init();
-
+  qPID = xQueueCreate(5,sizeof(float));
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -260,7 +261,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskCalcPID */
@@ -268,7 +269,7 @@ int main(void)
   TaskCalcPIDHandle = osThreadCreate(osThread(TaskCalcPID), NULL);
 
   /* definition and creation of TaskHandleCAN */
-  osThreadStaticDef(TaskHandleCAN, StartCANbus, osPriorityIdle, 0, 128, TaskHandleCANBuffer, &TaskHandleCANControlBlock);
+  osThreadStaticDef(TaskHandleCAN, StartCANbus, osPriorityAboveNormal, 0, 128, TaskHandleCANBuffer, &TaskHandleCANControlBlock);
   TaskHandleCANHandle = osThreadCreate(osThread(TaskHandleCAN), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -629,15 +630,18 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+//	sethome_Begin();
+//	while(!sethome_IsComplete()){
+//	  sethome_Procedure();
+//	  float speed = sethome_GetSpeed();
+//	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
+//	  osDelay(1);
+//	}
+//	brd_SetHomeCompleteCallback();
   /* Infinite loop */
+
   for(;;)
   {
-	sethome_Begin();
-	while(!sethome_IsComplete()){
-	  sethome_Procedure();
-	  HAL_Delay(1);
-
-	}
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -650,13 +654,21 @@ void StartDefaultTask(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskPID */
+float targetAngle = 0;
 void StartTaskPID(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPID */
+//    float TargetValue = 0;
+//    while(!sethome_IsComplete()){
+//    	xQueueReceive(qPID, &TargetValue,0);
+//    	PID_DC_CalSpeed((float)TargetValue);
+//    	osDelay(1);
+//    }
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	  PID_DC_CalPos(targetAngle);
+	  osDelay(1);
   }
   /* USER CODE END StartTaskPID */
 }
@@ -675,7 +687,6 @@ void StartCANbus(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	if()
 	canfunc_HandleRxEvent(&handleFunc);
     osDelay(1);
   }
@@ -696,6 +707,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM1) {
+//	  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+//	  vTaskNotifyGiveFromISR(TaskCalcPIDHandle, &HigherPriorityTaskWoken);
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

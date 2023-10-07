@@ -6,6 +6,7 @@
  */
 #include "BoardParameter.h"
 #include "Motor.h"
+#include "cmsis_os.h"
 BoardParameter_t brdParam;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -40,31 +41,27 @@ void brd_Init()
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
 	brdParam.pidBLDC_Speed.deltaT = 0.001;
-	brdParam.pidBLDC_Speed.uI_AboveLimit = 1000;
-	brdParam.pidBLDC_Speed.uI_BelowLimit = -1000;
 	brdParam.pidBLDC_Speed.u_AboveLimit = 1000;
 	brdParam.pidBLDC_Speed.u_BelowLimit = -1000;
+	brdParam.pidBLDC_Speed.kB = 1/0.001;
 
 	brdParam.pidDC_Angle.kP = 10;
 	brdParam.pidDC_Angle.kI = 0;
 	brdParam.pidDC_Angle.kD = 0;
 	brdParam.pidDC_Angle.alpha = 0;
 	brdParam.pidDC_Angle.deltaT = 0.001;
-	brdParam.pidDC_Angle.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
-	brdParam.pidDC_Angle.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
 	brdParam.pidDC_Angle.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
 	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
+	brdParam.pidDC_Angle.kB = 1/0.001;
 
 	brdParam.pidDC_Speed.kP = 2;
 	brdParam.pidDC_Speed.kI = 300;
 	brdParam.pidDC_Speed.kD = 0;
 	brdParam.pidDC_Speed.alpha = 0;
 	brdParam.pidDC_Speed.deltaT = 0.001;
-	brdParam.pidDC_Speed.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
-	brdParam.pidDC_Speed.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
 	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
 	brdParam.pidDC_Speed.u_BelowLimit = DC_SUM_BELOW_LIMIT;
-
+	brdParam.pidDC_Speed.kB = 1/0.001;
 }
 
 
@@ -105,21 +102,22 @@ PID_Param brd_GetPID(PID_type type)
 void brd_ResetState()
 {
 	brd_SetTargetAngleDC(0);
-	brdParam.pidDC_Speed.uI_AboveLimit = 0;
-	brdParam.pidDC_Speed.uI_BelowLimit = 0;
 	brdParam.pidDC_Speed.u_AboveLimit = 0;
 	brdParam.pidDC_Speed.u_BelowLimit= 0;
 	encoder_ResetCount(&brdParam.encDC);
-	HAL_Delay(1000);
-	brdParam.pidDC_Speed.uI_AboveLimit = 100;
-	brdParam.pidDC_Speed.uI_BelowLimit = -100;
-	brdParam.pidDC_Speed.u_AboveLimit = 100;
-	brdParam.pidDC_Speed.u_BelowLimit= -100;
+	osDelay(1000);
+	brdParam.pidDC_Speed.uI = 0;
+//	brdParam.pidDC_Speed.u_AboveLimit = 100;
+//	brdParam.pidDC_Speed.u_BelowLimit= -100;
 //	brdParam.pidDC_Speed.uI_AboveLimit = DC_INTERGRAL_ABOVE_LIMIT;
 //	brdParam.pidDC_Speed.uI_BelowLimit = DC_INTERGRAL_BELOW_LIMIT;
-//	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
-//	brdParam.pidDC_Speed.u_BelowLimit= DC_SUM_BELOW_LIMIT;
+	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+	brdParam.pidDC_Speed.u_BelowLimit= DC_SUM_BELOW_LIMIT;
+}
 
+void brd_SetHomeCompleteCallback()
+{
+	encoder_ResetCount(&brdParam.encDC);
 }
 
 

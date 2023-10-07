@@ -30,6 +30,7 @@ typedef enum SetHomeEvent{
 	SET_HOME_COMPLETE,
 }SetHomeEvent;
 
+float sethome_GetSpeed();
 void sethome_Begin();
 void sethome_Procedure();
 void sethome_SetFlag(SetHomeEvent e);
