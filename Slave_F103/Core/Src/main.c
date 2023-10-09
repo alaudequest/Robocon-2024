@@ -67,10 +67,13 @@ uint8_t TestMode = 0;
 float dcAngleResult = 0;
 float bldcSpeed = 10;
 float dcAngleSet = 0;
-QueueHandle_t qPID;
+QueueHandle_t qPID,qHome;
 
 bool enableSendBreakProtection = false;
 bool BreakProtectionMode = false;
+bool enableSetHome = false;
+
+bool setHomeValue;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,7 +139,9 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_SHOOT:
 		break;
 	case CANCTRL_MODE_SET_HOME:
-		__NOP();
+//		__NOP();
+		setHomeValue = canfunc_GetHomeValue();
+		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
 		float bldcSpeed,dcAngle;
@@ -180,6 +185,14 @@ void canTestBreakProtection(CAN_DEVICE_ID targetID)
 	canctrl_Send(&hcan, targetID);
 
 	enableSendBreakProtection = false;
+}
+
+void canTestSetHome(CAN_DEVICE_ID targetID)
+{
+	if(!enableSetHome)return;
+	canfunc_SetHomeValue(1);
+	canctrl_Send(&hcan, targetID);
+	enableSetHome = false;
 }
 
 void Flash_Write(CAN_DEVICE_ID ID){
@@ -237,7 +250,8 @@ int main(void)
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
+  /* Configure the system cloc
+   * k */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -254,6 +268,7 @@ int main(void)
   __HAL_DBGMCU_FREEZE_TIM2();
   brd_Init();
   qPID = xQueueCreate(5,sizeof(float));
+  qHome = xQueueCreate(2,sizeof(bool));
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -650,9 +665,17 @@ static void MX_GPIO_Init(void)
   */
 /* USER CODE END Header_StartDefaultTask */
 bool TestFlag = false;
+bool IsSetHome = false;
+void SethomeHandle()
+{
+	if(xQueueReceive(qHome, (void *)&IsSetHome, 1/portTICK_PERIOD_MS) == pdTRUE){
+		__NOP();
+	}
+}
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+	SET_HOME_DEFAULT_TASK:
 	sethome_Begin();
 	while(!sethome_IsComplete()){
 	  sethome_Procedure();
@@ -661,11 +684,19 @@ void StartDefaultTask(void const * argument)
 	  osDelay(1);
 	}
 	brd_SetHomeCompleteCallback();
+	 IsSetHome = 0;
   /* Infinite loop */
 
   for(;;)
   {
-	 canTestBreakProtection(1);
+	canTestBreakProtection(1);
+	canTestSetHome(1);
+	SethomeHandle();
+
+	if(IsSetHome){
+		osDelay(1);
+		goto SET_HOME_DEFAULT_TASK;
+	}
     osDelay(1);
   }
 }
@@ -682,16 +713,23 @@ void StartDefaultTask(void const * argument)
 void StartTaskPID(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPID */
-    float TargetValue = 0;
+	SET_HOME_PID_TASK:
+	float TargetValue = 0;
     while(!sethome_IsComplete()){
     	xQueueReceive(qPID, &TargetValue,0);
     	PID_DC_CalSpeed((float)TargetValue);
     	osDelay(1);
     }
-
   /* Infinite loop */
   for(;;)
   {
+	  if(IsSetHome) {
+		  PID_BLDC_BreakProtection(1);
+		  osDelay(1000);
+		  PID_BLDC_BreakProtection(0);
+
+		  goto SET_HOME_PID_TASK;
+	  }
 
 	  PID_DC_CalPos(targetAngle);
 	  PID_BLDC_CalSpeed(targetSpeed);
@@ -711,11 +749,14 @@ void StartCANbus(void const * argument)
 {
   /* USER CODE BEGIN StartCANbus */
 	CAN_Init();
+	uint32_t canEvent;
   /* Infinite loop */
   for(;;)
   {
-	canfunc_HandleRxEvent(&handleFunc);
-    osDelay(1);
+	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &canEvent, portMAX_DELAY)){
+		  canfunc_HandleRxEvent(&handleFunc);
+	  }
+//    osDelay(1);
   }
   /* USER CODE END StartCANbus */
 }

@@ -30,6 +30,9 @@ void canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, 
 uint8_t canfunc_GetTestMode();
 void canfunc_SetTestMode(uint8_t IsTestMode);
 
+bool canfunc_GetHomeValue();
+void canfunc_SetHomeValue(bool IsSetHome);
+
 void canfunc_EnableSendPID();
 bool canfunc_GetStateEnableSendPID();
 

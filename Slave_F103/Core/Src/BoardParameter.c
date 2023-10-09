@@ -118,6 +118,7 @@ void brd_ResetState()
 void brd_SetHomeCompleteCallback()
 {
 	encoder_ResetCount(&brdParam.encDC);
+
 }
 
 

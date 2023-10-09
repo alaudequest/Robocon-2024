@@ -73,6 +73,26 @@ uint8_t  canfunc_MotorGetBreakProtectionBLDC()
 	uint8_t Break = canctrl_GetIntNum();
 	return Break--;
 }
+
+
+void canfunc_SetHomeValue(bool IsSetHome)
+{
+	uint8_t temp = IsSetHome;
+	temp++;
+	canctrl_SetID(CANCTRL_MODE_SET_HOME);
+	canctrl_PutMessage((void*)&temp, 1);
+}
+
+bool  canfunc_GetHomeValue()
+{
+	uint8_t rxData[8] = {0};
+	canctrl_GetRxData(rxData);
+	canctrl_ClearFlag(CANCTRL_MODE_SET_HOME);
+	uint8_t temp = canctrl_GetIntNum() - 1 ;
+	bool setHomeValue = temp;
+	return setHomeValue;
+}
+
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
 {
 	canctrl_SetID(CANCTRL_MODE_ENCODER);
