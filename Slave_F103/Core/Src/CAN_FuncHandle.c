@@ -58,6 +58,21 @@ uint8_t canfunc_MotorGetBrake()
 	return brake--;
 }
 
+void canfunc_MotorSetBreakProtectionBLDC(uint8_t Break)
+{
+	canctrl_SetID(CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
+	Break++;
+	canctrl_PutMessage((void*)&Break, 1);
+}
+
+uint8_t  canfunc_MotorGetBreakProtectionBLDC()
+{
+	uint8_t rxData[8] = {0};
+	canctrl_GetRxData(rxData);
+	canctrl_ClearFlag(CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
+	uint8_t Break = canctrl_GetIntNum();
+	return Break--;
+}
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
 {
 	canctrl_SetID(CANCTRL_MODE_ENCODER);

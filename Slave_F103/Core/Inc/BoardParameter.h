@@ -23,8 +23,8 @@
 #define DCGearRatio 						3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
-#define DC_SUM_ABOVE_LIMIT 500
-#define DC_SUM_BELOW_LIMIT -500
+#define DC_SUM_ABOVE_LIMIT 1000
+#define DC_SUM_BELOW_LIMIT -1000
 
 
 typedef enum PID_type{

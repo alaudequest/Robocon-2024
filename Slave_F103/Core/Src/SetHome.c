@@ -12,7 +12,6 @@
 #include "cmsis_os.h"
 SetHomeEvent homeEvent = 0;
 float speed = 0;
-uint8_t setHomeDebug = false;
 
 void sethome_Begin()
 {
@@ -20,8 +19,8 @@ void sethome_Begin()
 }
 
 void homeBeginHandle(){
-	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin) && !setHomeDebug){
-		osDelay(1);
+	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
+		HAL_Delay(1);
 		if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
 			homeEvent = SET_HOME_COMPLETE;
 		}
@@ -38,7 +37,7 @@ void tuneCoarseHandle(){
 		speed *= -1;
 	}
 	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
-		osDelay(10);
+		osDelay(1);
 		if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
 			speed = TUNE_FINE_SPEED;
 			homeEvent = SET_HOME_TUNE_COARSE_SENSOR_DETECT;
@@ -52,7 +51,7 @@ void tuneFineHandle(){
 		speed *= -1;
 	}
 	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
-		osDelay(10);
+		HAL_Delay(10);
 		if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
 			speed = 0;
 			homeEvent = SET_HOME_TUNE_FINE_SENSOR_DETECT;
@@ -92,6 +91,7 @@ void sethome_Procedure()
 		homeEvent = SET_HOME_COMPLETE;
 		break;
 	case SET_HOME_COMPLETE:
+
 		break;
 	}
 

@@ -15,6 +15,8 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID));
 uint8_t canfunc_MotorGetBrake();
 void canfunc_MotorSetBrake(uint8_t brake);
 
+uint8_t canfunc_MotorGetBreakProtectionBLDC();
+void canfunc_MotorSetBreakProtectionBLDC(uint8_t Break);
 
 uint32_t canfunc_MotorGetEncoderPulseBLDC();
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC);
