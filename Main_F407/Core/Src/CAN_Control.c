@@ -25,9 +25,12 @@ CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
-void canctrl_SetFlag(CAN_MODE_ID flag){CAN_EVT_SETFLAG(flag);}
-void canctrl_ClearFlag(CAN_MODE_ID flag){CAN_EVT_CLEARFLAG(flag);}
-bool canctrl_CheckFlag(CAN_MODE_ID flag){return CAN_EVT_CHECKFLAG(flag);}
+#define TARGET_FLAG_GROUP canEvent
+void canctrl_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
+bool canctrl_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
+void canctrl_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
+
+
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;
 	txHeader.StdId |= ID;
@@ -64,14 +67,19 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 
 void checkEventFromRxHeader(){
 	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END;i++){
+		// masking out CAN_DEVICE_ID, only mode and reverse bit remain
 		if((rxHeader.StdId & 0xff) ==  i)	{
-			CAN_EVT_SETFLAG(i);
+			canctrl_SetFlag(i);
 			break;
 		}
 	}
 }
+
+
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 {
+	//Note: bắt buộc phải gọi hàm này để xử lý, nếu comment hàm này thì ngắt CAN sẽ liên tục gọi tới HAL_CAN_RxFifo0MsgPendingCallback vì
+	// message đang chờ không xử lý và không cho phép chạy chương trình chính (liên tục nhảy vào chương trình ngắt)
 	HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 	checkEventFromRxHeader();
 	return HAL_OK;
@@ -125,15 +133,18 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 	canFilCfg.FilterActivation = CAN_FILTER_ENABLE;
 	canFilCfg.FilterBank = filBank;
 	canFilCfg.FilterFIFOAssignment = FIFO;
-	canFilCfg.FilterIdLow = 		ID1 << 5;
-	canFilCfg.FilterIdHigh = 		ID2 << 5;
-	canFilCfg.FilterMaskIdLow = 	ID3 << 5;
-	canFilCfg.FilterMaskIdHigh = 	ID4 << 5;
+	canFilCfg.FilterIdLow = 		ID1 << 5; // 0010000000100000
+	canFilCfg.FilterIdHigh = 		ID2 << 5; // 0010000001000000
+	canFilCfg.FilterMaskIdLow = 	ID3 << 5; // 0010000001100000
+	canFilCfg.FilterMaskIdHigh = 	ID4 << 5; // 0010000010000000
 	canFilCfg.FilterMode = CAN_FILTERMODE_IDLIST;
 	canFilCfg.FilterScale = CAN_FILTERSCALE_16BIT;
 	canFilCfg.SlaveStartFilterBank = 13;
 	return HAL_CAN_ConfigFilter(can, &canFilCfg);
 }
+
+// 0000 0000 0000 0000
+// {  ID       }
 
 HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
 										uint16_t highID,

@@ -9,5 +9,5 @@
 #define INC_LIBRARYCONFIG_H_
 
 #define CONFIG_USE_PID
-
+#define CONFIG_USE_FLAG
 #endif /* INC_LIBRARYCONFIG_H_ */

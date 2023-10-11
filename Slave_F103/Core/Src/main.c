@@ -72,8 +72,12 @@ QueueHandle_t qPID,qHome;
 bool enableSendBreakProtection = false;
 bool BreakProtectionMode = false;
 bool enableSetHome = false;
+bool IsSetHome = false;
 
 bool setHomeValue;
+
+float targetAngle;
+float targetSpeed;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,6 +115,7 @@ void CAN_Init(){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
+//	*(__IO uint32_t*)(0x40000000UL + 0x00006400 + 0x01C)
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
@@ -123,7 +128,10 @@ void CAN_Init(){
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
 			deviceID | CANCTRL_MODE_TEST,
 			1, CAN_RX_FIFO0);
-	canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
+	// method 1:
+	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
+	// method 2:
+//	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
 }
 
 uint8_t Break;
@@ -169,7 +177,6 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_START:
 	case CANCTRL_MODE_END:
 		break;
-
 	}
 }
 
@@ -250,8 +257,7 @@ int main(void)
 
   /* USER CODE END Init */
 
-  /* Configure the system cloc
-   * k */
+  /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -389,7 +395,7 @@ static void MX_CAN_Init(void)
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
@@ -655,6 +661,12 @@ static void MX_GPIO_Init(void)
 //	if(canEvent) return;
 //	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
 //}
+
+void SethomeHandle(){
+	if(xQueueReceive(qHome, (void*)&IsSetHome, 1/portTICK_PERIOD_MS) == pdTRUE){
+		__NOP();
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -664,14 +676,6 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-bool TestFlag = false;
-bool IsSetHome = false;
-void SethomeHandle()
-{
-	if(xQueueReceive(qHome, (void *)&IsSetHome, 1/portTICK_PERIOD_MS) == pdTRUE){
-		__NOP();
-	}
-}
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -689,8 +693,8 @@ void StartDefaultTask(void const * argument)
 
   for(;;)
   {
-	canTestBreakProtection(1);
-	canTestSetHome(1);
+//	canTestBreakProtection(1);
+//	canTestSetHome(1);
 	SethomeHandle();
 
 	if(IsSetHome){
@@ -702,6 +706,7 @@ void StartDefaultTask(void const * argument)
 }
   /* USER CODE END 5 */
 
+
 /* USER CODE BEGIN Header_StartTaskPID */
 /**
 * @brief Function implementing the TaskCalc thread.
@@ -709,7 +714,6 @@ void StartDefaultTask(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskPID */
-  float targetAngle,targetSpeed;
 void StartTaskPID(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPID */

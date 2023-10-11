@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -25,16 +26,21 @@
 #include "CAN_FuncHandle.h"
 #include "stdbool.h"
 #include "PID.h"
+#include "Flag.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+typedef enum EnableFuncHandle{
+	ENABLE_SETHOME,
+	ENABLE_BREAK_PROTECTION,
+}EnableFuncHandle;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TARGET_FLAG_GROUP enableFlag
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,6 +51,7 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
+osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 bool enableSendSpeedAndAngle = false;
 bool enableSendPID = false;
@@ -57,18 +64,32 @@ float dcAngle;
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
+
+
+bool enableSetHome = false;
+bool enableSendBreakProtection = false;
+
+uint32_t enableFlag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
+void StartDefaultTask(void const * argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+void enfunc_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
+bool enfunc_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
+void enfunc_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
+
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 canctrl_Receive(hcan, CAN_RX_FIFO0);
@@ -109,6 +130,37 @@ void SetBrake(uint8_t brake, CAN_DEVICE_ID targetID,bool *enable){
 	*enable = false;
 }
 
+void SetHome(CAN_DEVICE_ID targetID)
+{
+	if(!enfunc_CheckFlag(ENABLE_SETHOME))return;
+	canfunc_SetHomeValue(1);
+	canctrl_Send(&hcan1, targetID);
+	enfunc_ClearFlag(ENABLE_SETHOME);
+}
+
+void BreakProtection(CAN_DEVICE_ID targetID)
+{
+	if(!enfunc_CheckFlag(ENABLE_BREAK_PROTECTION)) return;
+	canfunc_MotorSetBreakProtectionBLDC(1);
+	canctrl_Send(&hcan1, targetID);
+
+	osDelay(1000);
+
+	canfunc_MotorSetBreakProtectionBLDC(0);
+	canctrl_Send(&hcan1, targetID);
+
+	enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
+}
+
+void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
+	switch(mode){
+	case CANCTRL_MODE_SET_HOME :
+		SetHome(targetID);
+		break;
+	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION :
+
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -150,6 +202,35 @@ int main(void)
   pid.deltaT = 0.001;
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -263,6 +344,24 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
