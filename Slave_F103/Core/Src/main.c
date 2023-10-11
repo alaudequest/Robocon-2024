@@ -67,7 +67,13 @@ uint8_t TestMode = 0;
 float dcAngleResult = 0;
 float bldcSpeed = 10;
 float dcAngleSet = 0;
-QueueHandle_t qPID;
+QueueHandle_t qPID,qHome;
+
+bool enableSendBreakProtection = false;
+bool BreakProtectionMode = false;
+bool enableSetHome = false;
+
+bool setHomeValue;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -117,8 +123,10 @@ void CAN_Init(){
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
 			deviceID | CANCTRL_MODE_TEST,
 			1, CAN_RX_FIFO0);
+	canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
 }
 
+uint8_t Break;
 
 void handleFunc(CAN_MODE_ID func){
 	switch(func){
@@ -131,7 +139,9 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_SHOOT:
 		break;
 	case CANCTRL_MODE_SET_HOME:
-		__NOP();
+//		__NOP();
+		setHomeValue = canfunc_GetHomeValue();
+		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
 		float bldcSpeed,dcAngle;
@@ -150,15 +160,40 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_PID_BLDC_SPEED:
 		canfunc_GetPID();
 		break;
+	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
+		Break = canfunc_MotorGetBreakProtectionBLDC()-1;
+		PID_BLDC_BreakProtection(Break);
 	case CANCTRL_MODE_TEST:
 		TestMode = canfunc_GetTestMode();
 		break;
 	case CANCTRL_MODE_START:
 	case CANCTRL_MODE_END:
 		break;
+
 	}
 }
 
+void canTestBreakProtection(CAN_DEVICE_ID targetID)
+{
+	if(!enableSendBreakProtection) return;
+	canfunc_MotorSetBreakProtectionBLDC(1);
+	canctrl_Send(&hcan, targetID);
+
+	osDelay(1000);
+
+	canfunc_MotorSetBreakProtectionBLDC(0);
+	canctrl_Send(&hcan, targetID);
+
+	enableSendBreakProtection = false;
+}
+
+void canTestSetHome(CAN_DEVICE_ID targetID)
+{
+	if(!enableSetHome)return;
+	canfunc_SetHomeValue(1);
+	canctrl_Send(&hcan, targetID);
+	enableSetHome = false;
+}
 
 void Flash_Write(CAN_DEVICE_ID ID){
 	uint32_t targetAddr = FLASH_ADDR_BASE + 1024*64;
@@ -215,7 +250,8 @@ int main(void)
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
+  /* Configure the system cloc
+   * k */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -232,6 +268,7 @@ int main(void)
   __HAL_DBGMCU_FREEZE_TIM2();
   brd_Init();
   qPID = xQueueCreate(5,sizeof(float));
+  qHome = xQueueCreate(2,sizeof(bool));
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -352,7 +389,7 @@ static void MX_CAN_Init(void)
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
+  hcan.Init.Mode = CAN_MODE_LOOPBACK;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
@@ -627,47 +664,75 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
+bool TestFlag = false;
+bool IsSetHome = false;
+void SethomeHandle()
+{
+	if(xQueueReceive(qHome, (void *)&IsSetHome, 1/portTICK_PERIOD_MS) == pdTRUE){
+		__NOP();
+	}
+}
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-//	sethome_Begin();
-//	while(!sethome_IsComplete()){
-//	  sethome_Procedure();
-//	  float speed = sethome_GetSpeed();
-//	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
-//	  osDelay(1);
-//	}
-//	brd_SetHomeCompleteCallback();
+	SET_HOME_DEFAULT_TASK:
+	sethome_Begin();
+	while(!sethome_IsComplete()){
+	  sethome_Procedure();
+	  float speed = sethome_GetSpeed();
+	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
+	  osDelay(1);
+	}
+	brd_SetHomeCompleteCallback();
+	 IsSetHome = 0;
   /* Infinite loop */
 
   for(;;)
   {
+	canTestBreakProtection(1);
+	canTestSetHome(1);
+	SethomeHandle();
+
+	if(IsSetHome){
+		osDelay(1);
+		goto SET_HOME_DEFAULT_TASK;
+	}
     osDelay(1);
   }
-  /* USER CODE END 5 */
 }
+  /* USER CODE END 5 */
 
 /* USER CODE BEGIN Header_StartTaskPID */
 /**
-* @brief Function implementing the TaskCalcPID thread.
+* @brief Function implementing the TaskCalc thread.
 * @param argument: Not used
 * @retval None
 */
 /* USER CODE END Header_StartTaskPID */
-float targetAngle = 0;
+  float targetAngle,targetSpeed;
 void StartTaskPID(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPID */
-//    float TargetValue = 0;
-//    while(!sethome_IsComplete()){
-//    	xQueueReceive(qPID, &TargetValue,0);
-//    	PID_DC_CalSpeed((float)TargetValue);
-//    	osDelay(1);
-//    }
+	SET_HOME_PID_TASK:
+	float TargetValue = 0;
+    while(!sethome_IsComplete()){
+    	xQueueReceive(qPID, &TargetValue,0);
+    	PID_DC_CalSpeed((float)TargetValue);
+    	osDelay(1);
+    }
   /* Infinite loop */
   for(;;)
   {
+	  if(IsSetHome) {
+		  PID_BLDC_BreakProtection(1);
+		  osDelay(1000);
+		  PID_BLDC_BreakProtection(0);
+
+		  goto SET_HOME_PID_TASK;
+	  }
+
 	  PID_DC_CalPos(targetAngle);
+	  PID_BLDC_CalSpeed(targetSpeed);
 	  osDelay(1);
   }
   /* USER CODE END StartTaskPID */
@@ -684,11 +749,14 @@ void StartCANbus(void const * argument)
 {
   /* USER CODE BEGIN StartCANbus */
 	CAN_Init();
+	uint32_t canEvent;
   /* Infinite loop */
   for(;;)
   {
-	canfunc_HandleRxEvent(&handleFunc);
-    osDelay(1);
+	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &canEvent, portMAX_DELAY)){
+		  canfunc_HandleRxEvent(&handleFunc);
+	  }
+//    osDelay(1);
   }
   /* USER CODE END StartCANbus */
 }
@@ -707,8 +775,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM1) {
-//	  BaseType_t HigherPriorityTaskWoken = pdFALSE;
-//	  vTaskNotifyGiveFromISR(TaskCalcPIDHandle, &HigherPriorityTaskWoken);
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

@@ -45,7 +45,7 @@ void brd_Init()
 	brdParam.pidBLDC_Speed.u_BelowLimit = -1000;
 	brdParam.pidBLDC_Speed.kB = 1/0.001;
 
-	brdParam.pidDC_Angle.kP = 10;
+	brdParam.pidDC_Angle.kP = 5;
 	brdParam.pidDC_Angle.kI = 0;
 	brdParam.pidDC_Angle.kD = 0;
 	brdParam.pidDC_Angle.alpha = 0;
@@ -54,8 +54,8 @@ void brd_Init()
 	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
 	brdParam.pidDC_Angle.kB = 1/0.001;
 
-	brdParam.pidDC_Speed.kP = 2;
-	brdParam.pidDC_Speed.kI = 300;
+	brdParam.pidDC_Speed.kP = 1;
+	brdParam.pidDC_Speed.kI = 400;
 	brdParam.pidDC_Speed.kD = 0;
 	brdParam.pidDC_Speed.alpha = 0;
 	brdParam.pidDC_Speed.deltaT = 0.001;
@@ -118,6 +118,7 @@ void brd_ResetState()
 void brd_SetHomeCompleteCallback()
 {
 	encoder_ResetCount(&brdParam.encDC);
+
 }
 
 
