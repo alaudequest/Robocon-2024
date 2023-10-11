@@ -125,7 +125,7 @@ void canfunc_MotorGetSpeedAndAngle(float *speed, float *angle)
 	uint8_t rxData[8] = {0};
 	canctrl_GetRxData(rxData);
 	memcpy(speedMotor.byteData,rxData,sizeof(float));
-	memcpy(angleMotor.byteData,rxData + sizeof(float),sizeof(float));
+	memcpy(angleMotor.byteData,rxData + 4,sizeof(float));
 	*speed = speedMotor.floatData;
 	*angle = angleMotor.floatData;
 	canctrl_ClearFlag(CANCTRL_MODE_MOTOR_SPEED_ANGLE);

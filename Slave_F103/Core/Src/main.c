@@ -75,9 +75,8 @@ bool enableSetHome = false;
 bool IsSetHome = false;
 
 bool setHomeValue;
+float targetAngle = 0,targetSpeed = 0;
 
-float targetAngle;
-float targetSpeed;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -120,16 +119,22 @@ void CAN_Init(){
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			deviceID | CANCTRL_MODE_SET_HOME,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
 			1, CAN_RX_FIFO0);
+	canctrl_Filter_List16(&hcan,
+				deviceID | CANCTRL_MODE_TEST,
+				deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+				0,
+				0,
+			2, CAN_RX_FIFO0);
 	// method 1:
-	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
+	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 6, CAN_RX_FIFO0);
 	// method 2:
 //	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
 }
@@ -735,6 +740,8 @@ void StartTaskPID(void const * argument)
 		  goto SET_HOME_PID_TASK;
 	  }
 
+	  targetAngle = brd_GetTargetAngleDC();
+	  targetSpeed = brd_GetSpeedBLDC();
 	  PID_DC_CalPos(targetAngle);
 	  PID_BLDC_CalSpeed(targetSpeed);
 	  osDelay(1);

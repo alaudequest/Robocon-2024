@@ -6,7 +6,7 @@
  */
 
 #include "PID_SwerveModule.h"
-bool bldcEnablePID = false;
+bool bldcEnablePID = true;
 
 void PID_DC_CalSpeed(float Target_set)
 {
