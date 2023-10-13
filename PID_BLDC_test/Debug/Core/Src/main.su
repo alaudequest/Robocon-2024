@@ -1,7 +1,7 @@
 ../Core/Src/main.c:60:6:HAL_GPIO_EXTI_Callback	16	static
 ../Core/Src/main.c:67:6:calSpeed	16	static
 ../Core/Src/main.c:91:6:PID	24	static
-../Core/Src/main.c:120:5:main	16	static
+../Core/Src/main.c:120:5:main	8	static
 ../Core/Src/main.c:169:6:SystemClock_Config	72	static
 ../Core/Src/main.c:209:13:MX_TIM2_Init	64	static
 ../Core/Src/main.c:268:13:MX_GPIO_Init	32	static

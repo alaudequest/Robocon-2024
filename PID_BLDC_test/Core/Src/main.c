@@ -151,10 +151,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  calSpeed();
-	  PID(realSpeed);
-	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,uSat);
-	  HAL_Delay(100);
+//	  calSpeed();
+//	  PID(realSpeed);
+	  __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,1000);
+//	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

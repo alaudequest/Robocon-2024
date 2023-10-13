@@ -9,6 +9,9 @@
 #define INC_BOARDPARAMETER_H_
 #include "main.h"
 #include "PID.h"
+#include "AngleOptimizer.h"
+#include "InverseKinematic.h"
+
 
 typedef enum PID_type{
 	PID_DC_SPEED = 1,
@@ -16,12 +19,7 @@ typedef enum PID_type{
 	PID_BLDC_SPEED,
 }PID_type;
 
-typedef struct BoardParameter_t {
-	float targetAngleDC;
-	float targetSpeedBLDC;
-	PID_Param pid;
 
-}BoardParameter_t;
 
 void brd_Init();
 PID_Param brd_GetPID(PID_type type);

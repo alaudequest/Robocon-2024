@@ -41,15 +41,10 @@ HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
 
 	memset(txData,0,sizeof(txData));
-	txHeader.DLC = 0;
-	uint8_t *temp = (uint8_t*)data;
-	for(int8_t i = 0; i < dataSize;i++){
-		if(*(temp+i)){
-			if(!txHeader.DLC) txHeader.DLC = dataSize - i;
-			txData[i] = *(temp+i);
-		}
-	}
-	return HAL_OK;
+		if(dataSize <= 8) txHeader.DLC = dataSize;
+		memcpy(txData,data,sizeof(txData));
+		return HAL_OK;
+
 }
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)

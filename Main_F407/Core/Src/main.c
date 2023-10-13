@@ -27,14 +27,19 @@
 #include "stdbool.h"
 #include "PID.h"
 #include "Flag.h"
+#include "InverseKinematic.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
 typedef enum EnableFuncHandle{
+	ENABLE_START,
 	ENABLE_SETHOME,
 	ENABLE_BREAK_PROTECTION,
+	ENABLE_ANGLE_SPEED,
+	ENABLE_CAN_TX,
+	ENABLE_END,
 }EnableFuncHandle;
 /* USER CODE END PTD */
 
@@ -57,19 +62,23 @@ bool enableSendSpeedAndAngle = false;
 bool enableSendPID = false;
 bool enableSendTestMode = false;
 bool enableSendBrake = false;
+
 uint8_t testMode = 1;
 uint8_t brake = 1;
 float bldcSpeed = 50;
-float dcAngle;
-CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
+float dcAngle = 0;
+CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
 
-
-bool enableSetHome = false;
 bool enableSendBreakProtection = false;
 
 uint32_t enableFlag = 0;
+
+EnableFuncHandle mode = ENABLE_ANGLE_SPEED;
+CAN_DEVICE_ID Device_ID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
+CAN_MODE_ID Mode_ID = CANCTRL_MODE_MOTOR_SPEED_ANGLE;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,12 +108,12 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 }
 
 
-void SendSpeedAndRotation(bool *enable,CAN_DEVICE_ID targetID)
+void SendSpeedAndRotation(CAN_DEVICE_ID targetID,float Speed, float Angle)
 {
-	if(!*enable) return;
-	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
+	if(!enfunc_CheckFlag(ENABLE_ANGLE_SPEED)) return;
+	canfunc_MotorPutSpeedAndAngle(Speed, Angle);
 	canctrl_Send(&hcan1, targetID);
-	*enable = false;
+	enfunc_ClearFlag(ENABLE_ANGLE_SPEED);
 }
 
 void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
@@ -143,12 +152,9 @@ void BreakProtection(CAN_DEVICE_ID targetID)
 	if(!enfunc_CheckFlag(ENABLE_BREAK_PROTECTION)) return;
 	canfunc_MotorSetBreakProtectionBLDC(1);
 	canctrl_Send(&hcan1, targetID);
-
 	osDelay(1000);
-
 	canfunc_MotorSetBreakProtectionBLDC(0);
 	canctrl_Send(&hcan1, targetID);
-
 	enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
 }
 
@@ -157,7 +163,33 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 	case CANCTRL_MODE_SET_HOME :
 		SetHome(targetID);
 		break;
+	case CANCTRL_MODE_LED_BLUE :
+		break;
+	case CANCTRL_MODE_SHOOT :
+		break;
+	case CANCTRL_MODE_ENCODER :
+		break;
+	case CANCTRL_MODE_MOTOR_SPEED_ANGLE :
+		SendSpeedAndRotation(Device_ID,bldcSpeed,dcAngle);
+		break;
+	case CANCTRL_MODE_MOTOR_BLDC_BRAKE :
+		break;
+	case CANCTRL_MODE_PID_DC_SPEED :
+		break;
+	case CANCTRL_MODE_PID_DC_ANGLE :
+		break;
+	case CANCTRL_MODE_PID_BLDC_SPEED :
+		break;
 	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION :
+		BreakProtection(targetID);
+		break;
+	case CANCTRL_MODE_START :
+		break;
+	case CANCTRL_MODE_TEST :
+		break;
+	case CANCTRL_MODE_END :
+		break;
+
 
 	}
 }
@@ -235,7 +267,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  SendSpeedAndRotation(&enableSendSpeedAndAngle, targetID);
+
 	  SendPID(pid, targetID, type, &enableSendPID);
 	  SetBrake(brake, targetID, &enableSendBrake);
 	  SetTestMode(testMode, targetID, &enableSendTestMode);
@@ -342,7 +374,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+bool TestFlag;
+void FlagEnable(){
+	if (TestFlag){
+		enfunc_SetFlag(mode);
+		TestFlag = false;
+		canTxHandleFunc(Mode_ID, Device_ID);
+	}
+}
+typedef void (*ptnCpltCallback)(ModuleID, float, float);
 
+void InvCpltCallback(ModuleID ID, float speed, float angle)
+{
+	__NOP();
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -358,6 +403,8 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	FlagEnable();
+	invkine_Implementation(MODULE_ID_1, 1, 0, 0, &InvCpltCallback);
     osDelay(1);
   }
   /* USER CODE END 5 */

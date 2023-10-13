@@ -735,8 +735,8 @@ void StartTaskPID(void const * argument)
 		  goto SET_HOME_PID_TASK;
 	  }
 
-	  PID_DC_CalPos(targetAngle);
-	  PID_BLDC_CalSpeed(targetSpeed);
+//	  PID_DC_CalPos(targetAngle);
+//	  PID_BLDC_CalSpeed(targetSpeed);
 	  osDelay(1);
   }
   /* USER CODE END StartTaskPID */

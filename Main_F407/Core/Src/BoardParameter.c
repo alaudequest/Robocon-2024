@@ -5,11 +5,10 @@
  *      Author: KHOA
  */
 #include "BoardParameter.h"
-BoardParameter_t brdParam;
+
 
 void brd_Init()
 {
-
 }
 
 
