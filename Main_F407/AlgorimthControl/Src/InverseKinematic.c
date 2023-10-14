@@ -25,7 +25,7 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 	float temp;
 	WheelVector vect = swer_GetWheelVector(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
-	temp = angopt.direct * (1/ROBOT_WHEEL_RADIUS) * (sqrt(pow(vect.wheelVelX,2) + pow(vect.wheelVelY,2))) / 0.1047198;
+	temp = (float)angopt.direct * (1/(float)ROBOT_WHEEL_RADIUS_METER) * (sqrt(pow(vect.wheelVelX,2) + pow(vect.wheelVelY,2))) / 0.1047198;
 	return temp;
 }
 

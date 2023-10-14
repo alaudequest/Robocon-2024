@@ -386,7 +386,8 @@ typedef void (*ptnCpltCallback)(ModuleID, float, float);
 
 void InvCpltCallback(ModuleID ID, float speed, float angle)
 {
-	__NOP();
+	canfunc_MotorPutSpeedAndAngle(speed, angle);
+	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
 }
 /* USER CODE END 4 */
 
@@ -401,10 +402,11 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+	swer_Init();
   for(;;)
   {
 	FlagEnable();
-	invkine_Implementation(MODULE_ID_1, 1, 0, 0, &InvCpltCallback);
+	invkine_Implementation(MODULE_ID_1, 0, 1, 0, &InvCpltCallback);
     osDelay(1);
   }
   /* USER CODE END 5 */
