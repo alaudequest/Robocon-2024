@@ -43,6 +43,7 @@ void swer_Init(){
 	swerParam[MODULE_ID_2].pVctXY = &swer2_CalVector;
 	swerParam[MODULE_ID_3].pVctXY = &swer3_CalVector;
 	swerParam[MODULE_ID_4].pVctXY = &swer4_CalVector;
+
 }
 
 

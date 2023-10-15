@@ -74,4 +74,8 @@ void brd_SetTargetAngleDC(float angle);
 void brd_ResetState();
 float brd_GetAngleDC_Fast();
 void brd_SetHomeCompleteCallback();
+
+float brd_GetDeltaT();
+void brd_SetDeltaT(float deltaT);
+
 #endif /* INC_BOARDPARAMETER_H_ */

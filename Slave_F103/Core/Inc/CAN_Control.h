@@ -2,7 +2,7 @@
  * CAN_Control.h
  *
  *  Created on: Sep 12, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef INC_CAN_CONTROL_H_
@@ -71,8 +71,17 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
+HAL_StatusTypeDef canctrl_GetMessage(void *data, size_t sizeOfDataType);
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can);
+
+HAL_StatusTypeDef canctrl_SendMultipleMessages(CAN_HandleTypeDef *can,
+											CAN_DEVICE_ID targetID,
+											void *data,
+											size_t sizeOfDataType);
+
+HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType);
+
 HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID1,
 												uint16_t ID2,

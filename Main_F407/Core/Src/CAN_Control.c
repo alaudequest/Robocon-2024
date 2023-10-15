@@ -2,7 +2,7 @@
  * CAN_Control.c
  *
  *  Created on: Sep 12, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 #include "CAN_Control.h"
 #include <stdio.h>
@@ -14,8 +14,6 @@ CAN_RxHeaderTypeDef rxHeader;
 uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
 uint32_t canEvent;
-iByte ibyte;
-fByte fbyte;
 void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
 uint32_t canctrl_GetDLC(){return txHeader.DLC;}
 uint32_t canctrl_GetID(){return txHeader.StdId;}
@@ -37,33 +35,104 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	return HAL_OK;
 }
 
+
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {
-
 	memset(txData,0,sizeof(txData));
-		if(dataSize <= 8) txHeader.DLC = dataSize;
-		memcpy(txData,data,sizeof(txData));
-		return HAL_OK;
+	if(dataSize <= 8) txHeader.DLC = dataSize;
+	memcpy(txData,data,sizeof(txData));
+	return HAL_OK;
+}
 
+HAL_StatusTypeDef canctrl_GetMessage(void *data, size_t sizeOfDataType){
+	if(rxHeader.DLC != sizeOfDataType) return HAL_ERROR;
+	memcpy(data,rxData,sizeOfDataType);
+	return HAL_OK;
+}
+
+
+HAL_StatusTypeDef canctrl_SendMultipleMessages(CAN_HandleTypeDef *can,
+											CAN_DEVICE_ID targetID,
+											void *data,
+											size_t sizeOfDataType)
+{
+	static bool IsBusy = false;
+	static uint16_t tempTxDataLen = 0;
+	if(IsBusy) return HAL_BUSY;
+	if(!tempTxDataLen) {
+		tempTxDataLen = sizeOfDataType;
+	}
+	if(tempTxDataLen >= 8 && tempTxDataLen <= sizeOfDataType) {
+		txHeader.DLC = 8;
+		memcpy(txData,data+(sizeOfDataType - tempTxDataLen),8);
+		tempTxDataLen -= txHeader.DLC;
+	}
+	else if(tempTxDataLen < 8){
+		txHeader.DLC = tempTxDataLen;
+		memcpy(txData,data+(sizeOfDataType - tempTxDataLen),txHeader.DLC);
+		tempTxDataLen = 0;
+		if(canctrl_Send(can, targetID) == HAL_OK){
+			memset(txData,0,sizeof(txData));
+			IsBusy = false;
+		}
+		return HAL_OK;
+	}
+	IsBusy = true;
+	if(canctrl_Send(can, targetID) == HAL_OK){
+		memset(txData,0,sizeof(txData));
+		IsBusy = false;
+	}
+	return HAL_BUSY;
+}
+
+HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
+{
+	static uint16_t tempRxDataLen = 0;
+	static uint32_t stdID_PreMesg = 0;
+
+	uint32_t canMaskMode = rxHeader.StdId & 0x0f;
+	//If this is a new message (which is tempRxDataLen = 0), set stdID_PreMesg to received ID of rxHeader
+	if(((canMaskMode) != stdID_PreMesg) && !tempRxDataLen){
+		stdID_PreMesg = canMaskMode;
+		// copy first data to output data, increase length received data
+		memcpy(data+tempRxDataLen,rxData,rxHeader.DLC);
+		tempRxDataLen += rxHeader.DLC;
+		canEvent = 0;
+	}
+	//If data already exist but the previous message ID is not match with current received ID, return ERROR
+	else if(((canMaskMode) != stdID_PreMesg) && tempRxDataLen){
+		canEvent = 0;
+		return HAL_ERROR;
+	}
+	//If the received ID is match with the previous message
+	else if((canMaskMode) == stdID_PreMesg){
+		memcpy(data+tempRxDataLen,rxData,rxHeader.DLC);
+		tempRxDataLen += rxHeader.DLC;
+		canEvent = 0;
+	}
+	if(tempRxDataLen == sizeOfDataType){
+		return HAL_OK;
+	} else return HAL_BUSY;
 }
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 {
 	if(!txHeader.DLC) return HAL_ERROR;
 	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_ERROR;
+	HAL_StatusTypeDef err = HAL_OK;
 	txHeader.IDE = CAN_ID_STD;
 	canctrl_RTR_SetToData();
 	if(targetID) canctrl_SetTargetDevice(targetID);
-	HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
+	err = HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
 	txHeader.StdId = 0;
 	memset(txData,0,sizeof(txData));
-	return HAL_OK;
+	return err;
 }
 
 void checkEventFromRxHeader(){
 	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END;i++){
 		// masking out CAN_DEVICE_ID, only mode and reverse bit remain
-		if((rxHeader.StdId & 0xff) ==  i)	{
+		if((rxHeader.StdId & 0x0f) ==  i)	{
 			canctrl_SetFlag(i);
 			break;
 		}
@@ -86,24 +155,6 @@ void canctrl_GetRxData(uint8_t *outData)
 }
 
 
-
-
-uint64_t canctrl_GetIntNum()
-{
-	canctrl_GetRxData(ibyte.byteData);
-	memset(rxData,0,sizeof(rxData));
-	rxHeader.DLC = 0;
-	return ibyte.intData;
-}
-
-float canctrl_GetFloatNum()
-{
-	if(rxHeader.DLC > 4) return 0;
-	canctrl_GetRxData(fbyte.byteData);
-	memset(rxData,0,sizeof(rxData));
-	rxHeader.DLC = 0;
-	return fbyte.floatData;
-}
 
 
 
@@ -162,5 +213,3 @@ HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
 	canFilCfg.SlaveStartFilterBank = 13;
 	return HAL_CAN_ConfigFilter(can, &canFilCfg);
 }
-
-

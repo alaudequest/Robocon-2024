@@ -68,5 +68,6 @@ void invkine_Test(){
 //	invkine_Implementation(MODULE_ID_2,1,0,0);
 //	invkine_Implementation(MODULE_ID_3,1,0,0);
 //	invkine_Implementation(MODULE_ID_4,1,0,0);
+	InvCalcStep = 1;
 }
 

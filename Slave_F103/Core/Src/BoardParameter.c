@@ -36,8 +36,8 @@ void brd_Init()
 	MotorDC_Init(&brdParam.mdc, &htim2, MOTOR_PWM_INVERSE,
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
-	brdParam.pidBLDC_Speed.kP = 0.2;
-	brdParam.pidBLDC_Speed.kI = 15;
+	brdParam.pidBLDC_Speed.kP = 0.1;
+	brdParam.pidBLDC_Speed.kI = 10;
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
 	brdParam.pidBLDC_Speed.deltaT = 0.001;
@@ -47,8 +47,8 @@ void brd_Init()
 
 	brdParam.pidDC_Angle.kP = 5;
 	brdParam.pidDC_Angle.kI = 0;
-	brdParam.pidDC_Angle.kD = 0;
-	brdParam.pidDC_Angle.alpha = 0;
+	brdParam.pidDC_Angle.kD = 0.04;
+	brdParam.pidDC_Angle.alpha = 0.8;
 	brdParam.pidDC_Angle.deltaT = 0.001;
 	brdParam.pidDC_Angle.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
 	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
@@ -145,4 +145,9 @@ Encoder_t brd_GetObjEncBLDC(){return brdParam.encBLDC;}
 void brd_SetEncX4BLDC(int32_t countX4){brdParam.encBLDC.count_X4 = countX4;}
 int32_t brd_GetEncX4BLDC(){return brdParam.encBLDC.count_X4;}
 
-
+float brd_GetDeltaT(){return brdParam.pidDC_Speed.deltaT;}
+void brd_SetDeltaT(float deltaT){
+	brdParam.pidDC_Speed.deltaT =
+	brdParam.pidDC_Angle.deltaT =
+	brdParam.pidBLDC_Speed.deltaT = deltaT;
+}

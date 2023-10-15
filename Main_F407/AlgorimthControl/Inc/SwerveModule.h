@@ -8,6 +8,8 @@
 #ifndef INC_SWERVEMODULE_H_
 #define INC_SWERVEMODULE_H_
 
+#include "PID.h"
+
 #define MAX_MODULE 					4
 #define ROBOT_WIDTH_METER 			0.25
 #define ROBOT_LENGHT_METER			0.25
@@ -43,6 +45,12 @@ typedef struct SwerveModuleParam {
 	pVectorCalXY pVctXY;
 }SwerveModuleParam;
 
+typedef enum PID_type{
+	PID_DC_SPEED = 1,
+	PID_DC_ANGLE,
+	PID_BLDC_SPEED,
+}PID_type;
+
 WheelVector swer_GetWheelVector(ModuleID ID);
 void swer_SetWheelVector(ModuleID ID,WheelVector vct);
 
@@ -50,4 +58,6 @@ Angle_Opt_Param swer_GetOptAngle(ModuleID ID);
 void swer_SetOptAngle(ModuleID ID,Angle_Opt_Param angleOpt);
 pVectorCalXY swer_GetFuncHandle(ModuleID ID);
 void swer_Init();
+
+
 #endif /* INC_SWERVEMODULE_H_ */

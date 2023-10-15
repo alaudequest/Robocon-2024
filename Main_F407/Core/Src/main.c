@@ -28,6 +28,7 @@
 #include "PID.h"
 #include "Flag.h"
 #include "InverseKinematic.h"
+#include "SwerveModule.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,7 +78,13 @@ uint32_t enableFlag = 0;
 
 EnableFuncHandle mode = ENABLE_ANGLE_SPEED;
 CAN_DEVICE_ID Device_ID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
-CAN_MODE_ID Mode_ID = CANCTRL_MODE_MOTOR_SPEED_ANGLE;
+CAN_MODE_ID Mode_ID = CANCTRL_MODE_PID_BLDC_SPEED;
+PID_Param targetPID = {
+	.deltaT = 0.001,
+	.kP = 10,
+	.kI = 10,
+};
+PID_type pidType = PID_BLDC_SPEED;
 
 /* USER CODE END PV */
 
@@ -111,18 +118,12 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 void SendSpeedAndRotation(CAN_DEVICE_ID targetID,float Speed, float Angle)
 {
 	if(!enfunc_CheckFlag(ENABLE_ANGLE_SPEED)) return;
-	canfunc_MotorPutSpeedAndAngle(Speed, Angle);
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = Speed;
+	speedAngle.dcAngle = Angle;
+	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, targetID);
 	enfunc_ClearFlag(ENABLE_ANGLE_SPEED);
-}
-
-void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
-{
-	if(!canfunc_GetStateEnableSendPID() && *enableSendPID) {
-			canfunc_EnableSendPID();
-			*enableSendPID = 0;
-	}
-	else canfunc_PutAndSendParamPID(&hcan1,targetID,pid,type);
 }
 
 void SetTestMode(uint8_t testMode, CAN_DEVICE_ID targetID,bool *enable){
@@ -175,10 +176,9 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 	case CANCTRL_MODE_MOTOR_BLDC_BRAKE :
 		break;
 	case CANCTRL_MODE_PID_DC_SPEED :
-		break;
 	case CANCTRL_MODE_PID_DC_ANGLE :
-		break;
 	case CANCTRL_MODE_PID_BLDC_SPEED :
+		canfunc_PutAndSendParamPID(&hcan1, Device_ID,targetPID,pidType);
 		break;
 	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION :
 		BreakProtection(targetID);
@@ -208,7 +208,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -267,10 +268,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  SendPID(pid, targetID, type, &enableSendPID);
-	  SetBrake(brake, targetID, &enableSendBrake);
-	  SetTestMode(testMode, targetID, &enableSendTestMode);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -382,13 +379,30 @@ void FlagEnable(){
 		canTxHandleFunc(Mode_ID, Device_ID);
 	}
 }
+
 typedef void (*ptnCpltCallback)(ModuleID, float, float);
 
 void InvCpltCallback(ModuleID ID, float speed, float angle)
 {
-	canfunc_MotorPutSpeedAndAngle(speed, angle);
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = speed;
+	speedAngle.dcAngle = angle;
+	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
 }
+
+void InitialSetHome()
+{
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = 0;
+	speedAngle.dcAngle = 0;
+	canfunc_MotorPutSpeedAndAngle(speedAngle);
+	canctrl_Send(&hcan1, targetID);
+	osDelay(5000);
+	canfunc_SetHomeValue(1);
+	canctrl_Send(&hcan1, targetID);
+}
+float u,v,r;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -402,11 +416,15 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-	swer_Init();
+	InitialSetHome();
+	osDelay(10000);
+//	swer_Init();
+//	invkine_Test();
+	TestFlag = 1;
   for(;;)
   {
 	FlagEnable();
-	invkine_Implementation(MODULE_ID_1, 0, 1, 0, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
     osDelay(1);
   }
   /* USER CODE END 5 */

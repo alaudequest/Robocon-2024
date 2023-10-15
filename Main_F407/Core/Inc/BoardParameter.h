@@ -13,16 +13,16 @@
 #include "InverseKinematic.h"
 
 
-typedef enum PID_type{
-	PID_DC_SPEED = 1,
-	PID_DC_ANGLE,
-	PID_BLDC_SPEED,
-}PID_type;
-
-
-
-void brd_Init();
-PID_Param brd_GetPID(PID_type type);
-void brd_SetPID(PID_Param pid,PID_type type);
+//typedef enum PID_type{
+//	PID_DC_SPEED = 1,
+//	PID_DC_ANGLE,
+//	PID_BLDC_SPEED,
+//}PID_type;
+//
+//
+//
+//void brd_Init();
+//PID_Param brd_GetPID(PID_type type);
+//void brd_SetPID(PID_Param pid,PID_type type);
 
 #endif /* INC_BOARDPARAMETER_H_ */

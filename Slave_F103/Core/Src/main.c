@@ -78,6 +78,7 @@ bool setHomeValue;
 
 float targetAngle;
 float targetSpeed;
+float testDeltaT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,26 +116,42 @@ void CAN_Init(){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
-//	*(__IO uint32_t*)(0x40000000UL + 0x00006400 + 0x01C)
+/* CAN1(address) = *(__IO uint32_t*)(0x40000000UL 			 +  0x00006400			+ 0x01C				)
+   CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			deviceID | CANCTRL_MODE_SET_HOME,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
 			1, CAN_RX_FIFO0);
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			0,
+			0,
+			2, CAN_RX_FIFO0);
+//Access bxCAN register:
 	// method 1:
-	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
+	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 6, CAN_RX_FIFO0);
 	// method 2:
-//	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 2, CAN_RX_FIFO0);
+//	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
+	// method 3:
+//	(CAN1->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
 }
 
 uint8_t Break;
+
+void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
+	PID_Param pid = brd_GetPID(type);
+	canfunc_Convert_CAN_PID_to_PID_Param(canPID, &pid);
+	brd_SetPID(pid, type);
+}
 
 void handleFunc(CAN_MODE_ID func){
 	switch(func){
@@ -152,10 +169,10 @@ void handleFunc(CAN_MODE_ID func){
 		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-		float bldcSpeed,dcAngle;
-		canfunc_MotorGetSpeedAndAngle(&bldcSpeed, &dcAngle);
-		brd_SetTargetAngleDC(dcAngle);
-		brd_SetSpeedBLDC(bldcSpeed);
+		CAN_SpeedBLDC_AngleDC speedAngle;
+		speedAngle = canfunc_MotorGetSpeedAndAngle();
+		brd_SetTargetAngleDC(speedAngle.dcAngle);
+		brd_SetSpeedBLDC(speedAngle.bldcSpeed);
 		break;
 	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 		uint8_t brake = canfunc_MotorGetBrake();
@@ -166,7 +183,7 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_PID_DC_SPEED:
 	case CANCTRL_MODE_PID_DC_ANGLE:
 	case CANCTRL_MODE_PID_BLDC_SPEED:
-		canfunc_GetPID();
+		canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
 	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 		Break = canfunc_MotorGetBreakProtectionBLDC()-1;
@@ -667,6 +684,7 @@ void SethomeHandle(){
 		__NOP();
 	}
 }
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -735,8 +753,11 @@ void StartTaskPID(void const * argument)
 		  goto SET_HOME_PID_TASK;
 	  }
 
-//	  PID_DC_CalPos(targetAngle);
+	  PID_DC_CalPos(brd_GetTargetAngleDC());
+	  PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
 //	  PID_BLDC_CalSpeed(targetSpeed);
+//	  brd_SetDeltaT(testDeltaT);
+//	  osDelay(brd_GetDeltaT()*1000);
 	  osDelay(1);
   }
   /* USER CODE END StartTaskPID */

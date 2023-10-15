@@ -2,7 +2,7 @@
  * ControlUserLED.c
  *
  *  Created on: Sep 27, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 #include "ControlUserLED.h"
 
