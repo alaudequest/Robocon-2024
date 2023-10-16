@@ -186,7 +186,7 @@ void handleFunc(CAN_MODE_ID func){
 		canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
 	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
-		Break = canfunc_MotorGetBreakProtectionBLDC()-1;
+		Break = canfunc_MotorGetBreakProtectionBLDC();
 		PID_BLDC_BreakProtection(Break);
 	case CANCTRL_MODE_TEST:
 		TestMode = canfunc_GetTestMode();
@@ -753,7 +753,7 @@ void StartTaskPID(void const * argument)
 		  goto SET_HOME_PID_TASK;
 	  }
 
-	  PID_DC_CalPos(brd_GetTargetAngleDC());
+//	  PID_DC_CalPos(brd_GetTargetAngleDC());
 	  PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
 //	  PID_BLDC_CalSpeed(targetSpeed);
 //	  brd_SetDeltaT(testDeltaT);

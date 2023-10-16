@@ -30,7 +30,7 @@ uint8_t canfunc_GetTestMode()
 	canctrl_GetRxData(rxData);
 	uint8_t testMode;
 	canctrl_GetMessage(&testMode, sizeof(uint8_t));
-	return testMode--;
+	return --testMode;
 }
 
 void canfunc_SetTestMode(uint8_t IsTestMode)
@@ -54,7 +54,7 @@ uint8_t canfunc_MotorGetBrake()
 	canctrl_GetRxData(rxData);
 	uint8_t brake;
 	canctrl_GetMessage(&brake, sizeof(uint8_t));
-	return brake--;
+	return --brake;
 }
 
 void canfunc_MotorSetBreakProtectionBLDC(uint8_t Break)
@@ -70,7 +70,7 @@ uint8_t  canfunc_MotorGetBreakProtectionBLDC()
 	canctrl_GetRxData(rxData);
 	uint8_t Break;
 	canctrl_GetMessage(&Break, sizeof(uint8_t));
-	return Break--;
+	return --Break;
 }
 
 
@@ -165,15 +165,16 @@ void canfunc_Convert_CAN_PID_to_PID_Param(CAN_PID canPID, PID_Param *pid)
 
 PID_type canfunc_GetTypePID(){
 	CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-	return rxHeader.StdId & 0x0f;
+	uint32_t temp = (rxHeader.StdId & 0x0f)-6;
+	return temp;
 }
-
+CAN_PID canPID1;
 void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type))
 {
 	static CAN_PID canPID;
 	if(!pCallback) return;
-	if(canctrl_GetMultipleMessages((void*)&canPID, sizeof(CAN_PID)) == HAL_OK){
-		pCallback(canPID,canfunc_GetTypePID());
+	if(canctrl_GetMultipleMessages((void*)&canPID1, sizeof(CAN_PID)) == HAL_OK){
+		pCallback(canPID1,canfunc_GetTypePID());
 	}
 
 }

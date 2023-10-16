@@ -83,6 +83,8 @@ PID_Param targetPID = {
 	.deltaT = 0.001,
 	.kP = 10,
 	.kI = 10,
+	.kD = 1,
+	.alpha = 1,
 };
 PID_type pidType = PID_BLDC_SPEED;
 
@@ -398,9 +400,27 @@ void InitialSetHome()
 	speedAngle.dcAngle = 0;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, targetID);
-	osDelay(5000);
+	osDelay(1000);
 	canfunc_SetHomeValue(1);
 	canctrl_Send(&hcan1, targetID);
+}
+
+void TestBreakProtection()
+{
+	canfunc_MotorSetBreakProtectionBLDC(1);
+	canctrl_Send(&hcan1, targetID);
+	osDelay(1000);
+	canfunc_MotorSetBreakProtectionBLDC(0);
+	canctrl_Send(&hcan1, targetID);
+}
+
+void TestSendPID()
+{
+	for(uint8_t i = 0; i<3;i++)
+	{
+		canfunc_PutAndSendParamPID(&hcan1, Device_ID,targetPID,pidType);
+		osDelay(1);
+	}
 }
 float u,v,r;
 /* USER CODE END 4 */
@@ -416,14 +436,19 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-	InitialSetHome();
-	osDelay(10000);
+//	InitialSetHome();
+//	osDelay(10000);
 //	swer_Init();
 //	invkine_Test();
-	TestFlag = 1;
+//	TestBreakProtection();
+	TestSendPID();
+//	TestFlag = 1;
   for(;;)
   {
-	FlagEnable();
+//	FlagEnable();
+//	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 //	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
     osDelay(1);
   }

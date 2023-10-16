@@ -53,7 +53,6 @@ void PID_BLDC_BreakProtection(bool Mode)
 		pid.uI = 0;
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		MotorBLDC_Drive(&mbldc, 0);
-		osDelay(1000);
 		return;
 	}else bldcEnablePID = true;
 }
