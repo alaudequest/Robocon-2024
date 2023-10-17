@@ -10,4 +10,5 @@
 
 #define CONFIG_USE_PID
 #define CONFIG_USE_FLAG
+#define CONFIG_USE_74HC595
 #endif /* INC_LIBRARYCONFIG_H_ */
