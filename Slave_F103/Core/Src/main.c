@@ -68,14 +68,7 @@ float dcAngleResult = 0;
 float bldcSpeed = 10;
 float dcAngleSet = 0;
 QueueHandle_t qPID,qHome;
-
-bool enableSendBreakProtection = false;
-bool BreakProtectionMode = false;
-bool enableSetHome = false;
 bool IsSetHome = false;
-
-bool setHomeValue;
-
 float targetAngle;
 float targetSpeed;
 float testDeltaT;
@@ -98,6 +91,7 @@ void StartCANbus(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	 HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 	 canctrl_Receive(hcan, CAN_RX_FIFO0);
 	 uint32_t canEvent = canctrl_GetEvent();
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
@@ -114,7 +108,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 
 void CAN_Init(){
 	HAL_CAN_Start(&hcan);
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_RX_FIFO0_FULL);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 /* CAN1(address) = *(__IO uint32_t*)(0x40000000UL 			 +  0x00006400			+ 0x01C				)
    CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
@@ -153,8 +147,8 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
 	brd_SetPID(pid, type);
 }
 
-void handleFunc(CAN_MODE_ID func){
-	switch(func){
+void handleFunc(CAN_MODE_ID mode){
+	switch(mode){
 	case CANCTRL_MODE_LED_BLUE:
 		break;
 	case CANCTRL_MODE_ENCODER:
@@ -164,8 +158,7 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_SHOOT:
 		break;
 	case CANCTRL_MODE_SET_HOME:
-//		__NOP();
-		setHomeValue = canfunc_GetHomeValue();
+		bool setHomeValue = canfunc_GetHomeValue();
 		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
@@ -179,7 +172,6 @@ void handleFunc(CAN_MODE_ID func){
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
 		MotorBLDC_Brake(&mbldc, brake);
 		break;
-
 	case CANCTRL_MODE_PID_DC_SPEED:
 	case CANCTRL_MODE_PID_DC_ANGLE:
 	case CANCTRL_MODE_PID_BLDC_SPEED:
@@ -195,28 +187,7 @@ void handleFunc(CAN_MODE_ID func){
 	case CANCTRL_MODE_END:
 		break;
 	}
-}
-
-void canTestBreakProtection(CAN_DEVICE_ID targetID)
-{
-	if(!enableSendBreakProtection) return;
-	canfunc_MotorSetBreakProtectionBLDC(1);
-	canctrl_Send(&hcan, targetID);
-
-	osDelay(1000);
-
-	canfunc_MotorSetBreakProtectionBLDC(0);
-	canctrl_Send(&hcan, targetID);
-
-	enableSendBreakProtection = false;
-}
-
-void canTestSetHome(CAN_DEVICE_ID targetID)
-{
-	if(!enableSetHome)return;
-	canfunc_SetHomeValue(1);
-	canctrl_Send(&hcan, targetID);
-	enableSetHome = false;
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 
 void Flash_Write(CAN_DEVICE_ID ID){
@@ -240,11 +211,6 @@ void Flash_Write(CAN_DEVICE_ID ID){
 }
 
 void RunTestMode(){
-	MotorBLDC mbldc = brd_GetObjMotorBLDC();
-	if(TestMode == 1){
-		MotorBLDC_Drive(&mbldc, (int32_t)brd_GetSpeedBLDC());
-	}
-	else if(TestMode == 2) MotorBLDC_Drive(&mbldc, 0);
 }
 
 void TestPID(){
@@ -252,6 +218,15 @@ void TestPID(){
 	PID_DC_CalPos(dcAngleSet);
 	Encoder_t enDC = brd_GetObjEncDC();
 	dcAngleResult = encoder_GetPulse(&enDC, MODE_ANGLE);
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan){
+	while(1);
+}
+
+void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan){
+	__NOP();
+//	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 /* USER CODE END 0 */
 
@@ -290,8 +265,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   __HAL_DBGMCU_FREEZE_TIM2();
   brd_Init();
-  qPID = xQueueCreate(5,sizeof(float));
-  qHome = xQueueCreate(2,sizeof(bool));
+  qPID = xQueueCreate(2,sizeof(float));
+  qHome = xQueueCreate(1,sizeof(bool));
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -345,10 +320,6 @@ int main(void)
   while (1)
   {
 
-
-	  RunTestMode();
-	  TestPID();
-//	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -779,6 +750,7 @@ void StartCANbus(void const * argument)
   for(;;)
   {
 	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &canEvent, portMAX_DELAY)){
+		  canctrl_SetEvent(canEvent);
 		  canfunc_HandleRxEvent(&handleFunc);
 	  }
 //    osDelay(1);

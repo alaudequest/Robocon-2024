@@ -40,16 +40,9 @@ typedef enum CAN_DEVICE_ID{
 }CAN_DEVICE_ID;
 // 000  0000 0000
 //{dev} {  } {mode}
-typedef union fByte{
-	float floatData;
-	uint8_t byteData[4];
-}fByte;
-
-
-typedef union iByte{
-	uint64_t intData;
-	uint8_t byteData[8];
-}iByte;
+//001 0000 0100 -> 0x104
+// 0x001 ->  0000 0000 0001
+// 0x002  -> 0000 0000 0010
 
 
 CAN_RxHeaderTypeDef canctrl_GetRxHeader();
@@ -58,6 +51,7 @@ uint64_t canctrl_GetIntNum();
 uint32_t canctrl_GetDLC();
 uint32_t canctrl_GetID();
 uint32_t canctrl_GetEvent();
+void canctrl_SetEvent(uint32_t e);
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev);
 void canctrl_SetDLC(uint8_t DLC);
 void canctrl_RTR_SetToData();

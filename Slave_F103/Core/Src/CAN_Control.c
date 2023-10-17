@@ -14,10 +14,15 @@ CAN_RxHeaderTypeDef rxHeader;
 uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
 uint32_t canEvent;
+
 void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
 uint32_t canctrl_GetDLC(){return txHeader.DLC;}
 uint32_t canctrl_GetID(){return txHeader.StdId;}
 uint32_t canctrl_GetEvent(){return canEvent;}
+void canctrl_SetEvent(uint32_t e)
+{
+	canEvent = e;
+}
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev){ canctrl_SetID(dev << CAN_DEVICE_POS);}
 CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
@@ -111,6 +116,8 @@ HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
 		canEvent = 0;
 	}
 	if(tempRxDataLen == sizeOfDataType){
+		tempRxDataLen = 0;
+		stdID_PreMesg = 0;
 		return HAL_OK;
 	} else return HAL_BUSY;
 }
@@ -154,18 +161,6 @@ void canctrl_GetRxData(uint8_t *outData)
 	memcpy(outData,rxData,rxHeader.DLC);
 }
 
-
-
-
-
-HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR)
-{
-	  txHeader.IDE = CAN_ID_STD;
-	  if(RTR == CAN_RTR_DATA) canctrl_RTR_SetToData();
-	  else canctrl_RTR_SetToRemote();
-	  canctrl_SetID(ID);
-	  return HAL_OK;
-}
 
 HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID1,

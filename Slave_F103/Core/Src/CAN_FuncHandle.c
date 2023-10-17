@@ -173,7 +173,7 @@ void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type))
 {
 	static CAN_PID canPID;
 	if(!pCallback) return;
-	if(canctrl_GetMultipleMessages((void*)&canPID1, sizeof(CAN_PID)) == HAL_OK){
+	if(canctrl_GetMultipleMessages((void*)&canPID1, sizeof(canPID)) == HAL_OK){
 		pCallback(canPID1,canfunc_GetTypePID());
 	}
 
