@@ -2,7 +2,7 @@
  * ControlUserLED.h
  *
  *  Created on: Sep 27, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef INC_CONTROLUSERLED_H_

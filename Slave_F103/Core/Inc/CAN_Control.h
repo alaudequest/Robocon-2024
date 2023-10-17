@@ -2,7 +2,7 @@
  * CAN_Control.h
  *
  *  Created on: Sep 12, 2023
- *      Author: KHOA
+ *      Author: SpiritBoi
  */
 
 #ifndef INC_CAN_CONTROL_H_
@@ -40,16 +40,9 @@ typedef enum CAN_DEVICE_ID{
 }CAN_DEVICE_ID;
 // 000  0000 0000
 //{dev} {  } {mode}
-typedef union fByte{
-	float floatData;
-	uint8_t byteData[4];
-}fByte;
-
-
-typedef union iByte{
-	uint64_t intData;
-	uint8_t byteData[8];
-}iByte;
+//001 0000 0100 -> 0x104
+// 0x001 ->  0000 0000 0001
+// 0x002  -> 0000 0000 0010
 
 
 CAN_RxHeaderTypeDef canctrl_GetRxHeader();
@@ -58,6 +51,7 @@ uint64_t canctrl_GetIntNum();
 uint32_t canctrl_GetDLC();
 uint32_t canctrl_GetID();
 uint32_t canctrl_GetEvent();
+void canctrl_SetEvent(uint32_t e);
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev);
 void canctrl_SetDLC(uint8_t DLC);
 void canctrl_RTR_SetToData();
@@ -71,8 +65,17 @@ HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
+HAL_StatusTypeDef canctrl_GetMessage(void *data, size_t sizeOfDataType);
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_Init(CAN_HandleTypeDef *can);
+
+HAL_StatusTypeDef canctrl_SendMultipleMessages(CAN_HandleTypeDef *can,
+											CAN_DEVICE_ID targetID,
+											void *data,
+											size_t sizeOfDataType);
+
+HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType);
+
 HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID1,
 												uint16_t ID2,

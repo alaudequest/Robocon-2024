@@ -31,15 +31,17 @@ void PID_DC_CalPos(float Target_set)
 
 void PID_BLDC_CalSpeed(float Target_set)
 {
-	if(!bldcEnablePID)return;
-
 	MotorBLDC mbldc = brd_GetObjMotorBLDC();
 	Encoder_t encBLDC = brd_GetObjEncBLDC();
 	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
-	float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
-	MotorBLDC_Drive(&mbldc, (int32_t)result);
-	brd_SetObjEncBLDC(encBLDC);
-	brd_SetPID(pid, PID_BLDC_SPEED);
+	if(!bldcEnablePID){
+		MotorBLDC_Drive(&mbldc, 0);
+	}else{
+		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
+		MotorBLDC_Drive(&mbldc, (int32_t)result);
+		brd_SetObjEncBLDC(encBLDC);
+		brd_SetPID(pid, PID_BLDC_SPEED);
+	}
 }
 
 void PID_BLDC_BreakProtection(bool Mode)
@@ -51,7 +53,7 @@ void PID_BLDC_BreakProtection(bool Mode)
 		pid.uI = 0;
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		MotorBLDC_Drive(&mbldc, 0);
-		osDelay(1000);
 		return;
 	}else bldcEnablePID = true;
 }
+

@@ -14,17 +14,17 @@
 /*-----------------------------Begin:BLDC Macro-------------------------------*/
 #define _BLDCEncoderPerRound 				  200
 #define _BLDCGearRatio 						  2.56
-#define _BLDCDeltaT							0.001
+#define _BLDCDeltaT							  0.001
 /*-----------------------------End:BLDC Macro---------------------------------*/
 
 /*-----------------------------Begin:DC Macro---------------------------------*/
-#define DCDeltaT 							0.001
-#define DCEncoderPerRound 					 1000
-#define DCGearRatio 						3.535
+#define DCDeltaT 							  0.001
+#define DCEncoderPerRound 					  1000
+#define DCGearRatio 						  3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
-#define DC_SUM_ABOVE_LIMIT 1000
-#define DC_SUM_BELOW_LIMIT -1000
+#define DC_SUM_ABOVE_LIMIT 						1000
+#define DC_SUM_BELOW_LIMIT 						-1000
 
 
 typedef enum PID_type{
@@ -74,4 +74,8 @@ void brd_SetTargetAngleDC(float angle);
 void brd_ResetState();
 float brd_GetAngleDC_Fast();
 void brd_SetHomeCompleteCallback();
+
+float brd_GetDeltaT();
+void brd_SetDeltaT(float deltaT);
+
 #endif /* INC_BOARDPARAMETER_H_ */
