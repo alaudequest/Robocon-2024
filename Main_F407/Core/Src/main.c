@@ -793,6 +793,7 @@ static void MX_TIM9_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
@@ -802,6 +803,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, HC595_CLK_Pin|HC595_LATCH_Pin|HC595_OE_Pin|HC595_DS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : HC595_CLK_Pin HC595_LATCH_Pin HC595_OE_Pin HC595_DS_Pin */
+  GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_LATCH_Pin|HC595_OE_Pin|HC595_DS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

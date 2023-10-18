@@ -13,3 +13,6 @@
 [submodule "Main_F407/STM32_FirmwareLibrary"]
 	path = Main_F407/STM32_FirmwareLibrary
 	url = https://github.com/IoTVision/STM32_FirmwareLibrary.git
+[submodule "Main_F407/IoTVisonLibrary"]
+	path = Main_F407/IoTVisonLibrary
+	url = https://github.com/IoTVision/STM32_FirmwareLibrary.git
