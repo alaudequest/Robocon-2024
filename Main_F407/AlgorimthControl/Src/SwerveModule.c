@@ -44,6 +44,12 @@ void swer_Init(){
 	swerParam[MODULE_ID_3].pVctXY = &swer3_CalVector;
 	swerParam[MODULE_ID_4].pVctXY = &swer4_CalVector;
 
+	swerParam[MODULE_ID_1].angleOpt.direct =
+	swerParam[MODULE_ID_2].angleOpt.direct =
+	swerParam[MODULE_ID_3].angleOpt.direct =
+	swerParam[MODULE_ID_4].angleOpt.direct = 1;
+
+
 }
 
 

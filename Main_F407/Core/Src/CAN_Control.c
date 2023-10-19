@@ -35,6 +35,9 @@ HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	return HAL_OK;
 }
 
+void canctrl_ClearID(){
+	txHeader.StdId = 0;
+}
 
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize)
 {

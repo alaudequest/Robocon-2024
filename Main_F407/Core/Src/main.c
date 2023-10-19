@@ -826,6 +826,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle)
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
+//	osDelay(1);
 }
 
 void InitialSetHome()
@@ -833,31 +834,46 @@ void InitialSetHome()
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	speedAngle.bldcSpeed = 0;
 	speedAngle.dcAngle = 0;
-	canfunc_MotorPutSpeedAndAngle(speedAngle);
-	canctrl_Send(&hcan1, targetID);
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
+			canfunc_MotorPutSpeedAndAngle(speedAngle);
+			canctrl_Send(&hcan1, i);
+			osDelay(1);
+		}
 	osDelay(1000);
-	canfunc_SetHomeValue(1);
-	canctrl_Send(&hcan1, targetID);
+	canctrl_ClearID();
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
+			canfunc_SetHomeValue(1);
+			canctrl_Send(&hcan1, i);
+			osDelay(1);
+		}
 }
 
 void TestBreakProtection()
 {
-	canfunc_MotorSetBreakProtectionBLDC(1);
-	canctrl_Send(&hcan1, targetID);
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
+		canfunc_MotorSetBreakProtectionBLDC(1);
+		canctrl_Send(&hcan1, i);
+		osDelay(1);
+	}
 	osDelay(1000);
-	canfunc_MotorSetBreakProtectionBLDC(0);
-	canctrl_Send(&hcan1, targetID);
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
+		canfunc_MotorSetBreakProtectionBLDC(0);
+		canctrl_Send(&hcan1, i);
+		osDelay(1);
+	}
 }
 
 void TestSendPID()
 {
 	for(uint8_t i = 0; i<3;i++)
 	{
+//		invkine_SetInvCalStep(1);
 		canfunc_PutAndSendParamPID(&hcan1, Device_ID,targetPID,pidType);
 		osDelay(1);
 	}
 }
 float u,v,r;
+int testID;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -867,24 +883,27 @@ float u,v,r;
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
+
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-//	InitialSetHome();
-//	osDelay(10000);
-//	swer_Init();
+	InitialSetHome();
+	osDelay(10000);
+	swer_Init();
 //	invkine_Test();
 //	TestBreakProtection();
-	TestSendPID();
+//	TestSendPID();
 //	TestFlag = 1;
   for(;;)
   {
 //	FlagEnable();
-//	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-//	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-//	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-//	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+//	invkine_SetInvCalStep(1);
+	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(testID, u, v, r, &InvCpltCallback);
     osDelay(1);
   }
   /* USER CODE END 5 */
