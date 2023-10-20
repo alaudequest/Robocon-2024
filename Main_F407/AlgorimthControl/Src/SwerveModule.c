@@ -8,32 +8,42 @@
 #include "SwerveModule.h"
 
 SwerveModuleParam swerParam[MAX_MODULE];
-void swer1_CalVector(float u, float v, float r){	
+void swer1_CalVector(float u, float v, float r){
 	WheelVector vct;
-	vct.wheelVelX = u - ROBOT_WIDTH_METER*r;
-	vct.wheelVelY = v - ROBOT_LENGHT_METER*r;
+	float alpha = 45*M_PI/180;
+	vct.wheelVelX = cos(alpha)*(u - ROBOT_WIDTH_METER*r) + sin(alpha)*(v - ROBOT_LENGHT_METER*r);
+	vct.wheelVelY = -sin(alpha)*(u - ROBOT_WIDTH_METER*r) + cos(alpha)*(v - ROBOT_LENGHT_METER*r);
 	swer_SetWheelVector(MODULE_ID_1, vct);
 }
 
 void swer2_CalVector(float u, float v, float r){
 	WheelVector vct;
-	vct.wheelVelX = u + ROBOT_WIDTH_METER*r;
-	vct.wheelVelY = v - ROBOT_LENGHT_METER*r;
+	float alpha = -45*M_PI/180;
+	vct.wheelVelX = cos(alpha)*(u + ROBOT_WIDTH_METER*r) + sin(alpha)*(v - ROBOT_LENGHT_METER*r);
+	vct.wheelVelY = -sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v - ROBOT_LENGHT_METER*r);
+//	vct.wheelVelX = u + ROBOT_WIDTH_METER*r;
+//	vct.wheelVelY = v - ROBOT_LENGHT_METER*r;
 	swer_SetWheelVector(MODULE_ID_2, vct);
 }
 
 void swer3_CalVector(float u, float v, float r){
 	WheelVector vct;
-	vct.wheelVelX = u - ROBOT_WIDTH_METER*r;
-	vct.wheelVelY = v + ROBOT_LENGHT_METER*r;
+	float alpha = 0*135*M_PI/180;
+	vct.wheelVelX = cos(alpha)*(u + ROBOT_WIDTH_METER*r) + sin(alpha)*(v + ROBOT_LENGHT_METER*r);
+	vct.wheelVelY = -sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v + ROBOT_LENGHT_METER*r);
+//	vct.wheelVelX = u - ROBOT_WIDTH_METER*r;
+//	vct.wheelVelY = v + ROBOT_LENGHT_METER*r;
 	swer_SetWheelVector(MODULE_ID_3, vct);
 	
 }
 
 void swer4_CalVector(float u, float v, float r){
 	WheelVector vct;
-	vct.wheelVelX = u + ROBOT_WIDTH_METER*r;
-	vct.wheelVelY = v + ROBOT_LENGHT_METER*r;
+	float alpha = 0*225*M_PI/180;
+	vct.wheelVelX = cos(alpha)*(u + ROBOT_WIDTH_METER*r) + sin(alpha)*(v - ROBOT_LENGHT_METER*r);
+	vct.wheelVelY = -sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v - ROBOT_LENGHT_METER*r);
+//	vct.wheelVelX = u + ROBOT_WIDTH_METER*r;
+//	vct.wheelVelY = v + ROBOT_LENGHT_METER*r;
 	swer_SetWheelVector(MODULE_ID_4, vct);
 }
 
