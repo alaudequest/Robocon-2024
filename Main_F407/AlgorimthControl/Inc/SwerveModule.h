@@ -9,6 +9,7 @@
 #define INC_SWERVEMODULE_H_
 
 #include "PID.h"
+#include "math.h"
 
 #define MAX_MODULE 					4
 #define ROBOT_WIDTH_METER 			0.25

@@ -70,6 +70,7 @@ HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID);
+void canctrl_ClearID();
 HAL_StatusTypeDef canctrl_PutMessage(void* data,size_t dataSize);
 HAL_StatusTypeDef canctrl_GetMessage(void *data, size_t sizeOfDataType);
 HAL_StatusTypeDef canctrl_FilCfg(CAN_HandleTypeDef *can, uint32_t filterID, uint32_t filBank, uint32_t FIFO);
@@ -96,4 +97,6 @@ HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
 												uint16_t maskLow,
 												uint32_t filBank,
 												uint32_t FIFO);
+
+
 #endif /* INC_CAN_CONTROL_H_ */

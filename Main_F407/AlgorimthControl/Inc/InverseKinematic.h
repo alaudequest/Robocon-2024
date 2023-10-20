@@ -20,4 +20,7 @@ InverseKinematicProcedure invkine_GetStep();
 void invkine_Begin();
 HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r,void (*ptnCpltCallback)(ModuleID,float, float));
 void invkine_Test();
+
+InverseKinematicProcedure invkine_GetInvCalStep();
+void invkine_SetInvCalStep(InverseKinematicProcedure Step);
 #endif
