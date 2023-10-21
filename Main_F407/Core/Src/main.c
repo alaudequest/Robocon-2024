@@ -1030,23 +1030,26 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-	InitialSetHome();
-	osDelay(10000);
-	swer_Init();
+//	InitialSetHome();
+//	osDelay(10000);
+//	swer_Init();
 //	invkine_Test();
 //	TestBreakProtection();
 //	TestSendPID();
 //	TestFlag = 1;
   for(;;)
   {
+//	u = Xleft;
+//	v = Yleft;
+//	r = Xright;
 //	FlagEnable();
-	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-//	invkine_SetInvCalStep(1);
-	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+////	invkine_SetInvCalStep(1);
+//	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+//	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
 //	invkine_Implementation(testID, u, v, r, &InvCpltCallback);
-    osDelay(1);
+    osDelay(50);
   }
   /* USER CODE END 5 */
 }
