@@ -65,6 +65,8 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 
+UART_HandleTypeDef huart3;
+
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
 uint32_t TaskInvKineBuffer[ 256 ];
@@ -116,6 +118,7 @@ static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM9_Init(void);
+static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -220,6 +223,111 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 
 	}
 }
+
+typedef struct{
+	uint8_t Status;
+
+	uint8_t XLeft;
+	uint8_t YLeft;
+
+	uint8_t XRight;
+	uint8_t YRight;
+
+	uint8_t Left;
+	uint8_t Up;
+	uint8_t Right;
+	uint8_t Down;
+
+	uint8_t Square;
+	uint8_t Triangle;
+	uint8_t Circle;
+	uint8_t Cross;
+
+	uint8_t L1;
+	uint8_t L2;
+	uint8_t L3;
+
+	uint8_t R1;
+	uint8_t R2;
+	uint8_t R3;
+
+	uint8_t Touch;
+
+	uint8_t Charge;
+	uint8_t Battery;
+} _GamePad;
+
+_GamePad GamePad;
+
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+float Xleft,Yleft;
+float Xright;
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+
+	if(huart->Instance == USART3){
+		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+		int ViTriData = -1;
+		for(int i = 0; i <= 8; ++i){
+			if(UARTRX3_Buffer[i] == 0xAA){
+				ViTriData = i;
+			}
+		}
+		if(ViTriData != -1){
+			int cnt = 0;
+			while(cnt < 9){
+				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
+				++ViTriData;
+				if(ViTriData == 9){
+					ViTriData = 0;
+				}
+				++cnt;
+			}
+			GamePad.Status = 1;
+
+			GamePad.XLeft = DataTayGame[1];
+			GamePad.YLeft = DataTayGame[2];
+
+			GamePad.XRight = DataTayGame[3];
+			GamePad.YRight = DataTayGame[4];
+
+			GamePad.Left = (DataTayGame[5] >> 7) & 1;
+			GamePad.Up = (DataTayGame[5] >> 6) & 1;
+			GamePad.Right = (DataTayGame[5] >> 5) & 1;
+			GamePad.Down = (DataTayGame[5] >> 4) & 1;
+
+			GamePad.Square = (DataTayGame[5] >> 3) & 1;
+			GamePad.Triangle = (DataTayGame[5] >> 2) & 1;
+			GamePad.Circle = (DataTayGame[5] >> 1) & 1;
+			GamePad.Cross = DataTayGame[5] & 1;
+
+			GamePad.L1 = (DataTayGame[6] >> 7) & 1;
+			GamePad.L2 = (DataTayGame[6] >> 6) & 1;
+			GamePad.R1 = (DataTayGame[6] >> 5) & 1;
+			GamePad.R2 = (DataTayGame[6] >> 4) & 1;
+
+			GamePad.Touch = (DataTayGame[6] >> 3) & 1;
+			GamePad.Charge = (DataTayGame[6] >> 2) & 1;
+
+			GamePad.L3 = (DataTayGame[6] >> 1) & 1;
+			GamePad.R3 = DataTayGame[6] & 1;
+
+			GamePad.Battery = DataTayGame[7];
+
+
+
+			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
+			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
+			  Xright =((GamePad.XRight-120)/10)*30/12;
+		}
+		else{
+			GamePad.Status = 0;
+		}
+	}
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -258,7 +366,9 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM8_Init();
   MX_TIM9_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
   pid.kP = -0.12;
@@ -787,6 +897,39 @@ static void MX_TIM9_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -883,7 +1026,6 @@ int testID;
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
