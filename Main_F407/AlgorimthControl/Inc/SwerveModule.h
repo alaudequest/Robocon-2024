@@ -11,7 +11,7 @@
 #include "PID.h"
 #include "math.h"
 
-#define MAX_MODULE 					4
+#define MAX_MODULE 					5
 #define ROBOT_WIDTH_METER 			0.25
 #define ROBOT_LENGHT_METER			0.25
 #define ROBOT_WHEEL_RADIUS_METER 	0.045
@@ -37,6 +37,11 @@ typedef struct Angle_Opt_Param{
 	float calInput;
 	float preCal;
 	float deltaCal;
+	float OffsetAngle;
+
+
+	int Case1;
+	int Case2;
 }Angle_Opt_Param;
 
 typedef void (*pVectorCalXY)(float, float, float);

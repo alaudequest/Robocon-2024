@@ -10,7 +10,7 @@
 SwerveModuleParam swerParam[MAX_MODULE];
 void swer1_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = -45*M_PI/180;
+	float alpha = 315*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u + ROBOT_WIDTH_METER*r) - sin(alpha)*(v - ROBOT_LENGHT_METER*r);
 	vct.wheelVelY = sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v - ROBOT_LENGHT_METER*r);
 //	vct.wheelVelX = u - ROBOT_WIDTH_METER*r;
@@ -41,7 +41,7 @@ void swer3_CalVector(float u, float v, float r){
 
 void swer4_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 225*M_PI/180;
+	float alpha = (225)*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u + ROBOT_WIDTH_METER*r) - sin(alpha)*(v + ROBOT_LENGHT_METER*r);
 	vct.wheelVelY = sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v + ROBOT_LENGHT_METER*r);
 //	vct.wheelVelX = u - ROBOT_WIDTH_METER*r;
@@ -61,6 +61,10 @@ void swer_Init(){
 	swerParam[MODULE_ID_3].angleOpt.direct =
 	swerParam[MODULE_ID_4].angleOpt.direct = 1;
 
+	swerParam[MODULE_ID_1].angleOpt.OffsetAngle = 315;
+	swerParam[MODULE_ID_2].angleOpt.OffsetAngle = 45;
+	swerParam[MODULE_ID_3].angleOpt.OffsetAngle = 135;
+	swerParam[MODULE_ID_4].angleOpt.OffsetAngle = 225;
 
 }
 

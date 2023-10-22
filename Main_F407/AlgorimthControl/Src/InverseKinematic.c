@@ -16,8 +16,15 @@ void invkine_CalWheelVector(ModuleID ID, float u, float v, float r){
 
 void invkine_CalOptAngle(ModuleID ID){
 	WheelVector vect = swer_GetWheelVector(ID);
+	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
+	angopt.Case1 = angopt_QuadrantCheckInput(vect.wheelVelX,vect.wheelVelY);
+	swer_SetOptAngle(ID, angopt);
+
+	//------------------------------------------------------------------
 	float rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180/M_PI;
 	angopt_Cal(ID, rawAngle);
+	//------------------------------------------------------------------
+
 }
 
 float invkine_CalSpeedVectorControl(ModuleID ID)
@@ -25,6 +32,7 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 	float temp;
 	WheelVector vect = swer_GetWheelVector(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
+	angopt_QuadRantCheckOutput(ID,angopt.currentAngle*M_PI/180);
 	temp = (float)angopt.direct * (1/(float)ROBOT_WHEEL_RADIUS_METER) * (sqrt(pow(vect.wheelVelX,2) + pow(vect.wheelVelY,2))) / 0.1047198;
 	return temp;
 }
