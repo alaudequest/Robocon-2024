@@ -29,6 +29,7 @@
 #include "Flag.h"
 #include "InverseKinematic.h"
 #include "SwerveModule.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,40 @@ typedef enum EnableFuncHandle{
 	ENABLE_CAN_TX,
 	ENABLE_END,
 }EnableFuncHandle;
+
+typedef struct{
+	uint8_t Status;
+
+	uint8_t XLeft;
+	uint8_t YLeft;
+
+	uint8_t XRight;
+	uint8_t YRight;
+
+	uint8_t Left;
+	uint8_t Up;
+	uint8_t Right;
+	uint8_t Down;
+
+	uint8_t Square;
+	uint8_t Triangle;
+	uint8_t Circle;
+	uint8_t Cross;
+
+	uint8_t L1;
+	uint8_t L2;
+	uint8_t L3;
+
+	uint8_t R1;
+	uint8_t R2;
+	uint8_t R3;
+
+	uint8_t Touch;
+
+	uint8_t Charge;
+	uint8_t Battery;
+} _GamePad;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -73,6 +108,7 @@ osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
+osThreadId TaskGamePadHandle;
 /* USER CODE BEGIN PV */
 bool enableSendSpeedAndAngle = false;
 bool enableSendPID = false;
@@ -103,6 +139,15 @@ PID_Param targetPID = {
 };
 PID_type pidType = PID_BLDC_SPEED;
 
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+float Xleft,Yleft;
+float Xright;
+
+
+_GamePad GamePad;
+uint32_t gamepadRxIsBusy = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,6 +164,7 @@ void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void Actuator(void const * argument);
+void GamePadHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -220,51 +266,14 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 	}
 }
 
-typedef struct{
-	uint8_t Status;
 
-	uint8_t XLeft;
-	uint8_t YLeft;
 
-	uint8_t XRight;
-	uint8_t YRight;
-
-	uint8_t Left;
-	uint8_t Up;
-	uint8_t Right;
-	uint8_t Down;
-
-	uint8_t Square;
-	uint8_t Triangle;
-	uint8_t Circle;
-	uint8_t Cross;
-
-	uint8_t L1;
-	uint8_t L2;
-	uint8_t L3;
-
-	uint8_t R1;
-	uint8_t R2;
-	uint8_t R3;
-
-	uint8_t Touch;
-
-	uint8_t Charge;
-	uint8_t Battery;
-} _GamePad;
-
-_GamePad GamePad;
-
-uint8_t UARTRX3_Buffer[9];
-uint8_t DataTayGame[9];
-
-float Xleft,Yleft;
-float Xright;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-
 	if(huart->Instance == USART3){
-		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+		gamepadRxIsBusy = 1;
+//		BaseType_t HigherPriorityTaskWoken = pdFALSE;
+//		xTaskNotifyFromISR(TaskGamePadHandle,1,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 		int ViTriData = -1;
 		for(int i = 0; i <= 8; ++i){
 			if(UARTRX3_Buffer[i] == 0xAA){
@@ -276,7 +285,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			while(cnt < 9){
 				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
 				++ViTriData;
-				if(ViTriData == 9){
+				if(ViTriData >= 9){
 					ViTriData = 0;
 				}
 				++cnt;
@@ -321,9 +330,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		else{
 			GamePad.Status = 0;
 		}
+		if(!gamepadRxIsBusy) HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+
 	}
 }
 
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
+	__HAL_UART_CLEAR_OREFLAG(huart);
+	memset(UARTRX3_Buffer,0,sizeof(UARTRX3_Buffer));
+	 HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+	__HAL_UART_DISABLE(huart);
+}
 /* USER CODE END 0 */
 
 /**
@@ -339,7 +356,6 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
 
 	HAL_Init();
 
@@ -365,6 +381,8 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+//  HAL_UARTEx_ReceiveToIdle_DMA(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+//  __HAL_DMA_DISABLE_IT(&hdma_usart3_rx,DMA_IT_HT);
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
   pid.kP = -0.12;
@@ -406,6 +424,10 @@ int main(void)
   /* definition and creation of TaskActuator */
   osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
+
+  /* definition and creation of TaskGamePad */
+  osThreadDef(TaskGamePad, GamePadHandle, osPriorityLow, 0, 128);
+  TaskGamePadHandle = osThreadCreate(osThread(TaskGamePad), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -863,6 +885,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle)
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
 	osDelay(1);
+
 }
 
 void InitialSetHome()
@@ -969,6 +992,7 @@ void QuadRantCheckOutput(float Input)
 		}
 	}
 }
+
 void testAngleOpt(float input)
 {
 //	input += OffsetAngle;
@@ -1036,12 +1060,12 @@ void StartDefaultTask(void const * argument)
 //	TestFlag = 1;
   for(;;)
   {
-//	u = Yleft;
-//	v = Xleft;
-//	r = Xright*M_PI/180;
+	u = Yleft;
+	v = Xleft;
+	r = -Xright*M_PI/180;
 //	FlagEnable();
 	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-////	invkine_SetInvCalStep(1);
+//////	invkine_SetInvCalStep(1);
 	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
 	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
@@ -1050,6 +1074,13 @@ void StartDefaultTask(void const * argument)
 //	testKine(u, v, r);
 //	SinTest = sin(angleTest*180/M_PI);
 //	CosTest = cos(angleTest*180/M_PI);
+	if(gamepadRxIsBusy) {
+		gamepadRxIsBusy = 0;
+		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+	}
+	if((huart3.Instance->CR1 & USART_CR1_UE) == 0){
+		__HAL_UART_ENABLE(&huart3);
+	}
     osDelay(50);
   }
   /* USER CODE END 5 */
@@ -1107,6 +1138,84 @@ void Actuator(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Actuator */
+}
+
+/* USER CODE BEGIN Header_GamePadHandle */
+/**
+* @brief Function implementing the TaskGamePad thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_GamePadHandle */
+void GamePadHandle(void const * argument)
+{
+  /* USER CODE BEGIN GamePadHandle */
+//	uint32_t gamePadhandle;
+  /* Infinite loop */
+  for(;;)
+  {
+//	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &gamePadhandle, portMAX_DELAY)){
+//		  int ViTriData = -1;
+//		  		for(int i = 0; i <= 8; ++i){
+//		  			if(UARTRX3_Buffer[i] == 0xAA){
+//		  				ViTriData = i;
+//		  			}
+//		  		}
+//		  		if(ViTriData != -1){
+//		  			int cnt = 0;
+//		  			while(cnt < 9){
+//		  				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
+//		  				++ViTriData;
+//		  				if(ViTriData == 9){
+//		  					ViTriData = 0;
+//		  				}
+//		  				++cnt;
+//		  			}
+//		  			GamePad.Status = 1;
+//
+//		  			GamePad.XLeft = DataTayGame[1];
+//		  			GamePad.YLeft = DataTayGame[2];
+//
+//		  			GamePad.XRight = DataTayGame[3];
+//		  			GamePad.YRight = DataTayGame[4];
+//
+//		  			GamePad.Left = (DataTayGame[5] >> 7) & 1;
+//		  			GamePad.Up = (DataTayGame[5] >> 6) & 1;
+//		  			GamePad.Right = (DataTayGame[5] >> 5) & 1;
+//		  			GamePad.Down = (DataTayGame[5] >> 4) & 1;
+//
+//		  			GamePad.Square = (DataTayGame[5] >> 3) & 1;
+//		  			GamePad.Triangle = (DataTayGame[5] >> 2) & 1;
+//		  			GamePad.Circle = (DataTayGame[5] >> 1) & 1;
+//		  			GamePad.Cross = DataTayGame[5] & 1;
+//
+//		  			GamePad.L1 = (DataTayGame[6] >> 7) & 1;
+//		  			GamePad.L2 = (DataTayGame[6] >> 6) & 1;
+//		  			GamePad.R1 = (DataTayGame[6] >> 5) & 1;
+//		  			GamePad.R2 = (DataTayGame[6] >> 4) & 1;
+//
+//		  			GamePad.Touch = (DataTayGame[6] >> 3) & 1;
+//		  			GamePad.Charge = (DataTayGame[6] >> 2) & 1;
+//
+//		  			GamePad.L3 = (DataTayGame[6] >> 1) & 1;
+//		  			GamePad.R3 = DataTayGame[6] & 1;
+//
+//		  			GamePad.Battery = DataTayGame[7];
+//
+//
+//
+//		  			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
+//		  			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
+//		  			  Xright =((GamePad.XRight-120)/10)*30/12;
+//		  		}
+//		  		else{
+//		  			GamePad.Status = 0;
+//		  		}
+//		  		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+//		  	}
+    osDelay(1);
+  }
+  /* USER CODE END GamePadHandle */
 }
 
 /**

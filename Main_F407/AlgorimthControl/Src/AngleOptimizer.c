@@ -65,43 +65,44 @@ void angopt_QuadRantCheckOutput(ModuleID ID,float Input)
 //	else if (absf(AngleCheck-270.0)<0.001) Case2 = -3;
 
 	if (Case1 == 0)Direc = 0;
-	else {
-		if(Case1 == -1){
-			if((Case2 == 1)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -2){
-			if((Case2 == 2)||(Case2 == 3)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -3){
-			if((Case2 == 1)||(Case2 == 2)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -4){
-			if((Case2 == 3)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-
-		}else if(Case1 == 1){
-			if ((Case2 == 3)||(Case2 == -3)||(Case2 == -4))Direc = -1;
-			else Direc = 1;
-		}else if(Case1 == 2){
-			if ((Case2 == 4)||(Case2 == -4)||(Case2 == -1))Direc = -1;
-			else Direc = 1;
-		}else if(Case1 == 3){
-			if ((Case2 == 1)||(Case2 == -1)||(Case2 == -2))Direc = -1;
-			else Direc = 1;
-		}else if(Case1 == 4){
-			if ((Case2 == 2)||(Case2 == -2)||(Case2 == -3))Direc = -1;
-			else Direc = 1;
-		}
+//	else {
+//		if(Case1 == -1){
+//			if((Case2 == 1)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
+//			else Direc = -1;
+//		}
+//		else if(Case1 == -2){
+//			if((Case2 == 2)||(Case2 == 3)||(Case2 == Case1))Direc = 1;
+//			else Direc = -1;
+//		}
+//		else if(Case1 == -3){
+//			if((Case2 == 1)||(Case2 == 2)||(Case2 == Case1))Direc = 1;
+//			else Direc = -1;
+//		}
+//		else if(Case1 == -4){
+//			if((Case2 == 3)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
+//			else Direc = -1;
+//
+//		}else if(Case1 == 1){
+//			if ((Case2 == 3)||(Case2 == -3)||(Case2 == -4))Direc = -1;
+//			else Direc = 1;
+//		}else if(Case1 == 2){
+//			if ((Case2 == 4)||(Case2 == -4)||(Case2 == -1))Direc = -1;
+//			else Direc = 1;
+//		}else if(Case1 == 3){
+//			if ((Case2 == 1)||(Case2 == -1)||(Case2 == -2))Direc = -1;
+//			else Direc = 1;
+//		}else if(Case1 == 4){
+//			if ((Case2 == 2)||(Case2 == -2)||(Case2 == -3))Direc = -1;
+//			else Direc = 1;
+//		}
 		else {
 			if(Case2 == Case1)Direc = 1;
 			else Direc = -1;
 		}
-	}
+//	}
 	swer_SetOptAngle(ID, opt);
 }
+
 
 void angopt_Cal(ModuleID ID,float input)
 {

@@ -101,63 +101,11 @@ float Xright;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if(huart->Instance == USART3){
 		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
-		int ViTriData = -1;
-		for(int i = 0; i <= 8; ++i){
-			if(UARTRX3_Buffer[i] == 0xAA){
-				ViTriData = i;
-			}
-		}
-		if(ViTriData != -1){
-			int cnt = 0;
-			while(cnt < 9){
-				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
-				++ViTriData;
-				if(ViTriData == 9){
-					ViTriData = 0;
-				}
-				++cnt;
-			}
-			GamePad.Status = 1;
-
-			GamePad.XLeft = DataTayGame[1];
-			GamePad.YLeft = DataTayGame[2];
-
-			GamePad.XRight = DataTayGame[3];
-			GamePad.YRight = DataTayGame[4];
-
-			GamePad.Left = (DataTayGame[5] >> 7) & 1;
-			GamePad.Up = (DataTayGame[5] >> 6) & 1;
-			GamePad.Right = (DataTayGame[5] >> 5) & 1;
-			GamePad.Down = (DataTayGame[5] >> 4) & 1;
-
-			GamePad.Square = (DataTayGame[5] >> 3) & 1;
-			GamePad.Triangle = (DataTayGame[5] >> 2) & 1;
-			GamePad.Circle = (DataTayGame[5] >> 1) & 1;
-			GamePad.Cross = DataTayGame[5] & 1;
-
-			GamePad.L1 = (DataTayGame[6] >> 7) & 1;
-			GamePad.L2 = (DataTayGame[6] >> 6) & 1;
-			GamePad.R1 = (DataTayGame[6] >> 5) & 1;
-			GamePad.R2 = (DataTayGame[6] >> 4) & 1;
-
-			GamePad.Touch = (DataTayGame[6] >> 3) & 1;
-			GamePad.Charge = (DataTayGame[6] >> 2) & 1;
-
-			GamePad.L3 = (DataTayGame[6] >> 1) & 1;
-			GamePad.R3 = DataTayGame[6] & 1;
-
-			GamePad.Battery = DataTayGame[7];
-
-
-
-			  Xleft = ((GamePad.XLeft-125)/10)*0.3/12;
-			  Yleft = ((GamePad.YLeft-125)/10)*0.3/12;
-			  Xright =((GamePad.XRight-120)/10)*30/12;
-		}
-		else{
-			GamePad.Status = 0;
-		}
 	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
+	__NOP();
 }
 
 /* USER CODE END 0 */
