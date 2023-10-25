@@ -110,8 +110,6 @@ void CAN_Init(){
 	HAL_CAN_Start(&hcan);
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_RX_FIFO0_FULL);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
-/* CAN1(address) = *(__IO uint32_t*)(0x40000000UL 			 +  0x00006400			+ 0x01C				)
-   CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
@@ -130,6 +128,8 @@ void CAN_Init(){
 			0,
 			0,
 			2, CAN_RX_FIFO0);
+/* CAN1(address) = *(__IO uint32_t*)(0x40000000UL 			 +  0x00006400			+ 0x01C				)
+   CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 //Access bxCAN register:
 	// method 1:
 	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 6, CAN_RX_FIFO0);
@@ -605,50 +605,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// *-------------*F4 test*-------------*
-//PID_Param pid;
-//bool enableSendPID = 0;
-//PID_type type;
-//
-//float bldcSpeed = 500.35;
-//float dcAngle = 20.24;
-//bool enableSendSpeedAndAngle = 0;
-//
-//
-//void testSetParamPID()
-//{
-//  pid.kP = 1.02;
-//  pid.kI = 0.14;
-//  pid.kD = 20.2;
-//  pid.alpha = -0.2;
-//  pid.deltaT = 0.01;
-//  type = PID_BLDC_SPEED;
-//}
-//void SendEncoderX4BLDC(CAN_DEVICE_ID targetID)
-//{
-//	Encoder_t encBLDC = brd_GetObjEncBLDC();
-//	canfunc_MotorPutEncoderPulseBLDC(encBLDC.count_X4);
-//	canctrl_Send(&hcan, targetID);
-//}
-//
-//void SendSpeedAndRotation(CAN_DEVICE_ID targetID)
-//{
-//	if(!enableSendSpeedAndAngle) return;
-//	canfunc_MotorPutSpeedAndAngle(bldcSpeed, dcAngle);
-//	canctrl_Send(&hcan, targetID);
-//	enableSendSpeedAndAngle = false;
-//}
-//
-//void SendPID(PID_Param pid, CAN_DEVICE_ID targetID, PID_type type, bool *enableSendPID)
-//{
-//	if(!canfunc_GetStateEnableSendPID() && *enableSendPID) {
-//			canfunc_EnableSendPID();
-//			*enableSendPID = 0;
-//	}
-//	uint32_t canEvent = canctrl_GetEvent();
-//	if(canEvent) return;
-//	canfunc_PutAndSendParamPID(&hcan,targetID,pid,type);
-//}
 
 void SethomeHandle(){
 	if(xQueueReceive(qHome, (void*)&IsSetHome, 1/portTICK_PERIOD_MS) == pdTRUE){

@@ -8,7 +8,6 @@
 #ifndef INC_CAN_FUNCHANDLE_H_
 #define INC_CAN_FUNCHANDLE_H_
 #include "main.h"
-#include "PID.h"
 #include "BoardParameter.h"
 
 typedef struct CAN_SpeedBLDC_AngleDC{

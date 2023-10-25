@@ -156,12 +156,6 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 	return HAL_OK;
 }
 
-void canctrl_GetRxData(uint8_t *outData)
-{
-	memcpy(outData,rxData,rxHeader.DLC);
-}
-
-
 HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 												uint16_t ID1,
 												uint16_t ID2,
