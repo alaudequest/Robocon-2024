@@ -2,7 +2,7 @@
 
 Mô hình tổ chức các module chức năng:
 
-![Diagram](/Slave_F103/Image/SWERVE_BaseDiagram-SwerveModule_Code.jpg)
+![Diagram](readmedoc/Image/SWERVE_BaseDiagram-SwerveModule_Code.jpg)
 
 ## Module chức năng
 
@@ -70,5 +70,7 @@ Mô hình tổ chức các module chức năng:
     - Các thông số trong BoardParameter không được truy xuất trực tiếp tới member từ các file bên ngoài (private biến) ngoại trừ chính BoardParameter.c
 
     - Để lấy thông số từ BoardParamter thì gọi các hàm API được public (các public function prototype) được cung cấp sẵn trong file BoardParameter.h bắt đầu bằng brd_Get*. Còn để cài đặt giá trị cho một đối tượng hoặc một thông số trong BoardParameter thì dùng các hàm bắt đầu bằng brd_Set*
+
+    
 
 

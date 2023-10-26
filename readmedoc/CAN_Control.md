@@ -1,5 +1,11 @@
 # Cấu trúc thiết kế gói tin
 
+Trở về [README chính](../README.md)
+
+Tham khảo [CAN_Control.h](../Slave_F103/Core/Inc/CAN_Control.h)
+
+Tham khảo [CAN_Control.c](../Slave_F103/Core/Src/CAN_Control.c)
+
 + Mô hình truyền thông CAN bus sử dụng ID chuẩn (Standard ID sau này viết tắt là StdID) để định danh gói tin, với mô hình này sẽ có 11 bit StdID được sử dụng để phân biệt gói tin truyền nhận.
 
 + Mô hình sử dụng chế độ lọc gói tin nhận được là List với Scalable 16 bit vì lý do sau:
@@ -69,7 +75,7 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
     + CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
     + uint32_t FIFO: macro của RX_FIFO_0 và RX_FIFO_1
 + Sử dụng: gọi trong hàm ngắt __void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)__ hoặc __void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)__
-+ Example:
++ Ví dụ:
 	```
 	void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	{
@@ -78,6 +84,11 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
 	}
 	```
 	__*Note*__: Sử dụng HAL_CAN_DeactivateNotification vì FIFO có 3 Mailbox, giả sử có Mailbox(1) đang trong quá trình xử lý dữ liệu nhận được và Mailbox(2) trong bộ đệm chờ xử lý thì hàm ngắt HAL_CAN_RxFifo0MsgPendingCallback sẽ được gọi liên tục và copy dữ liệu từ Mailbox(2) ghi đè vào Mailbox(1) và bị Critical Section trong khi Mailbox(1) chưa được xử lý xong, chỉ khi Mailbox 1 xử lý xong và set cờ sự kiện để ActiveNotification lại thì mới xử lý tiếp
+
+### canctrl_Send
+
++ Chức năng: 
++ Return: HAL_StatusTypeDef
 
 ### canctrl_GetRxHeader
 
