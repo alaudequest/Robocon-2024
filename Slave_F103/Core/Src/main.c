@@ -270,6 +270,9 @@ int main(void)
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
+  HAL_TIM_Encoder_Start_IT(&htim1, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 
   /* USER CODE END 2 */
 
@@ -726,9 +729,6 @@ void StartTaskPID(void const * argument)
 
 	  PID_DC_CalPos(brd_GetTargetAngleDC());
 	  PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-//	  PID_BLDC_CalSpeed(targetSpeed);
-//	  brd_SetDeltaT(testDeltaT);
-//	  osDelay(brd_GetDeltaT()*1000);
 	  osDelay(1);
   }
   /* USER CODE END StartTaskPID */
