@@ -29,6 +29,8 @@
 #include "Flag.h"
 #include "InverseKinematic.h"
 #include "SwerveModule.h"
+#include "string.h"
+#include "Gamepad.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +44,7 @@ typedef enum EnableFuncHandle{
 	ENABLE_CAN_TX,
 	ENABLE_END,
 }EnableFuncHandle;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -61,9 +64,8 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
-TIM_HandleTypeDef htim5;
-TIM_HandleTypeDef htim8;
-TIM_HandleTypeDef htim9;
+
+UART_HandleTypeDef huart3;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
@@ -73,6 +75,7 @@ osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
+osThreadId TaskGamePadHandle;
 /* USER CODE BEGIN PV */
 bool enableSendSpeedAndAngle = false;
 bool enableSendPID = false;
@@ -103,6 +106,15 @@ PID_Param targetPID = {
 };
 PID_type pidType = PID_BLDC_SPEED;
 
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+float Xleft,Yleft;
+float Xright;
+
+
+_GamePad GamePad;
+uint32_t gamepadRxIsBusy = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -113,13 +125,12 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
-static void MX_TIM5_Init(void);
-static void MX_TIM8_Init(void);
-static void MX_TIM9_Init(void);
+static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void Actuator(void const * argument);
+void GamePadHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -216,9 +227,49 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 		break;
 	case CANCTRL_MODE_END :
 		break;
+	}
+}
 
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	if(huart->Instance == USART3){
+		gamepadRxIsBusy = 1;
+		int ViTriData = -1;
+		for(int i = 0; i <= 8; ++i){
+			if(UARTRX3_Buffer[i] == 0xAA){
+				ViTriData = i;
+			}
+		}
+		if(ViTriData != -1){
+			int cnt = 0;
+			while(cnt < 9){
+				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
+				++ViTriData;
+				if(ViTriData >= 9){
+					ViTriData = 0;
+				}
+				++cnt;
+			}
+
+			GamepPadHandle(&GamePad,DataTayGame);
+
+
+		}
+		else{
+			GamePad.Status = 0;
+		}
+		if(!gamepadRxIsBusy) HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
 
 	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
+	__HAL_UART_CLEAR_OREFLAG(huart);
+	memset(UARTRX3_Buffer,0,sizeof(UARTRX3_Buffer));
+	 HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+	__HAL_UART_DISABLE(huart);
 }
 /* USER CODE END 0 */
 
@@ -235,7 +286,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -255,10 +307,13 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_TIM5_Init();
-  MX_TIM8_Init();
-  MX_TIM9_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Encoder_Start_IT(&htim1, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+
+  HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
   pid.kP = -0.12;
@@ -301,6 +356,10 @@ int main(void)
   osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
+  /* definition and creation of TaskGamePad */
+  osThreadDef(TaskGamePad, GamePadHandle, osPriorityLow, 0, 128);
+  TaskGamePadHandle = osThreadCreate(osThread(TaskGamePad), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -313,6 +372,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -340,7 +400,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -350,12 +415,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -377,7 +442,7 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 8;
+  hcan1.Init.Prescaler = 21;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan1.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -521,7 +586,7 @@ static void MX_TIM3_Init(void)
   htim3.Init.Period = 65535;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -618,171 +683,35 @@ static void MX_TIM4_Init(void)
 }
 
 /**
-  * @brief TIM5 Initialization Function
+  * @brief USART3 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM5_Init(void)
+static void MX_USART3_UART_Init(void)
 {
 
-  /* USER CODE BEGIN TIM5_Init 0 */
+  /* USER CODE BEGIN USART3_Init 0 */
 
-  /* USER CODE END TIM5_Init 0 */
+  /* USER CODE END USART3_Init 0 */
 
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
+  /* USER CODE BEGIN USART3_Init 1 */
 
-  /* USER CODE BEGIN TIM5_Init 1 */
-
-  /* USER CODE END TIM5_Init 1 */
-  htim5.Instance = TIM5;
-  htim5.Init.Prescaler = 0;
-  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim5.Init.Period = 65535;
-  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_Init(&htim5) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM5_Init 2 */
+  /* USER CODE BEGIN USART3_Init 2 */
 
-  /* USER CODE END TIM5_Init 2 */
-  HAL_TIM_MspPostInit(&htim5);
-
-}
-
-/**
-  * @brief TIM8 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM8_Init(void)
-{
-
-  /* USER CODE BEGIN TIM8_Init 0 */
-
-  /* USER CODE END TIM8_Init 0 */
-
-  TIM_Encoder_InitTypeDef sConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM8_Init 1 */
-
-  /* USER CODE END TIM8_Init 1 */
-  htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 0;
-  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim8.Init.Period = 65535;
-  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim8.Init.RepetitionCounter = 0;
-  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim8, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM8_Init 2 */
-
-  /* USER CODE END TIM8_Init 2 */
-
-}
-
-/**
-  * @brief TIM9 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM9_Init(void)
-{
-
-  /* USER CODE BEGIN TIM9_Init 0 */
-
-  /* USER CODE END TIM9_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM9_Init 1 */
-
-  /* USER CODE END TIM9_Init 1 */
-  htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 0;
-  htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim9.Init.Period = 65535;
-  htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim9) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim9, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_Init(&htim9) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim9, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim9, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM9_Init 2 */
-
-  /* USER CODE END TIM9_Init 2 */
-  HAL_TIM_MspPostInit(&htim9);
+  /* USER CODE END USART3_Init 2 */
 
 }
 
@@ -797,11 +726,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -826,7 +753,8 @@ void InvCpltCallback(ModuleID ID, float speed, float angle)
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
-//	osDelay(1);
+	osDelay(1);
+
 }
 
 void InitialSetHome()
@@ -874,6 +802,101 @@ void TestSendPID()
 }
 float u,v,r;
 int testID;
+int Direc,Case1,Case2;
+float CurrentTest;
+float XCurr,YCurr;
+
+
+float preAngle,calInput,deltaCal,preCal,deltaCal,deltaAngle,currentAngle,deltaAngle;
+
+float inputTest;
+
+float Xtest,Ytest;
+
+float SinTest,CosTest,angleTest;
+
+int QuadRantCheckInput(float x, float y)
+{
+	if((x>0)&&(y>0))return 1;
+	else if((x>0)&&(y<0))return 2;
+	else if((x<0)&&(y<0))return 3;
+	else if((x<0)&&(y>0))return 4;
+	else if((x==0)&&(y>0))return -1;
+	else if((x==0)&&(y<0))return -2;
+	else if((x>0)&&(y==0))return -3;
+	else if((x<0)&&(y==0))return -4;
+
+	return 0;
+}
+
+void QuadRantCheckOutput(float Input)
+{
+	XCurr = cos(Input);
+	YCurr = sin(Input);
+	Case2 = QuadRantCheckInput(XCurr, YCurr);
+	if (Case1 == 0)Direc = 0;
+	else {
+		if(Case1 == -1){
+			if((Case2 == 1)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
+			else Direc = -1;
+		}
+		else if(Case1 == -2){
+			if((Case2 == 2)||(Case2 == 3)||(Case2 == Case1))Direc = 1;
+			else Direc = -1;
+		}
+		else if(Case1 == -3){
+			if((Case2 == 1)||(Case2 == 2)||(Case2 == Case1))Direc = 1;
+			else Direc = -1;
+		}
+		else if(Case1 == -4){
+			if((Case2 == 3)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
+			else Direc = -1;
+		}else {
+			if(Case2 == Case1)Direc = 1;
+			else Direc = -1;
+		}
+	}
+}
+
+void testAngleOpt(float input)
+{
+	if(input != preAngle)
+	{
+		calInput = input;
+
+		if((currentAngle>=0)&&(calInput<0))calInput+=360;
+		else if ((currentAngle<0)&&(calInput>0))calInput-=360;
+
+
+		deltaAngle = calInput - modulo360(currentAngle);
+
+		if(deltaAngle>180)deltaAngle+=-360;
+		else if(deltaAngle<-180)deltaAngle+=360;
+
+		if((deltaAngle<=90)&&(deltaAngle>=-90))deltaAngle = deltaAngle;
+		else if ((deltaAngle>90)&&(deltaAngle<=180))deltaAngle += -180.0;
+		else if ((deltaAngle<-90)&&(deltaAngle>=-180))deltaAngle += 180.0;
+
+		preAngle = input;
+		preCal = calInput;
+		currentAngle += deltaAngle;
+
+//		if(calInput == modulo360(currentAngle)) direct = 1;
+	}
+}
+
+void testKine(float u, float v, float r){
+	Xtest = u - 0.25*r;
+	Ytest = v - 0.25*r;
+
+	Case1 = QuadRantCheckInput(Xtest, Ytest);
+	inputTest = atan2(Ytest,Xtest)*180/M_PI;
+	testAngleOpt(inputTest);
+	QuadRantCheckOutput(currentAngle*M_PI/180);
+	CurrentTest = currentAngle;
+}
+int16_t countTimer;
+int countX4;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -883,28 +906,41 @@ int testID;
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-	InitialSetHome();
-	osDelay(10000);
-	swer_Init();
-//	invkine_Test();
+//	swer_Init();
 //	TestBreakProtection();
-//	TestSendPID();
-//	TestFlag = 1;
   for(;;)
   {
-//	FlagEnable();
-	invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-//	invkine_SetInvCalStep(1);
-	invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-	invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-	invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
-//	invkine_Implementation(testID, u, v, r, &InvCpltCallback);
-    osDelay(1);
+//	  if(GamePad.Circle == 1)
+//	  {
+//		  TestBreakProtection();
+//	  }else{
+//			u = GamePad.YLeftCtr;
+//			v = GamePad.XLeftCtr;
+//			r = -GamePad.XRightCtr*M_PI/180;
+//
+//			invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//	  }
+//
+//
+//	if(gamepadRxIsBusy) {
+//		gamepadRxIsBusy = 0;
+//		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+//	}
+//	if((huart3.Instance->CR1 & USART_CR1_UE) == 0){
+//		__HAL_UART_ENABLE(&huart3);
+//	}
+//    osDelay(50);
+	  countTimer = __HAL_TIM_GET_COUNTER(&htim1);
+	  countX4 += countTimer;
+	  __HAL_TIM_SET_COUNTER(&htim1,0);
+	  osDelay(1);
   }
   /* USER CODE END 5 */
 }
@@ -961,6 +997,46 @@ void Actuator(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Actuator */
+}
+
+/* USER CODE BEGIN Header_GamePadHandle */
+/**
+* @brief Function implementing the TaskGamePad thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_GamePadHandle */
+void GamePadHandle(void const * argument)
+{
+  /* USER CODE BEGIN GamePadHandle */
+//	uint32_t gamePadhandle;
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END GamePadHandle */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM14 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM14) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
