@@ -46,12 +46,7 @@ typedef enum CAN_DEVICE_ID{
 
 
 CAN_RxHeaderTypeDef canctrl_GetRxHeader();
-float canctrl_GetFloatNum();
-uint64_t canctrl_GetIntNum();
-uint32_t canctrl_GetDLC();
-uint32_t canctrl_GetID();
 uint32_t canctrl_GetEvent();
-void canctrl_SetEvent(uint32_t e);
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev);
 void canctrl_SetDLC(uint8_t DLC);
 void canctrl_RTR_SetToData();
@@ -59,7 +54,8 @@ void canctrl_RTR_SetToRemote();
 void canctrl_SetFlag(CAN_MODE_ID flag);
 void canctrl_ClearFlag(CAN_MODE_ID flag);
 bool canctrl_CheckFlag(CAN_MODE_ID flag);
-void canctrl_GetRxData(uint8_t *outData);
+CAN_MODE_ID canctrl_RxHeaderGetModeID();
+CAN_MODE_ID canctrl_Receive_2(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID);
 HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO);

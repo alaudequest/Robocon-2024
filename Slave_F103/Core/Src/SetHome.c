@@ -13,10 +13,7 @@
 SetHomeEvent homeEvent = 0;
 float speed = 0;
 
-void sethome_Begin()
-{
-	homeEvent = SET_HOME_BEGIN;
-}
+void sethome_Begin(){homeEvent = SET_HOME_BEGIN;}
 
 void homeBeginHandle(){
 	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
@@ -99,7 +96,3 @@ void sethome_Procedure()
 
 float sethome_GetSpeed(){return speed;}
 
-#define TARGET_FLAG_GROUP homeEvent
-void sethome_SetFlag(SetHomeEvent e){SETFLAG(TARGET_FLAG_GROUP,e);}
-bool sethome_CheckFlag(SetHomeEvent e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
-void sethome_ClearFlag(SetHomeEvent e){CLEARFLAG(TARGET_FLAG_GROUP,e);}

@@ -15,14 +15,8 @@ uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
 uint32_t canEvent;
 
-void canctrl_SetDLC(uint8_t DLC){txHeader.DLC = DLC;}
-uint32_t canctrl_GetDLC(){return txHeader.DLC;}
-uint32_t canctrl_GetID(){return txHeader.StdId;}
 uint32_t canctrl_GetEvent(){return canEvent;}
-void canctrl_SetEvent(uint32_t e)
-{
-	canEvent = e;
-}
+CAN_MODE_ID canctrl_RxHeaderGetModeID(){return rxHeader.StdId & 0x0f;}
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev){ canctrl_SetID(dev << CAN_DEVICE_POS);}
 CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
@@ -154,6 +148,12 @@ HAL_StatusTypeDef canctrl_Receive(CAN_HandleTypeDef *can, uint32_t FIFO)
 	HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
 	checkEventFromRxHeader();
 	return HAL_OK;
+}
+
+CAN_MODE_ID canctrl_Receive_2(CAN_HandleTypeDef *can, uint32_t FIFO)
+{
+	HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);
+	return canctrl_RxHeaderGetModeID();
 }
 
 HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,

@@ -92,18 +92,17 @@ void StartCANbus(void const * argument);
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-	 canctrl_Receive(hcan, CAN_RX_FIFO0);
-	 uint32_t canEvent = canctrl_GetEvent();
+	 CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	 xTaskNotifyFromISR(TaskHandleCANHandle,canEvent,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
+	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
-	canctrl_Receive(hcan, CAN_RX_FIFO1);
-	uint32_t canEvent = canctrl_GetEvent();
-	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(TaskHandleCANHandle,canEvent,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
-	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	 HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	 CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
+	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
+	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 
 void CAN_Init(){
@@ -149,17 +148,28 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
 
 void handleFunc(CAN_MODE_ID mode){
 	switch(mode){
+	case CANCTRL_MODE_SHOOT:
+		break;
+	case CANCTRL_MODE_SET_HOME:
+		bool setHomeValue = canfunc_GetBoolValue();
+		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
+		break;
+	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
+		bool brake = canfunc_GetBoolValue();
+		MotorBLDC mbldc = brd_GetObjMotorBLDC();
+		MotorBLDC_Brake(&mbldc, brake);
+		break;
+	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
+		Break = canfunc_GetBoolValue();
+		PID_BLDC_BreakProtection(Break);
+	case CANCTRL_MODE_TEST:
+		TestMode = canfunc_GetBoolValue();
+		break;
 	case CANCTRL_MODE_LED_BLUE:
 		break;
 	case CANCTRL_MODE_ENCODER:
 		int32_t count_X4 = (int32_t)canfunc_MotorGetEncoderPulseBLDC();
 		brd_SetEncX4BLDC(count_X4);
-		break;
-	case CANCTRL_MODE_SHOOT:
-		break;
-	case CANCTRL_MODE_SET_HOME:
-		bool setHomeValue = canfunc_GetHomeValue();
-		xQueueSend(qHome,(void *)&setHomeValue,1/portTICK_PERIOD_MS);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
 		CAN_SpeedBLDC_AngleDC speedAngle;
@@ -167,21 +177,10 @@ void handleFunc(CAN_MODE_ID mode){
 		brd_SetTargetAngleDC(speedAngle.dcAngle);
 		brd_SetSpeedBLDC(speedAngle.bldcSpeed);
 		break;
-	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-		uint8_t brake = canfunc_MotorGetBrake();
-		MotorBLDC mbldc = brd_GetObjMotorBLDC();
-		MotorBLDC_Brake(&mbldc, brake);
-		break;
 	case CANCTRL_MODE_PID_DC_SPEED:
 	case CANCTRL_MODE_PID_DC_ANGLE:
 	case CANCTRL_MODE_PID_BLDC_SPEED:
 		canfunc_GetPID(&can_GetPID_CompleteCallback);
-		break;
-	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
-		Break = canfunc_MotorGetBreakProtectionBLDC();
-		PID_BLDC_BreakProtection(Break);
-	case CANCTRL_MODE_TEST:
-		TestMode = canfunc_GetTestMode();
 		break;
 	case CANCTRL_MODE_START:
 	case CANCTRL_MODE_END:
@@ -701,13 +700,12 @@ void StartCANbus(void const * argument)
 {
   /* USER CODE BEGIN StartCANbus */
 	CAN_Init();
-	uint32_t canEvent;
+	uint32_t modeID;
   /* Infinite loop */
   for(;;)
   {
-	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &canEvent, portMAX_DELAY)){
-		  canctrl_SetEvent(canEvent);
-		  canfunc_HandleRxEvent(&handleFunc);
+	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)){
+		  handleFunc((CAN_MODE_ID)modeID);
 	  }
 //    osDelay(1);
   }

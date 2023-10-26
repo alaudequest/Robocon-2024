@@ -14,7 +14,7 @@
 void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 {
 	uint32_t ce = canctrl_GetEvent();
-	if(!ce) return;
+	if(!ce || !pCallback) return;
 	for(uint8_t i = CANCTRL_MODE_START + 1; i < CANCTRL_MODE_END; i++){
 		if(canctrl_CheckFlag(i)) {
 			pCallback(i);
@@ -24,74 +24,27 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 	}
 }
 
-uint8_t canfunc_GetTestMode()
+bool canfunc_GetBoolValue()
 {
-	uint8_t rxData[8] = {0};
-	canctrl_GetRxData(rxData);
-	uint8_t testMode;
-	canctrl_GetMessage(&testMode, sizeof(uint8_t));
-	return --testMode;
-}
-
-void canfunc_SetTestMode(uint8_t IsTestMode)
-{
-	canctrl_SetID(CANCTRL_MODE_TEST);
-	IsTestMode++;
-	canctrl_PutMessage((void*)&IsTestMode, 1);
-}
-
-
-void canfunc_MotorSetBrake(uint8_t brake)
-{
-	canctrl_SetID(CANCTRL_MODE_MOTOR_BLDC_BRAKE);
-	brake++;
-	canctrl_PutMessage((void*)&brake, 1);
-}
-
-uint8_t canfunc_MotorGetBrake()
-{
-	uint8_t rxData[8] = {0};
-	canctrl_GetRxData(rxData);
-	uint8_t brake;
-	canctrl_GetMessage(&brake, sizeof(uint8_t));
-	return --brake;
-}
-
-void canfunc_MotorSetBreakProtectionBLDC(uint8_t Break)
-{
-	canctrl_SetID(CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
-	Break++;
-	canctrl_PutMessage((void*)&Break, 1);
-}
-
-uint8_t  canfunc_MotorGetBreakProtectionBLDC()
-{
-	uint8_t rxData[8] = {0};
-	canctrl_GetRxData(rxData);
-	uint8_t Break;
-	canctrl_GetMessage(&Break, sizeof(uint8_t));
-	return --Break;
-}
-
-
-void canfunc_SetHomeValue(bool IsSetHome)
-{
-	uint8_t temp = IsSetHome;
-	temp++;
-	canctrl_SetID(CANCTRL_MODE_SET_HOME);
-	canctrl_PutMessage((void*)&temp, 1);
-}
-
-bool  canfunc_GetHomeValue()
-{
-	uint8_t rxData[8] = {0};
-	canctrl_GetRxData(rxData);
 	uint8_t temp;
-	canctrl_GetMessage(&temp, sizeof(uint8_t));
-	bool setHomeValue = temp - 1;
-	return setHomeValue;
+	if(canctrl_GetMessage(&temp, sizeof(uint8_t)) != HAL_OK) while(1);
+	bool bVal = temp - 1;
+	return bVal;
 }
 
+void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
+{
+	if(modeID != CANCTRL_MODE_TEST
+	|| modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
+	|| modeID != CANCTRL_MODE_SET_HOME
+	|| modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+	) return;
+	else {
+		canctrl_SetID(modeID);
+		uint8_t temp = (uint8_t)bVal + 1;
+		canctrl_PutMessage((void*)&temp, 1);
+	}
+}
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
 {
 	canctrl_SetID(CANCTRL_MODE_ENCODER);
@@ -101,7 +54,7 @@ void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
 uint32_t canfunc_MotorGetEncoderPulseBLDC()
 {
 	uint32_t encBLDC = 0;
-	canctrl_GetMessage(&encBLDC,sizeof(encBLDC));
+	if(canctrl_GetMessage(&encBLDC,sizeof(encBLDC))!= HAL_OK) while(1);
 	return encBLDC;
 }
 
@@ -114,8 +67,6 @@ void canfunc_MotorPutSpeedAndAngle(CAN_SpeedBLDC_AngleDC speedAngle)
 CAN_SpeedBLDC_AngleDC canfunc_MotorGetSpeedAndAngle()
 {
 	CAN_SpeedBLDC_AngleDC speedAngle;
-	uint8_t rxData[8] = {0};
-	canctrl_GetRxData(rxData);
 	if(canctrl_GetMessage(&speedAngle, sizeof(CAN_SpeedBLDC_AngleDC)) != HAL_OK) while(1);
 	return speedAngle;
 }
