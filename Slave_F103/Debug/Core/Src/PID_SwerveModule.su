@@ -1,0 +1,4 @@
+../Core/Src/PID_SwerveModule.c:11:6:PID_DC_CalSpeed	208	static
+../Core/Src/PID_SwerveModule.c:22:6:PID_DC_CalPos	192	static
+../Core/Src/PID_SwerveModule.c:32:6:PID_BLDC_CalSpeed	216	static
+../Core/Src/PID_SwerveModule.c:47:6:PID_BLDC_BreakProtection	168	static
