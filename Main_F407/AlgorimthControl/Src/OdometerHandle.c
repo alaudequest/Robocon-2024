@@ -30,8 +30,13 @@ void PositionCalculate(void){
 	float DeltaX  = encoder_GetPulse(&odoParam.encX ,MODE_X4);
 
 	odoParam.DeltaCurrentYPos = odoParam.EncCoef*(DeltaYR + DeltaYL)/2;
+<<<<<<< HEAD
 	odoParam.DeltaCurrentTheta = odoParam.EncCoef*(DeltaYR - DeltaYL)/ODO_WHEEL_LR_DISTANCE;
 	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/ODO_WHEEL_LR_DISTANCE);
+=======
+	odoParam.DeltaCurrentTheta = odoParam.EncCoef*(DeltaYR - DeltaYL)/2;
+//	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - )
+>>>>>>> origin/dev
 
 	odoParam.CurrentXPos += odoParam.DeltaCurrentXPos*cos(odoParam.CurrentTheta)-odoParam.DeltaCurrentYPos*sin(odoParam.CurrentTheta);
 	odoParam.CurrentYPos += odoParam.DeltaCurrentXPos*sin(odoParam.CurrentTheta)+odoParam.DeltaCurrentYPos*cos(odoParam.CurrentTheta);

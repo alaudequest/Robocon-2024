@@ -27,6 +27,7 @@ void canctrl_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
 bool canctrl_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
 void canctrl_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
 
+//HAL_StatusTypeDef
 
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;

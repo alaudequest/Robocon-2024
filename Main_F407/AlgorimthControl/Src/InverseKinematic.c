@@ -40,32 +40,12 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r,void (*ptnCpltCallback)(ModuleID,float, float))
 {
 	static float velocity = 0;
-//	switch (InvCalcStep) {
-//		case INV_PROC_BEGIN:
-//			InvCalcStep = CALC_WHEEL_VECTOR;
-//			break;
-//		case CALC_WHEEL_VECTOR:
-			invkine_CalWheelVector(ID, u, v, r);
-//			InvCalcStep = CALC_WHEEL_OPT;
-//			break;
-//		case CALC_WHEEL_OPT:
-			invkine_CalOptAngle(ID);
-//			InvCalcStep = CALC_WHEEL_VELOC;
-//			break;
-//		case CALC_WHEEL_VELOC:
-			velocity = invkine_CalSpeedVectorControl(ID);
-//			InvCalcStep = INV_PROC_END;
-//			break;
-//		case INV_PROC_END:
-//			InvCalcStep = 0;
-			Angle_Opt_Param angopt = swer_GetOptAngle(ID);
-			ptnCpltCallback(ID,velocity,angopt.currentAngle);
-			return HAL_OK;
-//			break;
-//		default:
-//			break;
-//	}
-//	return HAL_BUSY;
+	invkine_CalWheelVector(ID, u, v, r);
+	invkine_CalOptAngle(ID);
+	velocity = invkine_CalSpeedVectorControl(ID);
+	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
+	ptnCpltCallback(ID,velocity,angopt.currentAngle);
+	return HAL_OK;
 }
 
 void invkine_Begin(){InvCalcStep = INV_PROC_BEGIN;}
@@ -79,12 +59,5 @@ void invkine_Test(){
 	InvCalcStep = 1;
 }
 
-InverseKinematicProcedure invkine_GetInvCalStep()
-{
-	return InvCalcStep;
-}
-
-void invkine_SetInvCalStep(InverseKinematicProcedure Step)
-{
-	InvCalcStep = Step;
-}
+InverseKinematicProcedure invkine_GetInvCalStep(){return InvCalcStep;}
+void invkine_SetInvCalStep(InverseKinematicProcedure Step){InvCalcStep = Step;}
