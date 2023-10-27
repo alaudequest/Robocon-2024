@@ -64,14 +64,8 @@ osStaticThreadDef_t TaskHandleCANControlBlock;
 osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 uint8_t TestMode = 0;
-float dcAngleResult = 0;
-float bldcSpeed = 10;
-float dcAngleSet = 0;
 QueueHandle_t qPID,qHome;
 bool IsSetHome = false;
-float targetAngle;
-float targetSpeed;
-float testDeltaT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -127,6 +121,7 @@ void CAN_Init(){
 			0,
 			0,
 			2, CAN_RX_FIFO0);
+
 /* CAN1(address) = *(__IO uint32_t*)(0x40000000UL 			 +  0x00006400			+ 0x01C				)
    CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 //Access bxCAN register:

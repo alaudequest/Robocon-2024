@@ -31,6 +31,6 @@ void PositionCalculate(void){
 
 	odoParam.DeltaCurrentYPos = odoParam.EncCoef*(DeltaYR + DeltaYL)/2;
 	odoParam.DeltaCurrentTheta = odoParam.EncCoef*(DeltaYR - DeltaYL)/2;
-	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - )
+//	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - )
 
 }

@@ -115,6 +115,7 @@ float Xright;
 
 _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
+float u,v,r;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -164,16 +165,16 @@ void SendSpeedAndRotation(CAN_DEVICE_ID targetID,float Speed, float Angle)
 	enfunc_ClearFlag(ENABLE_ANGLE_SPEED);
 }
 
-void SetTestMode(uint8_t testMode, CAN_DEVICE_ID targetID,bool *enable){
+void SetTestMode(bool testMode, CAN_DEVICE_ID targetID,bool *enable){
 	if(!*enable) return;
-	canfunc_SetTestMode(testMode);
+	canfunc_SetBoolValue(testMode,CANCTRL_MODE_TEST);
 	canctrl_Send(&hcan1, targetID);
 	*enable = false;
 }
 
-void SetBrake(uint8_t brake, CAN_DEVICE_ID targetID,bool *enable){
+void SetBrake(bool brake, CAN_DEVICE_ID targetID,bool *enable){
 	if(!*enable) return;
-	canfunc_MotorSetBrake(brake);
+	canfunc_SetBoolValue(brake,CANCTRL_MODE_MOTOR_BLDC_BRAKE);
 	canctrl_Send(&hcan1, targetID);
 	*enable = false;
 }
@@ -181,7 +182,7 @@ void SetBrake(uint8_t brake, CAN_DEVICE_ID targetID,bool *enable){
 void SetHome(CAN_DEVICE_ID targetID)
 {
 	if(!enfunc_CheckFlag(ENABLE_SETHOME))return;
-	canfunc_SetHomeValue(1);
+	canfunc_SetBoolValue(1,CANCTRL_MODE_SET_HOME);
 	canctrl_Send(&hcan1, targetID);
 	enfunc_ClearFlag(ENABLE_SETHOME);
 }
@@ -189,10 +190,10 @@ void SetHome(CAN_DEVICE_ID targetID)
 void BreakProtection(CAN_DEVICE_ID targetID)
 {
 	if(!enfunc_CheckFlag(ENABLE_BREAK_PROTECTION)) return;
-	canfunc_MotorSetBreakProtectionBLDC(1);
+	canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 	canctrl_Send(&hcan1, targetID);
 	osDelay(1000);
-	canfunc_MotorSetBreakProtectionBLDC(0);
+	canfunc_SetBoolValue(0, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 	canctrl_Send(&hcan1, targetID);
 	enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
 }
@@ -753,8 +754,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle)
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
-	osDelay(1);
-
+	while(canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 
 void InitialSetHome()
@@ -764,28 +764,25 @@ void InitialSetHome()
 	speedAngle.dcAngle = 0;
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
 			canfunc_MotorPutSpeedAndAngle(speedAngle);
-			canctrl_Send(&hcan1, i);
-			osDelay(1);
+			while(canctrl_Send(&hcan1, i) != HAL_OK);
 		}
 	osDelay(1000);
-	canctrl_ClearID();
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
-			canfunc_SetHomeValue(1);
-			canctrl_Send(&hcan1, i);
-			osDelay(1);
+			canfunc_SetBoolValue(1, CANCTRL_MODE_SET_HOME);
+			while(canctrl_Send(&hcan1, i) != HAL_OK);
 		}
 }
 
 void TestBreakProtection()
 {
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
-		canfunc_MotorSetBreakProtectionBLDC(1);
+		canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 		canctrl_Send(&hcan1, i);
 		osDelay(1);
 	}
 	osDelay(1000);
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
-		canfunc_MotorSetBreakProtectionBLDC(0);
+		canfunc_SetBoolValue(0, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 		canctrl_Send(&hcan1, i);
 		osDelay(1);
 	}
@@ -800,103 +797,7 @@ void TestSendPID()
 		osDelay(1);
 	}
 }
-float u,v,r;
-int testID;
-int Direc,Case1,Case2;
-float CurrentTest;
-float XCurr,YCurr;
 
-
-float preAngle,calInput,deltaCal,preCal,deltaCal,deltaAngle,currentAngle,deltaAngle;
-
-float inputTest;
-
-float Xtest,Ytest;
-
-float SinTest,CosTest,angleTest;
-
-int QuadRantCheckInput(float x, float y)
-{
-	if((x>0)&&(y>0))return 1;
-	else if((x>0)&&(y<0))return 2;
-	else if((x<0)&&(y<0))return 3;
-	else if((x<0)&&(y>0))return 4;
-	else if((x==0)&&(y>0))return -1;
-	else if((x==0)&&(y<0))return -2;
-	else if((x>0)&&(y==0))return -3;
-	else if((x<0)&&(y==0))return -4;
-
-	return 0;
-}
-
-void QuadRantCheckOutput(float Input)
-{
-	XCurr = cos(Input);
-	YCurr = sin(Input);
-	Case2 = QuadRantCheckInput(XCurr, YCurr);
-	if (Case1 == 0)Direc = 0;
-	else {
-		if(Case1 == -1){
-			if((Case2 == 1)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -2){
-			if((Case2 == 2)||(Case2 == 3)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -3){
-			if((Case2 == 1)||(Case2 == 2)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}
-		else if(Case1 == -4){
-			if((Case2 == 3)||(Case2 == 4)||(Case2 == Case1))Direc = 1;
-			else Direc = -1;
-		}else {
-			if(Case2 == Case1)Direc = 1;
-			else Direc = -1;
-		}
-	}
-}
-
-void testAngleOpt(float input)
-{
-	if(input != preAngle)
-	{
-		calInput = input;
-
-		if((currentAngle>=0)&&(calInput<0))calInput+=360;
-		else if ((currentAngle<0)&&(calInput>0))calInput-=360;
-
-
-		deltaAngle = calInput - modulo360(currentAngle);
-
-		if(deltaAngle>180)deltaAngle+=-360;
-		else if(deltaAngle<-180)deltaAngle+=360;
-
-		if((deltaAngle<=90)&&(deltaAngle>=-90))deltaAngle = deltaAngle;
-		else if ((deltaAngle>90)&&(deltaAngle<=180))deltaAngle += -180.0;
-		else if ((deltaAngle<-90)&&(deltaAngle>=-180))deltaAngle += 180.0;
-
-		preAngle = input;
-		preCal = calInput;
-		currentAngle += deltaAngle;
-
-//		if(calInput == modulo360(currentAngle)) direct = 1;
-	}
-}
-
-void testKine(float u, float v, float r){
-	Xtest = u - 0.25*r;
-	Ytest = v - 0.25*r;
-
-	Case1 = QuadRantCheckInput(Xtest, Ytest);
-	inputTest = atan2(Ytest,Xtest)*180/M_PI;
-	testAngleOpt(inputTest);
-	QuadRantCheckOutput(currentAngle*M_PI/180);
-	CurrentTest = currentAngle;
-}
-int16_t countTimer;
-int countX4;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -924,23 +825,19 @@ void StartDefaultTask(void const * argument)
 //
 //			invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
 //			invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-//			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 //			invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
 //	  }
 //
 //
-//	if(gamepadRxIsBusy) {
-//		gamepadRxIsBusy = 0;
-//		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
-//	}
-//	if((huart3.Instance->CR1 & USART_CR1_UE) == 0){
-//		__HAL_UART_ENABLE(&huart3);
-//	}
-//    osDelay(50);
-	  countTimer = __HAL_TIM_GET_COUNTER(&htim1);
-	  countX4 += countTimer;
-	  __HAL_TIM_SET_COUNTER(&htim1,0);
-	  osDelay(1);
+	if(gamepadRxIsBusy) {
+		gamepadRxIsBusy = 0;
+		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
+	}
+	if((huart3.Instance->CR1 & USART_CR1_UE) == 0){
+		__HAL_UART_ENABLE(&huart3);
+	}
+    osDelay(50);
   }
   /* USER CODE END 5 */
 }
