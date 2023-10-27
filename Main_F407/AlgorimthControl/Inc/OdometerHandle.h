@@ -36,6 +36,9 @@ typedef struct odometerParam{
 	float	DeltaCurrentYPos;
 	float 	DeltaCurrentTheta;
 }odometerParam;
-void PositionCalculate(void);
+void Odo_PositionCalculate(void);
 void OdoInit(void);
+int Odo_GetPulseYR();
+int Odo_GetPulseYL();
+int Odo_GetPulseX();
 #endif /* INC_ODOMETERHANDLE_H_ */

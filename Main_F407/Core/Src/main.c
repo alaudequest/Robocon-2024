@@ -31,6 +31,7 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
+#include "OdometerHandle.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -811,8 +812,9 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-//	swer_Init();
+	swer_Init();
 //	TestBreakProtection();
+	InitialSetHome();
   for(;;)
   {
 //	  if(GamePad.Circle == 1)
@@ -825,7 +827,7 @@ void StartDefaultTask(void const * argument)
 //
 //			invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
 //			invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 //			invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
 //	  }
 //
@@ -848,13 +850,19 @@ void StartDefaultTask(void const * argument)
 * @param argument: Not used
 * @retval None
 */
+int DeltaYR,DeltaYL,DeltaX;
 /* USER CODE END Header_InverseKinematic */
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
   /* Infinite loop */
+	OdoInit();
   for(;;)
   {
+	Odo_PositionCalculate();
+//	DeltaYR = Odo_GetPulseYR();
+//	DeltaYL = Odo_GetPulseYL();
+//	DeltaX  = Odo_GetPulseX();
     osDelay(1);
   }
   /* USER CODE END InverseKinematic */

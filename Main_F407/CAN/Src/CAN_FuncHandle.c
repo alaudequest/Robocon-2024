@@ -35,15 +35,13 @@ bool canfunc_GetBoolValue()
 void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 {
 	if(modeID != CANCTRL_MODE_TEST
-	|| modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
-	|| modeID != CANCTRL_MODE_SET_HOME
-	|| modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+	&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
+	&& modeID != CANCTRL_MODE_SET_HOME
+	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
 	) return;
-	else {
-		canctrl_SetID(modeID);
-		uint8_t temp = (uint8_t)bVal + 1;
-		canctrl_PutMessage((void*)&temp, 1);
-	}
+	canctrl_SetID(modeID);
+	uint8_t temp = (uint8_t)bVal + 1;
+	canctrl_PutMessage((void*)&temp, 1);
 }
 void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
 {

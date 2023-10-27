@@ -16,29 +16,36 @@ void OdoInit(void){
 	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 
 	encoder_Init(&odoParam.encYR, &htim1, ODO_PULSE_PER_ROUND, ODO_DeltaT);
-	encoder_Init(&odoParam.encYL, &htim2, ODO_PULSE_PER_ROUND, ODO_DeltaT);
-	encoder_Init(&odoParam.encX , &htim3, ODO_PULSE_PER_ROUND, ODO_DeltaT);
+	encoder_Init(&odoParam.encYL, &htim3, ODO_PULSE_PER_ROUND, ODO_DeltaT);
+	encoder_Init(&odoParam.encX , &htim2, ODO_PULSE_PER_ROUND, ODO_DeltaT);
 
 
 	odoParam.EncCoef = 2*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
 }
 
-void PositionCalculate(void){
+void Odo_PositionCalculate(void){
 
 	float DeltaYR = encoder_GetPulse(&odoParam.encYR,MODE_X4);
 	float DeltaYL = encoder_GetPulse(&odoParam.encYL,MODE_X4);
 	float DeltaX  = encoder_GetPulse(&odoParam.encX ,MODE_X4);
 
 	odoParam.DeltaCurrentYPos = odoParam.EncCoef*(DeltaYR + DeltaYL)/2;
-<<<<<<< HEAD
 	odoParam.DeltaCurrentTheta = odoParam.EncCoef*(DeltaYR - DeltaYL)/ODO_WHEEL_LR_DISTANCE;
 	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/ODO_WHEEL_LR_DISTANCE);
-=======
-	odoParam.DeltaCurrentTheta = odoParam.EncCoef*(DeltaYR - DeltaYL)/2;
-//	odoParam.DeltaCurrentXPos = odoParam.EncCoef*(DeltaX - )
->>>>>>> origin/dev
 
-	odoParam.CurrentXPos += odoParam.DeltaCurrentXPos*cos(odoParam.CurrentTheta)-odoParam.DeltaCurrentYPos*sin(odoParam.CurrentTheta);
-	odoParam.CurrentYPos += odoParam.DeltaCurrentXPos*sin(odoParam.CurrentTheta)+odoParam.DeltaCurrentYPos*cos(odoParam.CurrentTheta);
+	encoder_ResetCount(&odoParam.encYR);
+	encoder_ResetCount(&odoParam.encYL);
+	encoder_ResetCount(&odoParam.encX);
+
+	odoParam.CurrentXPos += odoParam.DeltaCurrentXPos*cos(odoParam.CurrentTheta*M_PI/180)-odoParam.DeltaCurrentYPos*sin(odoParam.CurrentTheta*M_PI/180);
+	odoParam.CurrentYPos += odoParam.DeltaCurrentXPos*sin(odoParam.CurrentTheta*M_PI/180)+odoParam.DeltaCurrentYPos*cos(odoParam.CurrentTheta*M_PI/180);
 	odoParam.CurrentTheta += odoParam.DeltaCurrentTheta;
+
+	odoParam.DeltaCurrentYPos = 0;
+	odoParam.DeltaCurrentTheta = 0;
+	odoParam.DeltaCurrentXPos = 0;
 }
+
+int Odo_GetPulseYR(){return encoder_GetPulse(&odoParam.encYR,MODE_X4);}
+int Odo_GetPulseYL(){return encoder_GetPulse(&odoParam.encYL,MODE_X4);}
+int Odo_GetPulseX(){return encoder_GetPulse(&odoParam.encX,MODE_X4);}
