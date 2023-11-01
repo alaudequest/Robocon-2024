@@ -1,0 +1,13 @@
+../Core/Src/74HC595.c:10:16:HC595_AssignPin	24	static
+../Core/Src/74HC595.c:57:20:ByteSlitting	32	static
+../Core/Src/74HC595.c:83:16:HC595_ShiftOut	24	static
+../Core/Src/74HC595.c:114:6:HC595_ReturnValueToString	24	static
+../Core/Src/74HC595.c:124:6:HC595_SetBitOutput	16	static
+../Core/Src/74HC595.c:129:6:HC595_ClearBitOutput	16	static
+../Core/Src/74HC595.c:134:6:HC595_SetByteOutput	16	static
+../Core/Src/74HC595.c:139:6:HC595_ClearByteOutput	16	static
+../Core/Src/74HC595.c:144:16:HC595_SetTarget	16	static
+../Core/Src/74HC595.c:151:6:HC595_TestOutput	16	static
+../Core/Src/74HC595.c:169:6:HC595_TestPin	16	static
+../Core/Src/74HC595.c:178:6:HC595_EnableOutput	8	static
+../Core/Src/74HC595.c:183:6:HC595_DisableOutput	8	static

@@ -94,26 +94,27 @@ void OptimizerV3(Optimizer *Swerve, float Input){
 		Swerve->Alpha 	= acos(((Swerve->PreX*Swerve->CalX)+(Swerve->PreY*Swerve->CalY))/(sqrt((Swerve->CalX*Swerve->CalX)+(Swerve->CalY*Swerve->CalY))*sqrt((Swerve->PreX*Swerve->PreX)+(Swerve->PreY*Swerve->PreY))))*(180/M_PI);
 		Swerve->PreX 	= Swerve->CalX;
 		Swerve->PreY 	= Swerve->CalY;
-		if(Swerve->Alpha == 0) {
-			Swerve->Direc *= 1;
-			if(Input == Swerve->CurAngle + 360) Swerve->CurAngle = Input - 360;
-			else if(Input == Swerve->CurAngle - 360) Swerve->CurAngle = Input  + 360;
+		if(Swerve->Alpha == 0){
+			if(Input == (Swerve->CurAngle+360)) Swerve->CurAngle=Input-360;
+			else if(Input==(Swerve->CurAngle-360))Swerve->CurAngle=Input+360;
 		}
-		else if(Swerve->Alpha == 180) {
-			Swerve->Direc *= -1;
-			if(Input == Swerve->CurAngle + 180) Swerve->CurAngle = Input - 180;
-			else if(Input == Swerve->CurAngle - 180) Swerve->CurAngle = Input + 180;
+		else if(Swerve->Alpha==180){
+			Swerve->Direc = -1;
+			if(Input==(Swerve->CurAngle+180)) Swerve->CurAngle=Input-180;
+			else if(Input==(Swerve->CurAngle-180)) Swerve->CurAngle=Input+180;
 		}
-		else if(Swerve->Alpha>0 && Swerve->Alpha<=90){
-			Swerve->Direc *= 1;
+		else if(Swerve->Alpha <=90) {
+			Swerve->Direc = 1;
 			Swerve->CurAngle = Input;
 		}
-		else if(Swerve->Alpha>90 && Swerve->Alpha<180) {
-			Swerve->Direc *= -1;
-			if(Input>=0) Swerve->CurAngle = Input - 180;
-			else Swerve->CurAngle = Input + 180;
+		else if(Swerve->Alpha>=90) {
+			Swerve->Direc = -1;
+			if(Swerve->CurAngle>=0) Swerve->CurAngle= Input-180;
+			else Swerve->CurAngle= Input+180;
 		}
+
 		Swerve->PreAngle = Input;
+
 	}
 }
 /* USER CODE END 0 */

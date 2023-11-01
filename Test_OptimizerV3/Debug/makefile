@@ -60,8 +60,8 @@ all: main-build
 main-build: Test_OptimizerV3.elf secondary-outputs
 
 # Tool invocations
-Test_OptimizerV3.elf Test_OptimizerV3.map: $(OBJS) $(USER_OBJS) C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive\ -\ hcmute.edu.vn\Desktop\LAB\STM32_TEST\Test_OptimizerV3\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Test_OptimizerV3.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive - hcmute.edu.vn\Desktop\LAB\STM32_TEST\Test_OptimizerV3\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Test_OptimizerV3.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Test_OptimizerV3.elf Test_OptimizerV3.map: $(OBJS) $(USER_OBJS) C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive\ -\ hcmute.edu.vn\Desktop\Robocon-2024\Test_OptimizerV3\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Test_OptimizerV3.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive - hcmute.edu.vn\Desktop\Robocon-2024\Test_OptimizerV3\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Test_OptimizerV3.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
