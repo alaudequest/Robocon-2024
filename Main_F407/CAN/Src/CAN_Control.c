@@ -13,8 +13,12 @@ CAN_TxHeaderTypeDef txHeader;
 CAN_RxHeaderTypeDef rxHeader;
 uint8_t txData[8] = {0};
 uint8_t rxData[8] = {0};
-uint32_t canEvent;
 
+uint32_t canEvent;
+#define TARGET_FLAG_GROUP canEvent
+void canctrl_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
+bool canctrl_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
+void canctrl_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
 uint32_t canctrl_GetEvent(){return canEvent;}
 CAN_MODE_ID canctrl_RxHeaderGetModeID(){return rxHeader.StdId & 0x0f;}
 void canctrl_SetTargetDevice(CAN_DEVICE_ID dev){ canctrl_SetID(dev << CAN_DEVICE_POS);}
@@ -22,12 +26,7 @@ CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
-#define TARGET_FLAG_GROUP canEvent
-void canctrl_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
-bool canctrl_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
-void canctrl_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
 
-//HAL_StatusTypeDef
 
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;
@@ -56,6 +55,7 @@ HAL_StatusTypeDef canctrl_SendMultipleMessages(CAN_HandleTypeDef *can,
 											void *data,
 											size_t sizeOfDataType)
 {
+	if(!can || !data || !sizeOfDataType) return HAL_ERROR;
 	static bool IsBusy = false;
 	static uint16_t tempTxDataLen = 0;
 	if(IsBusy) return HAL_BUSY;
@@ -119,8 +119,8 @@ HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 {
-	if(!txHeader.DLC) return HAL_ERROR;
-	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_ERROR;
+	if(!txHeader.DLC && !can) return HAL_ERROR;
+	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_BUSY;
 	HAL_StatusTypeDef err = HAL_OK;
 	txHeader.IDE = CAN_ID_STD;
 	canctrl_RTR_SetToData();
