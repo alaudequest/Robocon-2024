@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "math.h"
+#include "stdlib.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,6 +61,7 @@ typedef struct Optimizer {
 	int8_t Direc;
 	float CurAngle;
 	float PreAngle;
+	float DeltaAngle;
 	float CalInput;
 	float CalX;
 	float CalY;
@@ -76,6 +78,7 @@ void SwerveInit(Optimizer *Swerve) {
 	Swerve->Direc 		= 1;
 	Swerve->CurAngle 	= 0;
 	Swerve->PreAngle	= 0;
+	Swerve->DeltaAngle	= 0;
 	Swerve->CalInput 	= 0;
 	Swerve->CalX		= 0;
 	Swerve->CalY		= 0;
@@ -94,12 +97,14 @@ void OptimizerV3(Optimizer *Swerve, float Input){
 		Swerve->Alpha 	= acos(((Swerve->PreX*Swerve->CalX)+(Swerve->PreY*Swerve->CalY))/(sqrt((Swerve->CalX*Swerve->CalX)+(Swerve->CalY*Swerve->CalY))*sqrt((Swerve->PreX*Swerve->PreX)+(Swerve->PreY*Swerve->PreY))))*(180/M_PI);
 		Swerve->PreX 	= Swerve->CalX;
 		Swerve->PreY 	= Swerve->CalY;
+		Swerve->PreAngle = Input;
+		Swerve->DeltaAngle = abs(Swerve->CurAngle-Swerve->PreAngle);
 		if(Swerve->Alpha == 0){
 			if(Input == (Swerve->CurAngle+360)) Swerve->CurAngle=Input-360;
 			else if(Input==(Swerve->CurAngle-360))Swerve->CurAngle=Input+360;
 		}
 		else if(Swerve->Alpha==180){
-			Swerve->Direc = -1;
+			Swerve->Direc *= -1;
 			if(Input==(Swerve->CurAngle+180)) Swerve->CurAngle=Input-180;
 			else if(Input==(Swerve->CurAngle-180)) Swerve->CurAngle=Input+180;
 		}
@@ -108,12 +113,14 @@ void OptimizerV3(Optimizer *Swerve, float Input){
 			Swerve->CurAngle = Input;
 		}
 		else if(Swerve->Alpha>=90) {
-			Swerve->Direc = -1;
-			if(Swerve->CurAngle>=0) Swerve->CurAngle= Input-180;
-			else Swerve->CurAngle= Input+180;
+			Swerve->Direc *= -1;
+			if(Swerve->CurAngle>=0 && Swerve->DeltaAngle<=90) Swerve->CurAngle= Input;
+			else if(Swerve->CurAngle>=0 && Swerve->DeltaAngle>90 && Input>0) Swerve->CurAngle=Input-180;
+			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle<=90) Swerve->CurAngle=Input;
+			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle>90 && Input<0) Swerve->CurAngle=Input+180;
 		}
 
-		Swerve->PreAngle = Input;
+
 
 	}
 }
