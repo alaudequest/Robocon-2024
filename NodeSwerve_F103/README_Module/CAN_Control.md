@@ -1,9 +1,9 @@
 
 Trở về [README chính](../README.md)
 
-Tham khảo [CAN_Control.h](../Main_F407/CAN/Inc/CAN_Control.h)
+Tham khảo [CAN_Control.h](../../Main_F407/CAN/Inc/CAN_Control.h)
 
-Tham khảo [CAN_Control.c](../Main_F407/CAN/Src/CAN_Control.c)
+Tham khảo [CAN_Control.c](../../Main_F407/CAN/Src/CAN_Control.c)
 
 __*Lưu ý*__: Project NodeSwerve_F103 không có CAN_Control và CAN_FuncHandle mà chỉ có Main_F407 mới có (để đồng nhất API sử dụng cho cả F4 và F1 khi update, thêm tính năng mới hoặc chỉnh sửa) vì vậy cần phải liên kết giữa Project __*NodeSwerve_F013*__ và folder __*CAN*__ ở Project __*Main_F407*__
 

@@ -1,8 +1,8 @@
 Trở về [README chính](../README.md)
 
-Tham khảo [CAN_FuncHandle.h](../Main_F407/CAN/Inc/CAN_FuncHandle.h)
+Tham khảo [CAN_FuncHandle.h](../../Main_F407/CAN/Inc/CAN_FuncHandle.h)
 
-Tham khảo [CAN_FuncHandle.c](../Main_F407/CAN/Src/CAN_FuncHandle.c)
+Tham khảo [CAN_FuncHandle.c](../../Main_F407/CAN/Src/CAN_FuncHandle.c)
 
 # Chức năng
 
@@ -82,7 +82,7 @@ Dùng để đóng gói, gửi đi (Put and Send message) và giải mã dữ li
     + CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
     + CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này
     + PID_Param pid: bộ 5 thông số PID cần truyền
-    + PID_type type: một module Swerve cần có 3 bộ PID (PID cho tốc độ BLDC, PID cho tốc độ và góc xoay động cơ DC), vì vậy cần chỉ định chọn bộ PID nào để truyền đi - tham khảo enum __*PID_type*__ của [BoardParameter.h](../NodeSwerve_F103/Core/Inc/BoardParameter.h)
+    + PID_type type: một module Swerve cần có 3 bộ PID (PID cho tốc độ BLDC, PID cho tốc độ và góc xoay động cơ DC), vì vậy cần chỉ định chọn bộ PID nào để truyền đi - tham khảo enum __*PID_type*__ của [BoardParameter.h](../Core/Inc/BoardParameter.h)
 
 + Ví dụ:
     ```
@@ -104,7 +104,7 @@ Dùng để đóng gói, gửi đi (Put and Send message) và giải mã dữ li
     + void (*pCallback)(PID_Param pid, PID_type type): con trỏ hàm trỏ tới hàm do người dùng tự viết trong main.c sau khi nhận đủ 5 thông số để xử lý, hàm này cần tuân thủ các điều kiện sau:
         + Return: void
         + Đối số PID_Param pid: bộ 5 thông số PID cần truyền
-        + Đối số PID_type type: một module Swerve cần có 3 bộ PID (PID cho tốc độ BLDC, PID cho tốc độ và góc xoay động cơ DC), vì vậy cần chỉ định chọn bộ PID nào để truyền đi - tham khảo enum __*PID_type*__ của [BoardParameter.h](../NodeSwerve_F103/Core/Inc/BoardParameter.h)
+        + Đối số PID_type type: một module Swerve cần có 3 bộ PID (PID cho tốc độ BLDC, PID cho tốc độ và góc xoay động cơ DC), vì vậy cần chỉ định chọn bộ PID nào để truyền đi - tham khảo enum __*PID_type*__ của [BoardParameter.h](../Core/Inc/BoardParameter.h)
 + Ví dụ:
 
     ```
