@@ -33,7 +33,7 @@ void actor_ClearVanOut(uint32_t van){
 }
 
 void actor_Procedure_Trigger_Van(){
-	static uint16_t pluseTime;
+//	static uint16_t pluseTime;
 	static uint32_t vanToTrigger;
 	switch(vanProcState){
 		case PROC_IDLE:
