@@ -113,11 +113,22 @@ void OptimizerV3(Optimizer *Swerve, float Input){
 			Swerve->CurAngle = Input;
 		}
 		else if(Swerve->Alpha>=90) {
-			Swerve->Direc *= -1;
-			if(Swerve->CurAngle>=0 && Swerve->DeltaAngle<=90) Swerve->CurAngle= Input;
-			else if(Swerve->CurAngle>=0 && Swerve->DeltaAngle>90 && Input>0) Swerve->CurAngle=Input-180;
-			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle<=90) Swerve->CurAngle=Input;
-			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle>90 && Input<0) Swerve->CurAngle=Input+180;
+			if(Swerve->CurAngle>=0 && Swerve->DeltaAngle<=90 && Input>=0) {
+				Swerve->CurAngle= Input;
+				Swerve->Direc = 1;
+			}
+			else if(Swerve->CurAngle>=0 && Swerve->DeltaAngle>90 && Input>=0) {
+				Swerve->CurAngle=Input-180;
+				Swerve->Direc = -1;
+			}
+			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle<=90 && Input<=0) {
+				Swerve->CurAngle=Input;
+				Swerve->Direc = 1;
+			}
+			else if(Swerve->CurAngle<=0 && Swerve->DeltaAngle>90 && Input<=0) {
+				Swerve->CurAngle=Input+180;
+				Swerve->Direc = -1;
+			}
 		}
 
 
