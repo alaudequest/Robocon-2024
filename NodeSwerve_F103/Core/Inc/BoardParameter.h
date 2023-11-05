@@ -62,17 +62,20 @@ void brd_SetObjEncDC(Encoder_t encDC);
 Encoder_t brd_GetObjEncBLDC();
 void brd_SetObjEncBLDC(Encoder_t encBLDC);
 
-float brd_GetSpeedBLDC();
-void brd_SetSpeedBLDC(float speed);
 
 int32_t brd_GetEncX4BLDC();
 void brd_SetEncX4BLDC(int32_t countX4);
 
+float brd_GetSpeedBLDC();
+void brd_SetSpeedBLDC(float speed);
+
 float brd_GetTargetAngleDC();
 void brd_SetTargetAngleDC(float angle);
 
+float brd_GetCurrentAngleDC();
+float brd_GetCurrentSpeedBLDC();
+
 void brd_ResetState();
-float brd_GetAngleDC_Fast();
 void brd_SetHomeCompleteCallback();
 
 float brd_GetDeltaT();

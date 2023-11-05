@@ -104,10 +104,10 @@ void CAN_Init(){
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_RX_FIFO0_FULL);
 	uint16_t deviceID = *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
-			deviceID | CANCTRL_MODE_ENCODER,
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
 			deviceID | CANCTRL_MODE_SET_HOME,
+			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
@@ -117,7 +117,7 @@ void CAN_Init(){
 			1, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_TEST,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			0,
 			0,
 			0,
 			2, CAN_RX_FIFO0);
@@ -161,10 +161,6 @@ void handleFunc(CAN_MODE_ID mode){
 		TestMode = canfunc_GetBoolValue();
 		break;
 	case CANCTRL_MODE_LED_BLUE:
-		break;
-	case CANCTRL_MODE_ENCODER:
-		int32_t count_X4 = (int32_t)canfunc_MotorGetEncoderPulseBLDC();
-		brd_SetEncX4BLDC(count_X4);
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
 		CAN_SpeedBLDC_AngleDC speedAngle;
@@ -367,7 +363,7 @@ static void MX_CAN_Init(void)
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
+  hcan.Init.Mode = CAN_MODE_LOOPBACK;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
@@ -632,7 +628,6 @@ void StartDefaultTask(void const * argument)
   }
 }
   /* USER CODE END 5 */
-
 
 /* USER CODE BEGIN Header_StartTaskPID */
 /**

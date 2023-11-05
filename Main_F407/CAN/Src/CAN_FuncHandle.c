@@ -7,6 +7,7 @@
 
 #include "CAN_Control.h"
 #include "CAN_FuncHandle.h"
+#include "BoardParameter.h"
 #include "PID.h"
 #include <string.h>
 #include <stdbool.h>
@@ -21,6 +22,35 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 			canctrl_ClearFlag(i);
 			break;
 		}
+	}
+}
+
+void canfunc_RTR_RxResponse(CAN_MODE_ID modeID){
+	PID_Param pid;
+	switch(modeID){
+	case CANCTRL_MODE_LED_BLUE:
+	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
+	case CANCTRL_MODE_SET_HOME:
+	case CANCTRL_MODE_SHOOT:
+	case CANCTRL_MODE_TEST:
+	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
+		break;
+	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+		CAN_SpeedBLDC_AngleDC spdAngle;
+		spdAngle.bldcSpeed = brd_GetSpeedBLDC();
+		spdAngle.dcAngle = brd_GetCurrentAngleDC();
+		break;
+	case CANCTRL_MODE_PID_BLDC_SPEED:
+		pid = brd_GetPID(PID_BLDC_SPEED);
+		break;
+	case CANCTRL_MODE_PID_DC_ANGLE:
+		pid = brd_GetPID(PID_DC_ANGLE);
+		break;
+	case CANCTRL_MODE_PID_DC_SPEED:
+	    pid = brd_GetPID(PID_DC_SPEED);
+		break;
+
+
 	}
 }
 
@@ -44,11 +74,6 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 		uint8_t temp = (uint8_t)bVal + 1;
 		canctrl_PutMessage((void*)&temp, 1);
 	}
-}
-void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
-{
-	canctrl_SetID(CANCTRL_MODE_ENCODER);
-	canctrl_PutMessage((void*)&encBLDC, sizeof(encBLDC));
 }
 
 uint32_t canfunc_MotorGetEncoderPulseBLDC()

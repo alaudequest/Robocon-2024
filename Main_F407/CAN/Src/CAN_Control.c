@@ -26,7 +26,14 @@ CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
-
+void canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID)
+{
+	txHeader.DLC = 0;
+	txHeader.RTR = CAN_RTR_REMOTE;
+	txHeader.StdId = modeID;
+	txHeader.IDE = CAN_ID_STD;
+	canctrl_Send(can, targetID);
+}
 
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
 	if(ID > 0x7ff) return HAL_ERROR;
