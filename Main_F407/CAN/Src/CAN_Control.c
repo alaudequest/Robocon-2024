@@ -28,11 +28,18 @@ void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
 void canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID)
 {
+	if( !can) return HAL_ERROR;
+	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_BUSY;
+	HAL_StatusTypeDef err = HAL_OK;
 	txHeader.DLC = 0;
 	txHeader.RTR = CAN_RTR_REMOTE;
 	txHeader.StdId = modeID;
 	txHeader.IDE = CAN_ID_STD;
-	canctrl_Send(can, targetID);
+	if(targetID) canctrl_SetTargetDevice(targetID);
+	err = HAL_CAN_AddTxMessage(can, &txHeader, txData, txMailBox);
+	memset(txData,0,sizeof(txData));
+	txHeader.StdId = 0;
+	return err;
 }
 
 HAL_StatusTypeDef canctrl_SetID(uint32_t ID){
@@ -122,6 +129,11 @@ HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
 		stdID_PreMesg = 0;
 		return HAL_OK;
 	} else return HAL_BUSY;
+}
+
+HAL_StatusTypeDef canctrl_RTR_SendRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
+{
+
 }
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)

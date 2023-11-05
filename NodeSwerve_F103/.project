@@ -33,7 +33,12 @@
 		<link>
 			<name>CAN</name>
 			<type>2</type>
-			<location>C:/Users/ADMIN/OneDrive/Desktop/Robocon team K/Main_F407/CAN</location>
+			<location>D:/SPK Turbo/Robocon-2024/Main_F407/CAN</location>
+		</link>
+		<link>
+			<name>IoTVisionLibrary</name>
+			<type>2</type>
+			<location>D:/SPK Turbo/Robocon-2024/Main_F407/IoTVisionLibrary</location>
 		</link>
 	</linkedResources>
 </projectDescription>

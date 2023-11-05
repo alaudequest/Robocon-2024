@@ -89,6 +89,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
+	 portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
@@ -141,7 +142,7 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
 	brd_SetPID(pid, type);
 }
 
-void handleFunc(CAN_MODE_ID mode){
+void handleFunctionCAN(CAN_MODE_ID mode){
 	switch(mode){
 	case CANCTRL_MODE_SHOOT:
 		break;
@@ -173,11 +174,10 @@ void handleFunc(CAN_MODE_ID mode){
 	case CANCTRL_MODE_PID_BLDC_SPEED:
 		canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
-	case CANCTRL_MODE_START:
-	case CANCTRL_MODE_END:
+	default:
 		break;
 	}
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 }
 
 void Flash_Write(CAN_DEVICE_ID ID){
@@ -247,6 +247,7 @@ int main(void)
   brd_Init();
   qPID = xQueueCreate(2,sizeof(float));
   qHome = xQueueCreate(1,sizeof(bool));
+  canctrl_RTR_TxRequest(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_MOTOR_SPEED_ANGLE);
 
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -680,7 +681,9 @@ void StartCANbus(void const * argument)
   for(;;)
   {
 	  if(xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)){
-		  handleFunc((CAN_MODE_ID)modeID);
+		  CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
+		  if(rxHeader.RTR == CAN_RTR_REMOTE) canfunc_RTR_RxResponse(&hcan, modeID);
+		  else handleFunctionCAN((CAN_MODE_ID)modeID);
 	  }
 //    osDelay(1);
   }
