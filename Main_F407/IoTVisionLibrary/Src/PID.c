@@ -31,6 +31,8 @@ float PID_Cal(PID_Param *pid,float Target_set,float CurrVal_set)
 {
 //-----------------------Input-------------------------//
 	e = Target_set - CurrVal_set;
+
+	if((e>-1.5)&&(e<1.5))e = 0;
 	if(!kI) kB = 0;
 	else kB = 1/deltaT;
 

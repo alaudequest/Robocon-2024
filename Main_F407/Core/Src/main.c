@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "LowPass.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -32,6 +33,7 @@
 #include "string.h"
 #include "Gamepad.h"
 #include "OdometerHandle.h"
+#include "PIDPosition.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,7 +66,6 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart3;
 
@@ -76,7 +77,7 @@ osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
-osThreadId TaskGamePadHandle;
+osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 bool enableSendSpeedAndAngle = false;
 bool enableSendPID = false;
@@ -117,22 +118,24 @@ float Xright;
 _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
 float u,v,r;
+
+float DeltaYR,DeltaYL,DeltaX;
+float TestTargetX = 0,TestTargetY = 0,TestTargetTheta = 0 ;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
-static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_TIM4_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_TIM1_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void Actuator(void const * argument);
-void GamePadHandle(void const * argument);
+void OdometerHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -288,8 +291,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -305,15 +307,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN1_Init();
-  MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
-  MX_TIM4_Init();
   MX_USART3_UART_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Encoder_Start_IT(&htim1, TIM_CHANNEL_ALL);
-  HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
-  HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 
   HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
   HAL_CAN_Start(&hcan1);
@@ -358,9 +356,9 @@ int main(void)
   osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
-  /* definition and creation of TaskGamePad */
-  osThreadDef(TaskGamePad, GamePadHandle, osPriorityLow, 0, 128);
-  TaskGamePadHandle = osThreadCreate(osThread(TaskGamePad), NULL);
+  /* definition and creation of TaskOdometer */
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
+  TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -490,7 +488,7 @@ static void MX_TIM1_Init(void)
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -539,7 +537,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -614,77 +612,6 @@ static void MX_TIM3_Init(void)
 }
 
 /**
-  * @brief TIM4 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM4_Init(void)
-{
-
-  /* USER CODE BEGIN TIM4_Init 0 */
-
-  /* USER CODE END TIM4_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM4_Init 1 */
-
-  /* USER CODE END TIM4_Init 1 */
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 0;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 65535;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM4_Init 2 */
-
-  /* USER CODE END TIM4_Init 2 */
-  HAL_TIM_MspPostInit(&htim4);
-
-}
-
-/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -729,7 +656,6 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -754,7 +680,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle)
 	speedAngle.bldcSpeed = speed;
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
-	canctrl_Send(&hcan1, (CAN_DEVICE_ID)ID);
 	while(canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 
@@ -799,6 +724,17 @@ void TestSendPID()
 	}
 }
 
+int stopFlag;
+void emergenceStop(){
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = 0;
+	speedAngle.dcAngle = 0;
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;i<=CANCTRL_DEVICE_MOTOR_CONTROLLER_4;i++){
+			canfunc_MotorPutSpeedAndAngle(speedAngle);
+			while(canctrl_Send(&hcan1, i) != HAL_OK);
+		}
+	stopFlag = 1;
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -807,6 +743,7 @@ void TestSendPID()
   * @param  argument: Not used
   * @retval None
   */
+float goc;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -814,24 +751,49 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
 	swer_Init();
 //	TestBreakProtection();
+
 	InitialSetHome();
+//	osDelay(5000);
+	OdoInit();
+	PID_Pos_Init();
+
   for(;;)
   {
-//	  if(GamePad.Circle == 1)
+//	  if(GamePad.Touch == 1)
 //	  {
-//		  TestBreakProtection();
-//	  }else{
+//		  osDelay(50);
+//		  if(GamePad.Touch == 1)
+//		  	  {
+//			  	  emergenceStop();
+//		  	  }
+//	  }
+
+	  if (!stopFlag){
+		  if(GamePad.Square == 1)
+		  	  {
+			  	  TestBreakProtection();
+		  	  }
+		  else{
+//			  DeltaYR = Odo_GetPOS_YTest();
+//			  DeltaX = Odo_GetPOS_XTest();
+//			u = PID_CalPos_y(TestTargetY);
+//			v = PID_CalPos_x(TestTargetX);
+//			r = PID_CalPos_theta(TestTargetTheta);
+
 //			u = GamePad.YLeftCtr;
 //			v = GamePad.XLeftCtr;
-//			r = -GamePad.XRightCtr*M_PI/180;
-//
-//			invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-//			invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-//			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-//			invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
-//	  }
-//
-//
+//			r = GamePad.XRightCtr;
+			u = 1*cos(goc*M_PI/180);
+			v = 1*sin(goc*M_PI/180);
+
+			invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+		  }
+	  }
+
+
 	if(gamepadRxIsBusy) {
 		gamepadRxIsBusy = 0;
 		HAL_UART_Receive_IT(&huart3, (uint8_t*)UARTRX3_Buffer, 9);
@@ -850,19 +812,15 @@ void StartDefaultTask(void const * argument)
 * @param argument: Not used
 * @retval None
 */
-int DeltaYR,DeltaYL,DeltaX;
+
 /* USER CODE END Header_InverseKinematic */
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
+
   /* Infinite loop */
-	OdoInit();
   for(;;)
   {
-	Odo_PositionCalculate();
-//	DeltaYR = Odo_GetPulseYR();
-//	DeltaYL = Odo_GetPulseYL();
-//	DeltaX  = Odo_GetPulseX();
     osDelay(1);
   }
   /* USER CODE END InverseKinematic */
@@ -904,23 +862,94 @@ void Actuator(void const * argument)
   /* USER CODE END Actuator */
 }
 
-/* USER CODE BEGIN Header_GamePadHandle */
+/* USER CODE BEGIN Header_OdometerHandle */
 /**
-* @brief Function implementing the TaskGamePad thread.
+* @brief Function implementing the TaskOdometer thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_GamePadHandle */
-void GamePadHandle(void const * argument)
+
+lowPassParam filX,filY,filTheta;
+float Ccoef;
+int YRc,YLc,Xc;
+int PrYRc,PrYLc,PrXc;
+float curX, curY , curTheta;
+float PrcurX,PrcurY,PrcurTheta;
+float DeltaXpose,DeltaYpose,DeltaThetapose;
+float xPose,yPose,thetaPose;
+float thetaShow;
+
+float xPoseCoef;
+float xPoseWatch;
+
+float UDlen = 35,RLlen = 40.5;
+int Cycle = 20;
+float filtedDelX,filtedDelY,filtedDelTheta;
+float filPosX,filPosY,filPosTheta;
+/* USER CODE END Header_OdometerHandle */
+void OdometerHandle(void const * argument)
 {
-  /* USER CODE BEGIN GamePadHandle */
-//	uint32_t gamePadhandle;
+  /* USER CODE BEGIN OdometerHandle */
+	osDelay(5000);
+	filX.filAlpha = 0.1;
+	filY.filAlpha = 0.1;
+	filTheta.filAlpha = 0.1;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+
+		Ccoef = M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
+		YRc	= Odo_GetPulseYR();
+		YLc  = Odo_GetPulseYL();
+		Xc = Odo_GetPulseX();
+
+		DeltaYR = (YRc - PrYRc);
+		DeltaYL  = (YLc - PrYLc);
+		DeltaX = (Xc-PrXc);
+
+		PrYLc = YLc;
+		PrYRc = YRc;
+		PrXc = Xc;
+
+		DeltaThetapose = Ccoef*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE);
+		DeltaYpose = Ccoef*(DeltaYR + DeltaYL)/2;
+		DeltaXpose = Ccoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE));
+
+		filtedDelX = LowPassFilter(&filX, DeltaXpose);
+		filtedDelY = LowPassFilter(&filY, DeltaYpose);
+		filtedDelTheta = LowPassFilter(&filTheta, DeltaThetapose);
+//		DeltaXpose = curX - PrcurX;
+//		DeltaYpose = curY - PrcurY;
+//		DeltaThetapose = curTheta - PrcurTheta;
+//
+//		PrcurX = curX;
+//		PrcurY = curY;
+//		PrcurTheta = curTheta;
+
+		thetaPose += DeltaThetapose;
+		xPose += DeltaXpose*cos(thetaPose)-DeltaYpose*sin(thetaPose);
+		yPose += DeltaXpose*sin(thetaPose)+DeltaYpose*cos(thetaPose);
+
+		filPosTheta += filtedDelTheta;
+		filPosX += filtedDelX*cos(filPosTheta)-filtedDelY*sin(filPosTheta);
+		filPosY += filtedDelX*sin(filPosTheta)+filtedDelY*cos(filPosTheta);
+
+//		thetaPose = Ccoef*(YRc - YLc)/(2*RLlen);
+//		yPose = Ccoef*(YRc + YLc)/2;
+//		xPose = Ccoef*(Xc - UDlen*(YRc - YLc)/(2*RLlen));
+
+		xPoseCoef = Ccoef*UDlen*(YRc - YLc)/(2*RLlen);
+		xPoseWatch = Ccoef*Xc;
+
+		thetaShow = thetaPose*180/M_PI;
+	//	  *M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
+	//	DeltaX  = Odo_GetPulseX();
+	//			*2*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
+
+//	Odo_PosCal();
+    osDelay(Cycle);
   }
-  /* USER CODE END GamePadHandle */
+  /* USER CODE END OdometerHandle */
 }
 
 /**

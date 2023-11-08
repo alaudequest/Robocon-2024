@@ -26,8 +26,8 @@ float modulo180(float Angle)
 int angopt_QuadrantCheckInput(float x, float y)
 {
 	float xT = x,yT = y;
-	if(absf(xT)<0.0001) xT = 0;
-	if(absf(yT)<0.0001) yT = 0;
+	if(absf(xT)<0.00001) xT = 0;
+	if(absf(yT)<0.00001) yT = 0;
 
 	if((xT>0)&&(yT>0))return 1;
 	else if((xT>0)&&(yT<0))return 2;

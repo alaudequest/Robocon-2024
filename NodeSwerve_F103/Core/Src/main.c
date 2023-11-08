@@ -640,6 +640,7 @@ void StartDefaultTask(void const * argument)
 * @param argument: Not used
 * @retval None
 */
+float targetS,targetP;
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const * argument)
 {
@@ -649,7 +650,7 @@ void StartTaskPID(void const * argument)
     while(!sethome_IsComplete()){
     	xQueueReceive(qPID, &TargetValue,0);
     	PID_DC_CalSpeed((float)TargetValue);
-    	osDelay(1);
+    	osDelay(5);
     }
   /* Infinite loop */
   for(;;)
@@ -664,7 +665,11 @@ void StartTaskPID(void const * argument)
 
 	  PID_DC_CalPos(brd_GetTargetAngleDC());
 	  PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-	  osDelay(1);
+
+//	  PID_DC_CalPos(targetP);
+//	  PID_DC_CalSpeed(targetP);
+//	  PID_BLDC_CalSpeed(targetS);
+	  osDelay(5);
   }
   /* USER CODE END StartTaskPID */
 }

@@ -44,7 +44,10 @@ HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r
 	invkine_CalOptAngle(ID);
 	velocity = invkine_CalSpeedVectorControl(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
+	if(u == 0&&v==0&&r==0)angopt.currentAngle= angopt.PreCurrAngle;
 	ptnCpltCallback(ID,velocity,angopt.currentAngle);
+	angopt.PreCurrAngle = angopt.currentAngle;
+	swer_SetOptAngle(ID, angopt);
 	return HAL_OK;
 }
 

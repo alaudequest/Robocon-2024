@@ -40,5 +40,5 @@ void GamepPadHandle(_GamePad *pad,uint8_t *DataTayGame){
 
 	pad->XLeftCtr = ((pad->XLeft-125)/10)*0.3/12;
 	pad->YLeftCtr = ((pad->YLeft-125)/10)*0.3/12;
-	pad->XRightCtr =((pad->XRight-120)/10)*30/12;
+	pad->XRightCtr =(((pad->XRight-120)/10)*30/12)*M_PI/180;
 }

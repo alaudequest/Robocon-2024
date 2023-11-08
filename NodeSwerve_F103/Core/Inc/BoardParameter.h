@@ -26,6 +26,8 @@
 #define DC_SUM_ABOVE_LIMIT 						1000
 #define DC_SUM_BELOW_LIMIT 						-1000
 
+#define PIDDeltaT							0.005
+
 
 typedef enum PID_type{
 	PID_DC_SPEED = 1,
