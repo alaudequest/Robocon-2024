@@ -9,6 +9,7 @@
 #define INC_GAMEPAD_H_
 
 #include "main.h"
+#include "math.h"
 
 typedef struct _GamePad{
 	uint8_t Status;

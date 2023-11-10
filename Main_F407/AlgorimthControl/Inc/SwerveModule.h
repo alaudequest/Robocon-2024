@@ -42,6 +42,7 @@ typedef struct Angle_Opt_Param{
 
 	int Case1;
 	int Case2;
+	float PreCurrAngle;
 }Angle_Opt_Param;
 
 typedef void (*pVectorCalXY)(float, float, float);

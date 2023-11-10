@@ -26,8 +26,8 @@ float modulo180(float Angle)
 int angopt_QuadrantCheckInput(float x, float y)
 {
 	float xT = x,yT = y;
-	if(absf(xT)<0.0001) xT = 0;
-	if(absf(yT)<0.0001) yT = 0;
+	if(absf(xT)<0.00001) xT = 0;
+	if(absf(yT)<0.00001) yT = 0;
 
 	if((xT>0)&&(yT>0))return 1;
 	else if((xT>0)&&(yT<0))return 2;
@@ -115,25 +115,13 @@ void angopt_Cal(ModuleID ID,float input)
 #define calInput		opt.calInput
 #define preCal			opt.preCal
 #define deltaCal		opt.deltaCal
-//#define OffsetAngle		opt.OffsetAngle
-//	input += OffsetAngle;
-	if(input != preAngle)
-	{
+	if(input != preAngle){
 		calInput = input;
 
 		if((currentAngle>=0)&&(calInput<0))calInput+=360;
 		else if ((currentAngle<0)&&(calInput>0))calInput-=360;
 
-//		deltaCal = calInput-preCal;
-//		if(deltaCal>180)deltaCal+=-360;
-//		else if (deltaCal<-180)deltaCal+=360;
-//
-//		if( ((deltaCal>90)&&(deltaCal<180))
-//		|| ((deltaCal<-90)&&(deltaCal>-180))
-//		|| (abs(deltaCal==180)) )	direct*=-1;
-
 		deltaAngle = calInput - modulo360(currentAngle);
-
 		if(deltaAngle>180)deltaAngle+=-360;
 		else if(deltaAngle<-180)deltaAngle+=360;
 
@@ -144,9 +132,7 @@ void angopt_Cal(ModuleID ID,float input)
 		preAngle = input;
 		preCal = calInput;
 		currentAngle += deltaAngle;
-
-//		if(calInput == modulo360(currentAngle)) direct = 1;
-
+		if(currentAngle>=1080) currentAngle-=360;
 		swer_SetOptAngle(ID, opt);
 	}
 }
