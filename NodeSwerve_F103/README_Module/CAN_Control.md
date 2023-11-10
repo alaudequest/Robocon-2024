@@ -1,10 +1,22 @@
-# Cấu trúc thiết kế gói tin
 
 Trở về [README chính](../README.md)
 
-Tham khảo [CAN_Control.h](../Slave_F103/Core/Inc/CAN_Control.h)
+Tham khảo [CAN_Control.h](../../Main_F407/CAN/Inc/CAN_Control.h)
 
-Tham khảo [CAN_Control.c](../Slave_F103/Core/Src/CAN_Control.c)
+Tham khảo [CAN_Control.c](../../Main_F407/CAN/Src/CAN_Control.c)
+
+__*Lưu ý*__: Project NodeSwerve_F103 không có CAN_Control và CAN_FuncHandle mà chỉ có Main_F407 mới có (để đồng nhất API sử dụng cho cả F4 và F1 khi update, thêm tính năng mới hoặc chỉnh sửa) vì vậy cần phải liên kết giữa Project __*NodeSwerve_F013*__ và folder __*CAN*__ ở Project __*Main_F407*__
+
+Thực hiện liên kết theo các bước sau:
+
+	1. Trong STM32CubeIDE, mục bên trái tên Project Explorer, click vào NodeSwerve_F103 nhấn tổ hợp Alt+Enter (hoặc chọn Properties)
+	2. C/C++ Build -> Settings, mục Tool Settings -> MCU GCC Compiler -> Include paths
+	3. Add directory path (symbol hình mặt giấy màu trắng có dấu + )
+	4. Chọn Workspace -> Main_F407 -> CAN -> Inc (xong phần include các file .h), sau đó bấm OK và thoát ra tới mục C/C++ Build
+	5. Chọn C/C++ General -> Paths and Symbols -> Source Location -> Link Folder
+	6. Tick vào ô Link to folder in the file system, sau đó bấm Browse và trỏ tới thư mục CAN trong Main_F407, chọn Select Folder sau đó thoát ra, ở mục Source Location sẽ xuất hiện /NodeSwerve_F103/CAN, chọn Apply and Close, giờ đây trong project __*NodeSwerve_F013*__ sẽ xuất hiện folder CAN
+
+# Cấu trúc thiết kế gói tin
 
 + Mô hình truyền thông CAN bus sử dụng ID chuẩn (Standard ID sau này viết tắt là StdID) để định danh gói tin, với mô hình này sẽ có 11 bit StdID được sử dụng để phân biệt gói tin truyền nhận.
 
@@ -67,8 +79,8 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
 
 # Các hàm API
 
-### canctrl_Receive
-+ Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), set một cờ sự kiện canEvent tương ứng với enum CANCTRL_MODE_ID (Ví dụ có sự kiện CANCTRL_MODE_PID_DC_SPEED thì canEvent = 1 << CANCTRL_MODE_PID_DC_SPEED), lúc này biến rxHeader và biến rxData (biến private) sẽ được cập nhật với gói tin nhận được, dùng hàm canctrl_GetRxHeader để lấy rxHeader và dùng hàm canctrl_GetMessage để lấy dữ liệu từ rxData.
+### canctrl_Receive(Sử dụng khi không dùng hệ điều hành RTOS)
++ Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), set một bit cờ sự kiện canEvent tương ứng với enum CANCTRL_MODE_ID (Ví dụ có sự kiện CANCTRL_MODE_PID_DC_SPEED thì canEvent = 1 << CANCTRL_MODE_PID_DC_SPEED), lúc này biến rxHeader và biến rxData (biến private) sẽ được cập nhật với gói tin nhận được, dùng hàm canctrl_GetRxHeader để lấy rxHeader và dùng hàm canctrl_GetMessage để lấy dữ liệu từ rxData.
 + Hàm __*canfunc_HandleRxEvent*__ được dùng để kiểm tra và xóa cờ sự kiện canEvent, và gọi tới một hàm do người dùng tự viết để xử lý các sự kiện đó, tham khảo [CAN_FuncHandle](CAN_FuncHandle.md)
 + Return: HAL_StatusTypeDef
 + Đối số truyền vào:
@@ -85,14 +97,62 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
 	```
 	__*Note*__: Sử dụng HAL_CAN_DeactivateNotification vì FIFO có 3 Mailbox, giả sử có Mailbox(1) đang trong quá trình xử lý dữ liệu nhận được và Mailbox(2) trong bộ đệm chờ xử lý thì hàm ngắt HAL_CAN_RxFifo0MsgPendingCallback sẽ được gọi liên tục và copy dữ liệu từ Mailbox(2) ghi đè vào Mailbox(1) và bị Critical Section trong khi Mailbox(1) chưa được xử lý xong, chỉ khi Mailbox 1 xử lý xong và set cờ sự kiện để ActiveNotification lại thì mới xử lý tiếp
 
+### canctrl_Receive_2 (tối ưu hơn canctrl_Receive, dùng với hệ điều hành RTOS)
+
++ Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), trả về enum CAN_MODE_ID (khác với hàm canctrl_Receive là set cờ - bị overhead do phải quét tìm) 
++ Return: CAN_MODE_ID
++ Đối số truyền vào:
+    + CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
+    + uint32_t FIFO: macro của RX_FIFO_0 và RX_FIFO_1
++ Ví dụ (dùng trong FreeRTOS với API taskNotify):
+	```
+	void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
+	 HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	 CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
+	}
+
+	// Task xử lý dữ liệu từ hàm ngắt ***************************
+	void StartCANbus(void const * argument)
+	{
+		/* USER CODE BEGIN StartCANbus */
+		CAN_Init();
+		uint32_t modeID;
+		/* Infinite loop */
+		for(;;)
+		{
+			if(xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)){
+				handleMesgCAN((CAN_MODE_ID)modeID);
+			}
+		//    osDelay(1);
+		}
+		/* USER CODE END StartCANbus */
+	}
+	```
+	Lưu ý trong hàm ngắt nhận Message Pending đã thực hiện tắt ngắt để chương trình không nhảy vào hàm ngắt khi bản tin CAN chưa được xử lý xong, vì vậy trong hàm xử lý của người dùng (trong trường hợp này là __*handleMesgCAN*__ )cần phải bật ngắt Message Pending trở lại dùng API __*HAL_CAN_ActivateNotification*__
+
+
 ### canctrl_Send
 
-+ Chức năng: 
++ Chức năng: Truyền bản tin CAN tới Node được chỉ định trong mạng CAN 
++ Đối số truyền vào:
+	+ CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
+	+ CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này
 + Return: HAL_StatusTypeDef
+	+ HAL_OK: bản tin CAN được thêm thành công vào TX mailbox có sẵn và chờ được gửi vào mạng CAN
+	+ HAL_ERROR: DLC của bản tin CAN trước đó chưa được xóa hoặc sai địa chỉ ngoại vi CAN
+	+ HAL_BUSY: Không có TX mailbox nào trống để đưa dữ liệu vào, cần phải chờ đến khi một trong ba TX mailbox gửi đi thành công
+
+	Ví dụ:
+	```
+	while(canctrl_Send(&hcan,CANCTRL_ID1)!= HAL_OK);
+	```
+	Trong ví dụ này, có thể thấy CPU phải chờ đến khi TX mailbox sẵn sàng để thêm gói tin vào và khiến CPU bị tiêu tốn thời gian chờ (test với baudrate 500 000 bit/s thì 1 gói tin CAN mất hơn 100uS), giải pháp cải thiện là sử dụng Queue hoặc Ring buffer và loại bỏ vòng lặp while
 
 ### canctrl_GetRxHeader
 
-+ Chức năng: trả về Header của gói tin nhận được (nên dùng hàm này sau khi có sự kiện nhận được gói tin và hàm __*canctrl_Receive*__ sẽ cập nhật rxHeader mới nhất)
++ Chức năng: trả về Header của gói tin nhận được (nên dùng hàm này sau khi có sự kiện ngắt nhận được gói tin CAN gọi hàm __*HAL_CAN_GetRxMessage*__ sẽ cập nhật rxHeader mới nhất)
 + Return: CAN_RxHeaderTypeDef
 
 Sử dụng: tạo một biến có kiểu dữ liệu CAN_RxHeaderTypeDef để chứa Header
@@ -103,7 +163,7 @@ CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 ### canctrl_SetTargetDevice
 
 + Chức năng: Chọn ID node nhận để gửi dữ liệu tới
-+ Đối số: enum CAN_DEVICE_ID
++ Đối số: enum CAN_DEVICE_ID 
 
 Ví dụ:
 ```
@@ -130,8 +190,57 @@ struct B {
 
 struct B d;
 canctrl_PutMessage((void*)&a,sizeof(a));
+canctrl_Send(&hcan,CANCTRL_ID2);
 canctrl_PutMessage((void*)&d,sizeof(d));
+canctrl_Send(&hcan,CANCTRL_ID3);
 ```
+### canctrl_SendMultipleMessages
+
++ Chức năng: Gửi nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau)
++ Return: HAL_StatusTypeDef
+	+ HAL_OK: Nhận thành công đầy đủ gói tin CAN
+	+ HAL_ERROR: truyền con trỏ NULL cho ngoại vi CAN hoặc data hoặc kích thước gói tin là 0
+	+ HAL_BUSY: gói tin CAN chưa gửi xong
++ Đối số: 
+	+ CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
+	+ CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp)
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền
++ Ví dụ:
+	```
+	struct A{
+		float param1;
+		uint8_t param2;
+		uint16_t param3;
+	}
+	struct A a{
+		.param1 = -16.25,
+		.param2 = 20,
+		.param3 = 500,
+	}
+	if(canctrl_SendMultipleMessages(hcan,CANCTRL_ID1,(void*)&a,sizeof(struct A)) == HAL_OK){
+		// Do something after sending data complete
+	}
+	```
+### canctrl_GetMultipleMessages
+
++ Chức năng: Nhận nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau)
++ Return: HAL_StatusTypeDef
++ Đối số: 
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp)
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền
++ Ví dụ:
+	```
+	struct A{
+		float param1;
+		uint8_t param2;
+		uint16_t param3;
+	}
+	struct A b;
+	if(canctrl_GetMultipleMessages(hcan,CANCTRL_ID1,(void*)&b,sizeof(struct A)) == HAL_OK){
+		// Do something after receiving data complete
+	}
+	```
 
 ### canctrl_GetMessage
 
@@ -199,9 +308,3 @@ Giả sử lọc Node 1 là CANCTRL_ID1 cho lowID(nghĩa là chỉ cần xuất 
 canctrl_Filter_List16(&hcan, 0x105, 0, (CANCTRL_ID1 << CAN_DEVICE_POS), 0, 1, CAN_RX_FIFO0)
 ```
 Ở đây có thể thấy ID là 0x105, tuy nhiên Mask lại là 0x100. Vậy ý nghĩa của bộ lọc là: "Với bất kỳ gói tin nào có bit thứ 8 mang giá trị 1 (chỉ định Node 1) thì sẽ được chấp nhận, không quan tâm tới chế độ chạy của Node.", vậy sau khi nhận được gói tin dành cho Node 1 thì cần phải kiểm tra StdID (StdID & 0x0f) để biết được bản tin đang yêu cầu Node 1 chạy ở chế độ nào. Ngược lại nếu Mask là 0x005 thì tất cả các Node có chức năng được quy định bởi mã 0x005 sẽ thực hiện cùng một lúc (ví dụ chế độ Set Home cho các Node). Giả sử Mask = 0x020 và ID = 0x105 thì bộ lọc sẽ vô dụng do không khớp bit giữa ID và Mask nên sẽ không chấp nhận bất kỳ gói tin nào dù StdID nhận được là 0x105
-
-# Hướng dẫn dev
-Trong hàm canctrl_Receive có biến rxHeader với kiểu dữ liệu CAN_RxHeaderTypeDef, khi nhận được gói tin thì hàm canctrl_Receive sẽ gọi tới __HAL_CAN_GetRxMessage(can, FIFO, &rxHeader, rxData);__ và Header của gói tin nhận được sẽ đưa vào biến rxHeader.
-
-### checkEventFromRxHeader
-+ Đây là hàm nội bộ trong CAN_Control, không được dùng bên ngoài. Sau khi nhận được bản tin CAN, hàm này sẽ quét và set cờ sự kiện tương ứng với MODE trong CANCTRL_MODE_ID

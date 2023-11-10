@@ -28,9 +28,9 @@ void homeBeginHandle(){
 }
 
 void tuneCoarseHandle(){
-	if(brd_GetAngleDC_Fast() > TUNE_COARSE_ABOVE_DEGREE && speed > 0){
+	if(brd_GetCurrentAngleDC() > TUNE_COARSE_ABOVE_DEGREE && speed > 0){
 		speed *= -1;
-	} else if (brd_GetAngleDC_Fast() < TUNE_COARSE_BELOW_DEGREE && speed < 0){
+	} else if (brd_GetCurrentAngleDC() < TUNE_COARSE_BELOW_DEGREE && speed < 0){
 		speed *= -1;
 	}
 	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
@@ -42,9 +42,9 @@ void tuneCoarseHandle(){
 	}
 }
 void tuneFineHandle(){
-	if(brd_GetAngleDC_Fast() > TUNE_FINE_ABOVE_DEGREE && speed > 0){
+	if(brd_GetCurrentAngleDC() > TUNE_FINE_ABOVE_DEGREE && speed > 0){
 		speed *= -1;
-	} else if (brd_GetAngleDC_Fast() < TUNE_FINE_BELOW_DEGREE && speed < 0){
+	} else if (brd_GetCurrentAngleDC() < TUNE_FINE_BELOW_DEGREE && speed < 0){
 		speed *= -1;
 	}
 	if(!HAL_GPIO_ReadPin(Sensor_Home_GPIO_Port, Sensor_Home_Pin)){
