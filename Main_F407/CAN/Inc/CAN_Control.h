@@ -16,7 +16,6 @@ typedef enum CAN_MODE_ID{
 	CANCTRL_MODE_START,
 	CANCTRL_MODE_LED_BLUE,
 	CANCTRL_MODE_SHOOT,
-	CANCTRL_MODE_ENCODER,
 	CANCTRL_MODE_SET_HOME,
 	CANCTRL_MODE_MOTOR_SPEED_ANGLE,
 	CANCTRL_MODE_MOTOR_BLDC_BRAKE,
@@ -54,6 +53,7 @@ void canctrl_RTR_SetToRemote();
 void canctrl_SetFlag(CAN_MODE_ID flag);
 void canctrl_ClearFlag(CAN_MODE_ID flag);
 bool canctrl_CheckFlag(CAN_MODE_ID flag);
+void canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID);
 CAN_MODE_ID canctrl_RxHeaderGetModeID();
 CAN_MODE_ID canctrl_Receive_2(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);

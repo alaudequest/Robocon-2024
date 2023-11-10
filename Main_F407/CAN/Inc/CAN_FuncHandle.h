@@ -38,7 +38,7 @@ void canfunc_Convert_CAN_PID_to_PID_Param(CAN_PID canPID, PID_Param *pid);
 void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type));
 HAL_StatusTypeDef canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
-
+void canfunc_RTR_RxResponse(CAN_HandleTypeDef *can, CAN_MODE_ID modeID);
 
 
 #endif /* INC_CAN_FUNCHANDLE_H_ */
