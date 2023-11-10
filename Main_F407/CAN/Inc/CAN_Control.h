@@ -53,7 +53,7 @@ void canctrl_RTR_SetToRemote();
 void canctrl_SetFlag(CAN_MODE_ID flag);
 void canctrl_ClearFlag(CAN_MODE_ID flag);
 bool canctrl_CheckFlag(CAN_MODE_ID flag);
-void canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID);
+HAL_StatusTypeDef canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID);
 CAN_MODE_ID canctrl_RxHeaderGetModeID();
 CAN_MODE_ID canctrl_Receive_2(CAN_HandleTypeDef *can, uint32_t FIFO);
 HAL_StatusTypeDef canctrl_MakeStdTxHeader(uint16_t ID, uint32_t RTR);

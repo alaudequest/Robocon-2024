@@ -26,9 +26,9 @@ CAN_RxHeaderTypeDef canctrl_GetRxHeader(){return rxHeader;}
 void canctrl_RTR_SetToData(){txHeader.RTR = CAN_RTR_DATA;}
 void canctrl_RTR_SetToRemote(){txHeader.RTR = CAN_RTR_REMOTE;}
 
-void canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID)
+HAL_StatusTypeDef canctrl_RTR_TxRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, CAN_MODE_ID modeID)
 {
-	if( !can) return HAL_ERROR;
+	if(!can) return HAL_ERROR;
 	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_BUSY;
 	HAL_StatusTypeDef err = HAL_OK;
 	txHeader.DLC = 0;
@@ -131,10 +131,6 @@ HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
 	} else return HAL_BUSY;
 }
 
-HAL_StatusTypeDef canctrl_RTR_SendRequest(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
-{
-
-}
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 {
