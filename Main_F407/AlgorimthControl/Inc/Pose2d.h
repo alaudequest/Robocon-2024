@@ -10,5 +10,10 @@
 
 #include "math.h"
 
+typedef struct Translation2d {
+	float m_x;
+	float m_y;
+}Translation2d;
 
+void TranslationAsign(float,float);
 #endif /* INC_POSE2D_H_ */

@@ -25,36 +25,36 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 	}
 }
 
-void canfunc_RTR_RxResponse(CAN_HandleTypeDef *can, CAN_MODE_ID modeID){
-	switch(modeID){
-	case CANCTRL_MODE_LED_BLUE:
-	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-	case CANCTRL_MODE_SET_HOME:
-	case CANCTRL_MODE_SHOOT:
-	case CANCTRL_MODE_TEST:
-	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
-		break;
-	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-		CAN_SpeedBLDC_AngleDC spdAngle;
-		spdAngle.bldcSpeed = brd_GetSpeedBLDC();
-		spdAngle.dcAngle = brd_GetCurrentAngleDC();
-		canfunc_MotorPutSpeedAndAngle(spdAngle);
-		canctrl_Send(can, CANCTRL_DEVICE_MAIN);
-		break;
-	case CANCTRL_MODE_PID_BLDC_SPEED:
-		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN, brd_GetPID(PID_BLDC_SPEED), PID_BLDC_SPEED) != HAL_OK);
-		break;
-	case CANCTRL_MODE_PID_DC_ANGLE:
-		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN, brd_GetPID(PID_DC_ANGLE), PID_DC_ANGLE) != HAL_OK);
-		break;
-	case CANCTRL_MODE_PID_DC_SPEED:
-		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN,  brd_GetPID(PID_DC_SPEED), PID_DC_SPEED) != HAL_OK);
-		break;
-	default:
-		break;
-	}
-	HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-}
+//void canfunc_RTR_RxResponse(CAN_HandleTypeDef *can, CAN_MODE_ID modeID){
+//	switch(modeID){
+//	case CANCTRL_MODE_LED_BLUE:
+//	case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
+//	case CANCTRL_MODE_SET_HOME:
+//	case CANCTRL_MODE_SHOOT:
+//	case CANCTRL_MODE_TEST:
+//	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
+//		break;
+//	case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+//		CAN_SpeedBLDC_AngleDC spdAngle;
+////		spdAngle.bldcSpeed = brd_GetSpeedBLDC();
+////		spdAngle.dcAngle = brd_GetCurrentAngleDC();
+//		canfunc_MotorPutSpeedAndAngle(spdAngle);
+//		canctrl_Send(can, CANCTRL_DEVICE_MAIN);
+//		break;
+//	case CANCTRL_MODE_PID_BLDC_SPEED:
+//		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN, brd_GetPID(PID_BLDC_SPEED), PID_BLDC_SPEED) != HAL_OK);
+//		break;
+//	case CANCTRL_MODE_PID_DC_ANGLE:
+//		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN, brd_GetPID(PID_DC_ANGLE), PID_DC_ANGLE) != HAL_OK);
+//		break;
+//	case CANCTRL_MODE_PID_DC_SPEED:
+//		while(canfunc_PutAndSendParamPID(can, CANCTRL_DEVICE_MAIN,  brd_GetPID(PID_DC_SPEED), PID_DC_SPEED) != HAL_OK);
+//		break;
+//	default:
+//		break;
+//	}
+//	HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+//}
 
 bool canfunc_GetBoolValue()
 {

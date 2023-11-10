@@ -98,7 +98,7 @@ uint32_t enableFlag = 0;
 
 EnableFuncHandle mode = ENABLE_ANGLE_SPEED;
 CAN_DEVICE_ID Device_ID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
-CAN_MODE_ID Mode_ID = CANCTRL_MODE_PID_BLDC_SPEED;
+CAN_MODE_ID Mode_ID = CANCTRL_MODE_MOTOR_SPEED_ANGLE;
 PID_Param targetPID = {
 	.deltaT = 0.001,
 	.kP = 10,
@@ -210,8 +210,6 @@ void canTxHandleFunc(CAN_MODE_ID mode,CAN_DEVICE_ID targetID){
 	case CANCTRL_MODE_LED_BLUE :
 		break;
 	case CANCTRL_MODE_SHOOT :
-		break;
-	case CANCTRL_MODE_ENCODER :
 		break;
 	case CANCTRL_MODE_MOTOR_SPEED_ANGLE :
 		SendSpeedAndRotation(Device_ID,bldcSpeed,dcAngle);
@@ -749,6 +747,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+	canctrl_RTR_TxRequest(&hcan1, targetID, Mode_ID);
 	swer_Init();
 //	TestBreakProtection();
 
@@ -890,58 +889,58 @@ float filPosX,filPosY,filPosTheta;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
-	osDelay(5000);
-	filX.filAlpha = 0.1;
-	filY.filAlpha = 0.1;
-	filTheta.filAlpha = 0.1;
+//	osDelay(5000);
+//	filX.filAlpha = 0.1;
+//	filY.filAlpha = 0.1;
+//	filTheta.filAlpha = 0.1;
   /* Infinite loop */
   for(;;)
   {
 
-		Ccoef = M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
-		YRc	= Odo_GetPulseYR();
-		YLc  = Odo_GetPulseYL();
-		Xc = Odo_GetPulseX();
-
-		DeltaYR = (YRc - PrYRc);
-		DeltaYL  = (YLc - PrYLc);
-		DeltaX = (Xc-PrXc);
-
-		PrYLc = YLc;
-		PrYRc = YRc;
-		PrXc = Xc;
-
-		DeltaThetapose = Ccoef*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE);
-		DeltaYpose = Ccoef*(DeltaYR + DeltaYL)/2;
-		DeltaXpose = Ccoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE));
-
-		filtedDelX = LowPassFilter(&filX, DeltaXpose);
-		filtedDelY = LowPassFilter(&filY, DeltaYpose);
-		filtedDelTheta = LowPassFilter(&filTheta, DeltaThetapose);
-//		DeltaXpose = curX - PrcurX;
-//		DeltaYpose = curY - PrcurY;
-//		DeltaThetapose = curTheta - PrcurTheta;
+//		Ccoef = M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
+//		YRc	= Odo_GetPulseYR();
+//		YLc  = Odo_GetPulseYL();
+//		Xc = Odo_GetPulseX();
 //
-//		PrcurX = curX;
-//		PrcurY = curY;
-//		PrcurTheta = curTheta;
-
-		thetaPose += DeltaThetapose;
-		xPose += DeltaXpose*cos(thetaPose)-DeltaYpose*sin(thetaPose);
-		yPose += DeltaXpose*sin(thetaPose)+DeltaYpose*cos(thetaPose);
-
-		filPosTheta += filtedDelTheta;
-		filPosX += filtedDelX*cos(filPosTheta)-filtedDelY*sin(filPosTheta);
-		filPosY += filtedDelX*sin(filPosTheta)+filtedDelY*cos(filPosTheta);
-
-//		thetaPose = Ccoef*(YRc - YLc)/(2*RLlen);
-//		yPose = Ccoef*(YRc + YLc)/2;
-//		xPose = Ccoef*(Xc - UDlen*(YRc - YLc)/(2*RLlen));
-
-		xPoseCoef = Ccoef*UDlen*(YRc - YLc)/(2*RLlen);
-		xPoseWatch = Ccoef*Xc;
-
-		thetaShow = thetaPose*180/M_PI;
+//		DeltaYR = (YRc - PrYRc);
+//		DeltaYL  = (YLc - PrYLc);
+//		DeltaX = (Xc-PrXc);
+//
+//		PrYLc = YLc;
+//		PrYRc = YRc;
+//		PrXc = Xc;
+//
+//		DeltaThetapose = Ccoef*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE);
+//		DeltaYpose = Ccoef*(DeltaYR + DeltaYL)/2;
+//		DeltaXpose = Ccoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE));
+//
+//		filtedDelX = LowPassFilter(&filX, DeltaXpose);
+//		filtedDelY = LowPassFilter(&filY, DeltaYpose);
+//		filtedDelTheta = LowPassFilter(&filTheta, DeltaThetapose);
+////		DeltaXpose = curX - PrcurX;
+////		DeltaYpose = curY - PrcurY;
+////		DeltaThetapose = curTheta - PrcurTheta;
+////
+////		PrcurX = curX;
+////		PrcurY = curY;
+////		PrcurTheta = curTheta;
+//
+//		thetaPose += DeltaThetapose;
+//		xPose += DeltaXpose*cos(thetaPose)-DeltaYpose*sin(thetaPose);
+//		yPose += DeltaXpose*sin(thetaPose)+DeltaYpose*cos(thetaPose);
+//
+//		filPosTheta += filtedDelTheta;
+//		filPosX += filtedDelX*cos(filPosTheta)-filtedDelY*sin(filPosTheta);
+//		filPosY += filtedDelX*sin(filPosTheta)+filtedDelY*cos(filPosTheta);
+//
+////		thetaPose = Ccoef*(YRc - YLc)/(2*RLlen);
+////		yPose = Ccoef*(YRc + YLc)/2;
+////		xPose = Ccoef*(Xc - UDlen*(YRc - YLc)/(2*RLlen));
+//
+//		xPoseCoef = Ccoef*UDlen*(YRc - YLc)/(2*RLlen);
+//		xPoseWatch = Ccoef*Xc;
+//
+//		thetaShow = thetaPose*180/M_PI;
 	//	  *M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
 	//	DeltaX  = Odo_GetPulseX();
 	//			*2*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
