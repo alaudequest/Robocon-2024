@@ -90,6 +90,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	 portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
@@ -97,6 +98,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan){
 	 BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	 xTaskNotifyFromISR(TaskHandleCANHandle,modeID,eSetValueWithOverwrite,&HigherPriorityTaskWoken);
 	 HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+	 portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
 void CAN_Init(){
@@ -126,14 +128,14 @@ void CAN_Init(){
    CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 //Access bxCAN register:
 	// method 1:
-	if(hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 6, CAN_RX_FIFO0);
+//  if(hcan.Init.Mode == CAN_MODE_LOOPBACK)
 	// method 2:
-//	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
+//	if(hcan.Instance->BTR & (CAN_BTR_LBKM))
 	// method 3:
-//	(CAN1->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
+//	(CAN1->BTR & (CAN_BTR_LBKM))
 }
 
-uint8_t Break;
+
 
 void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
 	PID_Param pid = brd_GetPID(type);
@@ -155,7 +157,7 @@ void handleFunctionCAN(CAN_MODE_ID mode){
 		MotorBLDC_Brake(&mbldc, brake);
 		break;
 	case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
-		Break = canfunc_GetBoolValue();
+		uint8_t Break = canfunc_GetBoolValue();
 		PID_BLDC_BreakProtection(Break);
 	case CANCTRL_MODE_TEST:
 		TestMode = canfunc_GetBoolValue();
@@ -212,6 +214,11 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID){
 		break;
 	}
 	HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+}
+
+void SetHomeCompleteCallback(){
+	canfunc_SetBoolValue(1, CANCTRL_MODE_SET_HOME);
+	canctrl_Send(&hcan, *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS);
 }
 
 void Flash_Write(CAN_DEVICE_ID ID){
@@ -641,7 +648,7 @@ void StartDefaultTask(void const * argument)
 	SET_HOME_DEFAULT_TASK:
 	sethome_Begin();
 	while(!sethome_IsComplete()){
-	  sethome_Procedure();
+	  sethome_Procedure(&SetHomeCompleteCallback);
 	  float speed = sethome_GetSpeed();
 	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
 	  osDelay(1);
