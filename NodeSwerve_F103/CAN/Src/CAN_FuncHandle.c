@@ -43,11 +43,7 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 	uint8_t temp = (uint8_t)bVal + 1;
 	canctrl_PutMessage((void*)&temp, 1);
 }
-void canfunc_MotorPutEncoderPulseBLDC(uint32_t encBLDC)
-{
-	canctrl_SetID(CANCTRL_MODE_ENCODER);
-	canctrl_PutMessage((void*)&encBLDC, sizeof(encBLDC));
-}
+
 
 uint32_t canfunc_MotorGetEncoderPulseBLDC()
 {
