@@ -32,7 +32,7 @@ typedef enum SetHomeEvent{
 
 float sethome_GetSpeed();
 void sethome_Begin();
-void sethome_Procedure();
+void sethome_Procedure(void (*pSetHomeCompleteCallback)());
 void sethome_SetFlag(SetHomeEvent e);
 bool sethome_CheckFlag(SetHomeEvent e);
 void sethome_ClearFlag(SetHomeEvent e);

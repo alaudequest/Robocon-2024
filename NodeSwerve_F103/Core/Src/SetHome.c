@@ -64,7 +64,7 @@ bool sethome_IsComplete()
 	return 0;
 }
 
-void sethome_Procedure()
+void sethome_Procedure(void (*pSetHomeCompleteCallback)())
 {
 	switch(homeEvent){
 	case SET_HOME_BEGIN:
@@ -88,7 +88,7 @@ void sethome_Procedure()
 		homeEvent = SET_HOME_COMPLETE;
 		break;
 	case SET_HOME_COMPLETE:
-
+		if(!pSetHomeCompleteCallback) pSetHomeCompleteCallback();
 		break;
 	}
 

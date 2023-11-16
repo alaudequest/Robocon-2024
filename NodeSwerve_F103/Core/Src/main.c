@@ -131,14 +131,16 @@ void CAN_Init() {
 	 CAN1(address) = *(__IO uint32_t*)(PERIPHERAL_BASE_ADDRESS + APB1_BASE_ADDRESS 	+ CAN_BASE_ADDRESS  )*/
 //Access bxCAN register:
 	// method 1:
-	if (hcan.Init.Mode == CAN_MODE_LOOPBACK) canctrl_Filter_Mask16(&hcan, 0, 0, 0, 0, 6, CAN_RX_FIFO0);
+//  if(hcan.Init.Mode == CAN_MODE_LOOPBACK)
 	// method 2:
-//	if(hcan.Instance->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
+//	if(hcan.Instance->BTR & (CAN_BTR_LBKM))
 	// method 3:
-//	(CAN1->BTR & (CAN_BTR_LBKM)) canctrl_Filter_Mask16(...);
+//	(CAN1->BTR & (CAN_BTR_LBKM))
 }
 
-void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
+
+
+void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
 	PID_Param pid = brd_GetPID(type);
 	canfunc_Convert_CAN_PID_to_PID_Param(canPID, &pid);
 	brd_SetPID(pid, type);
@@ -213,16 +215,21 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 	HAL_CAN_ActivateNotification(can, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 }
 
-void Flash_Write(CAN_DEVICE_ID ID) {
-	uint32_t targetAddr = FLASH_ADDR_BASE + 1024 * 64;
-	FLASH_EraseInitTypeDef fe;
-	fe.TypeErase = FLASH_TYPEERASE_PAGES;
-	fe.PageAddress = targetAddr;
-	fe.NbPages = 1;
-	fe.Banks = FLASH_BANK_1;
-	uint32_t pageErr = 0;
-	HAL_FLASH_Unlock();
-	if (HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
+void SetHomeCompleteCallback(){
+	canfunc_SetBoolValue(1, CANCTRL_MODE_SET_HOME);
+	canctrl_Send(&hcan, *(__IO uint32_t*)FLASH_ADDR_TARGET << CAN_DEVICE_POS);
+}
+
+void Flash_Write(CAN_DEVICE_ID ID){
+	uint32_t targetAddr = FLASH_ADDR_BASE + 1024*64;
+	  FLASH_EraseInitTypeDef fe;
+	  fe.TypeErase = FLASH_TYPEERASE_PAGES;
+	  fe.PageAddress = targetAddr;
+	  fe.NbPages = 1;
+	  fe.Banks = FLASH_BANK_1;
+	  uint32_t pageErr = 0;
+	  HAL_FLASH_Unlock();
+	  if(HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK){
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
@@ -624,14 +631,16 @@ void SethomeHandle() {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const *argument) {
-	/* USER CODE BEGIN 5 */
-	SET_HOME_DEFAULT_TASK: sethome_Begin();
-	while (!sethome_IsComplete()) {
-		sethome_Procedure();
-		float speed = sethome_GetSpeed();
-		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-		osDelay(1);
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+	SET_HOME_DEFAULT_TASK:
+	sethome_Begin();
+	while(!sethome_IsComplete()){
+	  sethome_Procedure(&SetHomeCompleteCallback);
+	  float speed = sethome_GetSpeed();
+	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
+	  osDelay(1);
 	}
 	brd_SetHomeCompleteCallback();
 	IsSetHome = 0;
