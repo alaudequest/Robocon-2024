@@ -88,6 +88,7 @@ void sethome_Procedure(void (*pSetHomeCompleteCallback)())
 		homeEvent = SET_HOME_COMPLETE;
 		break;
 	case SET_HOME_COMPLETE:
+		//Neu con tro khac Mull
 		if(!pSetHomeCompleteCallback) pSetHomeCompleteCallback();
 		break;
 	}

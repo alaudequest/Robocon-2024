@@ -28,14 +28,14 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 
 void canfunc_RTR_SpeedAngle(CAN_HandleTypeDef *can, CAN_SpeedBLDC_AngleDC speedAngle)
 {
-	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024) << CAN_DEVICE_POS;
+	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024);
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	canctrl_Send(can, deviceID);
 }
 
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type)
 {
-	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024) << CAN_DEVICE_POS;
+	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024);
 	while(canfunc_PutAndSendParamPID(can, deviceID,  pid, type) != HAL_OK);
 }
 
