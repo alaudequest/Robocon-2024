@@ -189,7 +189,7 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 	PID_Param pid;
 	switch (modeID) {
 		case CANCTRL_MODE_SET_HOME:
-			bool setHomeValue = canfunc_GetBoolValue();
+			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 		break;
 		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
@@ -657,6 +657,7 @@ void StartDefaultTask(void const *argument) {
  * @param argument: Not used
  * @retval None
  */
+int TestTarget;
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const *argument) {
 	/* USER CODE BEGIN StartTaskPID */
@@ -675,8 +676,9 @@ void StartTaskPID(void const *argument) {
 			goto SET_HOME_PID_TASK;
 		}
 
-		PID_DC_CalPos(brd_GetTargetAngleDC());
+//		PID_DC_CalPos(brd_GetTargetAngleDC());
 		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
+		PID_DC_CalPos(TestTarget);
 
 		osDelay(5);
 	}
