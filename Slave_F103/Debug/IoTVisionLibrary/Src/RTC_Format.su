@@ -1,5 +1,0 @@
-../IoTVisionLibrary/Src/RTC_Format.c:10:7:RTC_GetTimeFromString	72	static
-../IoTVisionLibrary/Src/RTC_Format.c:41:9:RTC_ConvertTickElapsedToSecond	16	static
-../IoTVisionLibrary/Src/RTC_Format.c:42:9:RTC_ConvertTickElapsedToMinute	16	static
-../IoTVisionLibrary/Src/RTC_Format.c:43:9:RTC_ConvertTickElapsedToHour	16	static
-../IoTVisionLibrary/Src/RTC_Format.c:45:6:RTC_PackTimeToString	48	static

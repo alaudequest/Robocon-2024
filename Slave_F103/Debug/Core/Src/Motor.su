@@ -1,5 +1,0 @@
-../Core/Src/Motor.c:21:6:MotorDC_Init	24	static
-../Core/Src/Motor.c:28:6:MotorDC_Drive	24	static
-../Core/Src/Motor.c:47:6:MotorBLDC_Init	24	static
-../Core/Src/Motor.c:64:6:MotorBLDC_Brake	16	static
-../Core/Src/Motor.c:69:6:MotorBLDC_Drive	24	static
