@@ -82,7 +82,7 @@ void StartCANbus(void const *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
+/* Private user code --------------------------f-------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan,
