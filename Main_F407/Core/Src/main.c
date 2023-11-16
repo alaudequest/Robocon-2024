@@ -69,6 +69,7 @@ uint32_t TaskCANBuffer[128];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
+
 /* USER CODE BEGIN PV */
 
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
@@ -97,6 +98,20 @@ float u, v, r;
 
 float DeltaYR, DeltaYL, DeltaX;
 float TestTargetX = 0, TestTargetY = 0, TestTargetTheta = 0;
+CAN_SpeedBLDC_AngleDC nodeSpeedAngle[4] = { 0 };
+
+CAN_DEVICE_ID nodeSwerveSetHomeComplete = 0;
+#define TARGET_FLAG_GROUP nodeSwerveSetHomeComplete
+void nodeHome_SetFlag(CAN_DEVICE_ID e) {
+	SETFLAG(TARGET_FLAG_GROUP, e);
+}
+bool nodeHome_CheckFlag(CAN_DEVICE_ID e) {
+	return CHECKFLAG(TARGET_FLAG_GROUP, e);
+}
+void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
+	CLEARFLAG(TARGET_FLAG_GROUP, e);
+}
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -122,12 +137,57 @@ void OdometerHandle(void const *argument);
 
 /*=============================== CAN ===============================*/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-	canctrl_Receive(hcan, CAN_RX_FIFO0);
+	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-	canctrl_Receive(hcan, CAN_RX_FIFO1);
+	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+}
+void CAN_Init() {
+	HAL_CAN_Start(&hcan1);
+	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	canctrl_Filter_Mask16(&hcan1,
+			CANCTRL_MODE_SET_HOME,
+			CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			CANCTRL_MODE_SET_HOME,
+			CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			0,
+			CAN_RX_FIFO0);
 }
 
+void setHomeComplete()
+{
+	__NOP();
+}
+
+void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
+	switch (mode) {
+		case CANCTRL_MODE_SET_HOME:
+			nodeHome_SetFlag(targetID);
+			// @formatter:off
+			if(nodeHome_CheckFlag(CANCTRL_DEVICE_MOTOR_CONTROLLER_1
+					| CANCTRL_DEVICE_MOTOR_CONTROLLER_2
+					| CANCTRL_DEVICE_MOTOR_CONTROLLER_3
+					| CANCTRL_DEVICE_MOTOR_CONTROLLER_4
+					))
+				setHomeComplete();
+																		// @formatter:on
+		break;
+		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+			nodeSpeedAngle[targetID] = canfunc_MotorGetSpeedAndAngle();
+		break;
+		default:
+			break;
+	}
+	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
 /*=============================== UART ===============================*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART3) {
@@ -203,8 +263,7 @@ int main(void) {
 	/* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	HAL_CAN_Start(&hcan1);
-	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
@@ -668,7 +727,7 @@ float goc;
 void StartDefaultTask(void const *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
-	canctrl_RTR_TxRequest(&hcan1, targetID, Mode_ID);
+
 	swer_Init();
 
 	OdoInit();
@@ -746,14 +805,24 @@ void InverseKinematic(void const *argument) {
 /* USER CODE END Header_CAN_Bus */
 void CAN_Bus(void const *argument) {
 	/* USER CODE BEGIN CAN_Bus */
-	canctrl_RTR_TxRequest(&hcan1, 0, CANCTRL_MODE_SET_HOME);
+	CAN_Init();
+	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_SET_HOME);
+	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2, CANCTRL_MODE_SET_HOME);
+	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3, CANCTRL_MODE_SET_HOME);
+	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
+	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
+			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
+			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
+			if (modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_MOTOR_SPEED_ANGLE) {
+				handleFunctionCAN(modeID, targetID);
+			}
+		}
+		/* USER CODE END CAN_Bus */
 	}
-	/* USER CODE END CAN_Bus */
 }
-
 /* USER CODE BEGIN Header_Actuator */
 /**
  * @brief Function implementing the TaskActuator thread.
@@ -776,83 +845,13 @@ void Actuator(void const *argument) {
  * @param argument: Not used
  * @retval None
  */
-
-lowPassParam filX, filY, filTheta;
-float Ccoef;
-int YRc, YLc, Xc;
-int PrYRc, PrYLc, PrXc;
-float curX, curY, curTheta;
-float PrcurX, PrcurY, PrcurTheta;
-float DeltaXpose, DeltaYpose, DeltaThetapose;
-float xPose, yPose, thetaPose;
-float thetaShow;
-
-float xPoseCoef;
-float xPoseWatch;
-
-float UDlen = 35, RLlen = 40.5;
-int Cycle = 20;
-float filtedDelX, filtedDelY, filtedDelTheta;
-float filPosX, filPosY, filPosTheta;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const *argument) {
 	/* USER CODE BEGIN OdometerHandle */
-//	osDelay(5000);
-//	filX.filAlpha = 0.1;
-//	filY.filAlpha = 0.1;
-//	filTheta.filAlpha = 0.1;
+
 	/* Infinite loop */
 	for (;;) {
 
-//		Ccoef = M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
-//		YRc	= Odo_GetPulseYR();
-//		YLc  = Odo_GetPulseYL();
-//		Xc = Odo_GetPulseX();
-//
-//		DeltaYR = (YRc - PrYRc);
-//		DeltaYL  = (YLc - PrYLc);
-//		DeltaX = (Xc-PrXc);
-//
-//		PrYLc = YLc;
-//		PrYRc = YRc;
-//		PrXc = Xc;
-//
-//		DeltaThetapose = Ccoef*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE);
-//		DeltaYpose = Ccoef*(DeltaYR + DeltaYL)/2;
-//		DeltaXpose = Ccoef*(DeltaX - ODO_WHEEL_UD_DISTANCE*(DeltaYR - DeltaYL)/(2*ODO_WHEEL_LR_DISTANCE));
-//
-//		filtedDelX = LowPassFilter(&filX, DeltaXpose);
-//		filtedDelY = LowPassFilter(&filY, DeltaYpose);
-//		filtedDelTheta = LowPassFilter(&filTheta, DeltaThetapose);
-////		DeltaXpose = curX - PrcurX;
-////		DeltaYpose = curY - PrcurY;
-////		DeltaThetapose = curTheta - PrcurTheta;
-////
-////		PrcurX = curX;
-////		PrcurY = curY;
-////		PrcurTheta = curTheta;
-//
-//		thetaPose += DeltaThetapose;
-//		xPose += DeltaXpose*cos(thetaPose)-DeltaYpose*sin(thetaPose);
-//		yPose += DeltaXpose*sin(thetaPose)+DeltaYpose*cos(thetaPose);
-//
-//		filPosTheta += filtedDelTheta;
-//		filPosX += filtedDelX*cos(filPosTheta)-filtedDelY*sin(filPosTheta);
-//		filPosY += filtedDelX*sin(filPosTheta)+filtedDelY*cos(filPosTheta);
-//
-////		thetaPose = Ccoef*(YRc - YLc)/(2*RLlen);
-////		yPose = Ccoef*(YRc + YLc)/2;
-////		xPose = Ccoef*(Xc - UDlen*(YRc - YLc)/(2*RLlen));
-//
-//		xPoseCoef = Ccoef*UDlen*(YRc - YLc)/(2*RLlen);
-//		xPoseWatch = Ccoef*Xc;
-//
-//		thetaShow = thetaPose*180/M_PI;
-		//	  *M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
-		//	DeltaX  = Odo_GetPulseX();
-		//			*2*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4);
-
-//	Odo_PosCal();
 		osDelay(Cycle);
 	}
 	/* USER CODE END OdometerHandle */

@@ -82,25 +82,22 @@ void StartCANbus(void const *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
-/* Private user code --------------------------f-------------------------------*/
+/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-	HAL_CAN_DeactivateNotification(hcan,
-	CAN_IT_RX_FIFO0_MSG_PENDING);
-	CAN_MODE_ID modeID = canctrl_Receive_2(hcan,
-	CAN_RX_FIFO0);
-	BaseType_t HigherPriorityTaskWoken =
-	pdFALSE;
+	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
-	HAL_GPIO_TogglePin(
-	UserLED_GPIO_Port,
-	UserLED_Pin);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
 	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 }
 
