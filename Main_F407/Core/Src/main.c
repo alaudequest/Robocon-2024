@@ -197,7 +197,7 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 				setHomeComplete();
 																		// @formatter:on
 		break;
-		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
 			nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
 			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
 		break;
@@ -759,6 +759,7 @@ void RTR_SpeedAngle(){
 			}
 		}
 		while(canctrl_RTR_TxRequest(&hcan1, i + 1, CANCTRL_MODE_MOTOR_SPEED_ANGLE)!= HAL_OK);
+		osDelay(1);
 		targetID = i + 1;
 	}
 }
@@ -809,11 +810,16 @@ void StartDefaultTask(void const * argument)
 	//			r = GamePad.XRightCtr;
 	//				u = 1 * cos(goc * M_PI / 180);
 	//				v = 1 * sin(goc * M_PI / 180);
-					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+//					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+//					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
-					RTR_SpeedAngle();
+
+//					while(canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)!= HAL_OK);osDelay(1);
+//					while(canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)!= HAL_OK);
+//					osDelay(1);
+					while(canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)!= HAL_OK);
+
+//					while(canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)!= HAL_OK);osDelay(1);
 				}
 			}
 		}
@@ -874,7 +880,7 @@ void CAN_Bus(void const * argument)
 		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
-			if ((modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_MOTOR_SPEED_ANGLE ) && targetID) {
+			if ((modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_NODE_REQ_SPEED_ANGLE ) && targetID) {
 				handleFunctionCAN(modeID, targetID);
 			}
 			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);

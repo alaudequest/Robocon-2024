@@ -111,7 +111,8 @@ void CAN_Init() {
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			0,0, CAN_RX_FIFO0);
+			deviceID | CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
+			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
@@ -151,6 +152,13 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			break;
 		case CANCTRL_MODE_SET_HOME:
 			break;
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
+			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
+			canctrl_PutMessage((void*)&nodeSpeedAngle, sizeof(nodeSpeedAngle));
+			canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
+			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 			bool brake = canfunc_GetBoolValue();
 			MotorBLDC mbldc = brd_GetObjMotorBLDC();
@@ -188,12 +196,12 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 		break;
-		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-			CAN_SpeedBLDC_AngleDC speedAngle;
-//			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
-			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
-			speedAngle.dcAngle = brd_GetCurrentAngleDC();
-			canfunc_RTR_SpeedAngle(can, speedAngle);
+//		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+//			CAN_SpeedBLDC_AngleDC speedAngle;
+////			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
+//			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+//			speedAngle.dcAngle = brd_GetCurrentAngleDC();
+//			canfunc_RTR_SpeedAngle(can, speedAngle);
 		break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);
