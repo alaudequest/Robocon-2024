@@ -154,10 +154,12 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			break;
 		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
 			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
-			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+//			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+			nodeSpeedAngle.bldcSpeed = brd_GetCurrentCountBLDC();
 			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 			canctrl_PutMessage((void*)&nodeSpeedAngle, sizeof(nodeSpeedAngle));
-			canctrl_Send(&hcan, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
+			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
 			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 			bool brake = canfunc_GetBoolValue();

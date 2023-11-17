@@ -76,6 +76,7 @@ void brd_SetTargetAngleDC(float angle);
 
 float brd_GetCurrentAngleDC();
 float brd_GetCurrentSpeedBLDC();
+int brd_GetCurrentCountBLDC();
 
 void brd_ResetState();
 void brd_SetHomeCompleteCallback();
