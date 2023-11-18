@@ -170,9 +170,9 @@ void CAN_Init() {
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	canctrl_Filter_Mask16(&hcan1,
 			CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_MOTOR_SPEED_ANGLE << 5,
+			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5,
 			CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_MOTOR_SPEED_ANGLE << 5,
+			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5,
 			0,
 			CAN_RX_FIFO0);
 }
@@ -197,9 +197,9 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 				setHomeComplete();
 																		// @formatter:on
 		break;
-		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
 			nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
-			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
+//			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
 		break;
 		default:
 			break;
@@ -750,17 +750,13 @@ void softEmergencyStop() {
  */
 
 void RTR_SpeedAngle(){
-
 	for (uint8_t i = 0;i < 4;i++){
-		while(1){
-			if(!flagmain_CheckFlag(MEVT_GET_NODE_SPEED_ANGLE)){
-				flagmain_SetFlag(MEVT_GET_NODE_SPEED_ANGLE);
-				break;
-			}
-		}
-		while(canctrl_RTR_TxRequest(&hcan1, i + 1, CANCTRL_MODE_MOTOR_SPEED_ANGLE)!= HAL_OK);
+		canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+		bool a = 1;
+		canctrl_PutMessage((void*)&a, sizeof(bool));
 		targetID = i + 1;
-	}
+		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
+		for(uint16_t i = 0; i < 8500; i++) __NOP();	}
 }
 /* USER CODE END 4 */
 
@@ -813,11 +809,14 @@ void StartDefaultTask(void const * argument)
 					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//					canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+//					bool a = 1;
+//					canctrl_PutMessage((void*)&a, sizeof(bool));
+//					while(canctrl_Send(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2) != HAL_OK);
 					RTR_SpeedAngle();
 				}
 			}
 		}
-
 		if (gamepadRxIsBusy) {
 			gamepadRxIsBusy = 0;
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -874,7 +873,7 @@ void CAN_Bus(void const * argument)
 		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
-			if ((modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_MOTOR_SPEED_ANGLE ) && targetID) {
+			if ((modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_NODE_REQ_SPEED_ANGLE ) && targetID) {
 				handleFunctionCAN(modeID, targetID);
 			}
 			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);

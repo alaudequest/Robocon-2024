@@ -11,7 +11,7 @@
 #include "BoardParameter.h"
 
 typedef struct CAN_SpeedBLDC_AngleDC{
-	float bldcSpeed;
+	int bldcSpeed;
 	float dcAngle;
 }CAN_SpeedBLDC_AngleDC;
 
