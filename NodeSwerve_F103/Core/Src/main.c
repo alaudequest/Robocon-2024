@@ -111,7 +111,7 @@ void CAN_Init() {
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			0,0, CAN_RX_FIFO0);
+			0, 0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
@@ -137,9 +137,7 @@ void CAN_Init() {
 //	(CAN1->BTR & (CAN_BTR_LBKM))
 }
 
-
-
-void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type){
+void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 	PID_Param pid = brd_GetPID(type);
 	canfunc_Convert_CAN_PID_to_PID_Param(canPID, &pid);
 	brd_SetPID(pid, type);
@@ -220,16 +218,16 @@ void SetHomeCompleteCallback() {
 	canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
 }
 
-void Flash_Write(CAN_DEVICE_ID ID){
-	uint32_t targetAddr = FLASH_ADDR_BASE + 1024*64;
-	  FLASH_EraseInitTypeDef fe;
-	  fe.TypeErase = FLASH_TYPEERASE_PAGES;
-	  fe.PageAddress = targetAddr;
-	  fe.NbPages = 1;
-	  fe.Banks = FLASH_BANK_1;
-	  uint32_t pageErr = 0;
-	  HAL_FLASH_Unlock();
-	  if(HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK){
+void Flash_Write(CAN_DEVICE_ID ID) {
+	uint32_t targetAddr = FLASH_ADDR_BASE + 1024 * 64;
+	FLASH_EraseInitTypeDef fe;
+	fe.TypeErase = FLASH_TYPEERASE_PAGES;
+	fe.PageAddress = targetAddr;
+	fe.NbPages = 1;
+	fe.Banks = FLASH_BANK_1;
+	uint32_t pageErr = 0;
+	HAL_FLASH_Unlock();
+	if (HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
@@ -631,16 +629,16 @@ void SethomeHandle() {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+void StartDefaultTask(void const *argument)
 {
-  /* USER CODE BEGIN 5 */
+	/* USER CODE BEGIN 5 */
 	SET_HOME_DEFAULT_TASK:
 	sethome_Begin();
-	while(!sethome_IsComplete()){
-	  sethome_Procedure(&SetHomeCompleteCallback);
-	  float speed = sethome_GetSpeed();
-	  xQueueSend(qPID,(const void*)&speed,10/portTICK_PERIOD_MS);
-	  osDelay(1);
+	while (!sethome_IsComplete()) {
+		sethome_Procedure();
+		float speed = sethome_GetSpeed();
+		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+		osDelay(1);
 	}
 	SetHomeCompleteCallback();
 	IsSetHome = 0;
@@ -706,7 +704,7 @@ void StartCANbus(void const *argument) {
 	for (;;) {
 		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-			if(((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)){
+			if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
 				if (rxHeader.RTR == CAN_RTR_REMOTE)
 					handle_CAN_RTR_Response(&hcan, modeID);
 				if (rxHeader.RTR == CAN_RTR_DATA)

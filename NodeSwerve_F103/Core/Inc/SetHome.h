@@ -20,7 +20,7 @@
 #define TUNE_FINE_BELOW_DEGREE -1
 #define TUNE_FINE_SPEED 5
 
-typedef enum SetHomeEvent{
+typedef enum SetHomeEvent {
 	SET_HOME_BEGIN = 1,
 	SET_HOME_TUNE_COARSE,
 	SET_HOME_TUNE_COARSE_SENSOR_DETECT,
@@ -28,11 +28,11 @@ typedef enum SetHomeEvent{
 	SET_HOME_TUNE_FINE_SENSOR_DETECT,
 	SET_HOME_STEADY,
 	SET_HOME_COMPLETE,
-}SetHomeEvent;
+} SetHomeEvent;
 
 float sethome_GetSpeed();
 void sethome_Begin();
-void sethome_Procedure(void (*pSetHomeCompleteCallback)());
+void sethome_Procedure();
 void sethome_SetFlag(SetHomeEvent e);
 bool sethome_CheckFlag(SetHomeEvent e);
 void sethome_ClearFlag(SetHomeEvent e);
