@@ -373,7 +373,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLN = 160;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -412,7 +412,7 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 21;
+  hcan1.Init.Prescaler = 10;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan1.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -756,7 +756,8 @@ void RTR_SpeedAngle(){
 		canctrl_PutMessage((void*)&a, sizeof(bool));
 		targetID = i + 1;
 		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
-		for(uint16_t i = 0; i < 8500; i++) __NOP();	}
+		for(uint16_t i = 0; i < 3000; i++) __NOP();
+	}
 }
 /* USER CODE END 4 */
 
@@ -774,7 +775,7 @@ void StartDefaultTask(void const * argument)
 	/* Infinite loop */
 
 	swer_Init();
-	u = 0.5;
+//	u = 0.5;
 //
 //	OdoInit();
 //	PID_Pos_Init();
@@ -813,7 +814,6 @@ void StartDefaultTask(void const * argument)
 //					bool a = 1;
 //					canctrl_PutMessage((void*)&a, sizeof(bool));
 //					while(canctrl_Send(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2) != HAL_OK);
-					RTR_SpeedAngle();
 				}
 			}
 		}
@@ -843,7 +843,8 @@ void InverseKinematic(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		RTR_SpeedAngle();
+		osDelay(20);
 	}
   /* USER CODE END InverseKinematic */
 }
@@ -878,8 +879,8 @@ void CAN_Bus(void const * argument)
 			}
 			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 		}
-  /* USER CODE END CAN_Bus */
 	}
+  /* USER CODE END CAN_Bus */
 }
 
 /* USER CODE BEGIN Header_Actuator */
