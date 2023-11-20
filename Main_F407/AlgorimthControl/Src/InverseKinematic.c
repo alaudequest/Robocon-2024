@@ -6,7 +6,9 @@
  */
 #include "InverseKinematic.h"
 #include "AngleOptimizer.h"
-
+#include "main.h"
+int Count;
+extern TIM_HandleTypeDef htim10;
 InverseKinematicProcedure InvCalcStep = 0;
 
 void invkine_CalWheelVector(ModuleID ID, float u, float v, float r){
@@ -39,15 +41,20 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 
 HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r,void (*ptnCpltCallback)(ModuleID,float, float))
 {
+//	HAL_TIM_Base_Start(&htim10);
+//	__HAL_TIM_SET_COUNTER(&htim10,0);
 	static float velocity = 0;
 	invkine_CalWheelVector(ID, u, v, r);
 	invkine_CalOptAngle(ID);
 	velocity = invkine_CalSpeedVectorControl(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
 	if(u == 0&&v==0&&r==0)angopt.currentAngle= angopt.PreCurrAngle;
+//	Count = __HAL_TIM_GET_COUNTER(&htim10);
+//	HAL_TIM_Base_Stop(&htim10);
 	ptnCpltCallback(ID,velocity,angopt.currentAngle);
 	angopt.PreCurrAngle = angopt.currentAngle;
 	swer_SetOptAngle(ID, angopt);
+
 	return HAL_OK;
 }
 

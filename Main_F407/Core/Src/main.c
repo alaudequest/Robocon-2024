@@ -59,6 +59,7 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart3;
 
@@ -137,6 +138,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM10_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -283,6 +285,7 @@ int main(void)
   MX_TIM3_Init();
   MX_USART3_UART_Init();
   MX_TIM1_Init();
+  MX_TIM10_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -582,6 +585,37 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 160-1;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 65000;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -748,17 +782,84 @@ void softEmergencyStop() {
  enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
  }
  */
-
+int count;
+int Lmao = 2200;
 void RTR_SpeedAngle(){
+//	HAL_TIM_Base_Start(&htim10);
+//	__HAL_TIM_SET_COUNTER(&htim10,0);
 	for (uint8_t i = 0;i < 4;i++){
 		canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 		bool a = 1;
 		canctrl_PutMessage((void*)&a, sizeof(bool));
 		targetID = i + 1;
 		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
-		for(uint16_t i = 0; i < 3000; i++) __NOP();
+		for(uint16_t i = 0; i < Lmao; i++) __NOP();
 	}
+//	count = __HAL_TIM_GET_COUNTER(&htim10);
+//	HAL_TIM_Base_Stop(&htim10);
 }
+
+#define DeltaT	0.05
+#define PulsePerRev 400*2.5
+
+#define MATRIX_COEF1	0.1768
+#define MATRIX_COEF2 	0
+#define MATRIX_COEF3 	0.7071
+
+typedef struct SpeedReadSlave{
+	float V;
+	float Vx;
+	float Vy;
+
+	float Vfilt;
+	float VfiltPre;
+	float filterAlpha;
+
+	int preCount;
+}SpeedReadSlave;
+
+typedef struct ForwardKine{
+	float uOut;
+	float vOut;
+	float thetaOut;
+}ForwardKine;
+
+typedef struct SwerveOdoHandle{
+	float dX;
+	float dY;
+	float dTheta;
+
+	float poseX;
+	float poseY;
+
+	float S;
+	float C;
+
+	float OffsetGyro;
+}SwerveOdoHandle;
+
+void SpeedRead(SpeedReadSlave *sp, float count)
+{
+	sp->V = (((count-sp->preCount)/DeltaT)/PulsePerRev)*60;
+	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
+	sp->VfiltPre = sp->Vfilt;
+
+	sp->preCount = count;
+}
+
+void Forwardkinecal(ForwardKine *kine, float* VxA, float* VyA)
+{
+	kine->uOut = MATRIX_COEF1*VxA[0] - MATRIX_COEF1*VyA[0] + MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] + MATRIX_COEF1*VyA[2] - MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
+	kine->vOut = MATRIX_COEF1*VxA[0] + MATRIX_COEF1*VyA[0] - MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] - MATRIX_COEF1*VyA[2] + MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
+}
+
+SwerveOdoHandle Odo;
+ForwardKine	Fkine;
+SpeedReadSlave Module[4];
+float Vx[4],Vy[4];
+float Gyro;
+
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -806,10 +907,17 @@ void StartDefaultTask(void const * argument)
 	//			r = GamePad.XRightCtr;
 	//				u = 1 * cos(goc * M_PI / 180);
 	//				v = 1 * sin(goc * M_PI / 180);
+
+
+
+//					HAL_TIM_Base_Start(&htim10);
+//					__HAL_TIM_SET_COUNTER(&htim10,0);
 					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//					count = __HAL_TIM_GET_COUNTER(&htim10);
+//					HAL_TIM_Base_Stop(&htim10);
 //					canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 //					bool a = 1;
 //					canctrl_PutMessage((void*)&a, sizeof(bool));
@@ -843,7 +951,8 @@ void InverseKinematic(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-		RTR_SpeedAngle();
+
+
 		osDelay(20);
 	}
   /* USER CODE END InverseKinematic */
@@ -913,8 +1022,33 @@ void OdometerHandle(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
+		RTR_SpeedAngle();
+				for (int i = 0;i<4;i++)
+				{
+					SpeedRead(&Module[i], nodeSpeedAngle[i].bldcSpeed);
+					Vx[i] = Module[i].Vx;
+					Vy[i] = Module[i].Vy;
+				}
+		//
+				Forwardkinecal(&Fkine, Vx, Vy);
+		//
+				Odo.dY = Fkine.uOut*DeltaT;
+				Odo.dX = Fkine.vOut*DeltaT;
+				Odo.dTheta = Gyro;
+				float sinTheta = sin(Odo.dTheta);
+				float cosTheta = cos(Odo.dTheta);
 
-		osDelay(1);
+				if(fabsf(Odo.dTheta)<0.0001){
+					Odo.S = 1-((pow(Odo.dTheta,2))/6);
+					Odo.C = 0.5*Odo.dTheta;
+				}else{
+					Odo.S = sinTheta/Odo.dTheta;
+					Odo.C = (1-cosTheta)/Odo.dTheta;
+				}
+
+				Odo.poseX += cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)-sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S);
+				Odo.poseY += sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S)+cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C);
+		osDelay(DeltaT*1000);
 	}
   /* USER CODE END OdometerHandle */
 }
