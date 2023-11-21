@@ -784,6 +784,7 @@ void softEmergencyStop() {
  */
 int count;
 int Lmao = 2200;
+
 void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Start(&htim10);
 //	__HAL_TIM_SET_COUNTER(&htim10,0);
@@ -811,6 +812,11 @@ typedef struct SpeedReadSlave{
 	float Vx;
 	float Vy;
 
+	float VxC;
+	float VyC;
+
+	float Offset;
+
 	float Vfilt;
 	float VfiltPre;
 	float filterAlpha;
@@ -836,6 +842,7 @@ typedef struct SwerveOdoHandle{
 	float C;
 
 	float OffsetGyro;
+	float Suy;
 }SwerveOdoHandle;
 
 void SpeedRead(SpeedReadSlave *sp, float count)
@@ -1016,38 +1023,53 @@ void Actuator(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
+
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
-
+	for (int i = 0;i<4;i++)
+	{
+		Module[i].filterAlpha = 0.2;
+	}
+	Odo.Suy = 2*M_PI*0.1/PulsePerRev;
+//	Module[0].Offset = 45;
+//	Module[1].Offset = -45;
+//	Module[2].Offset = 45;
+//	Module[3].Offset = -45;
 	/* Infinite loop */
 	for (;;) {
 		RTR_SpeedAngle();
 				for (int i = 0;i<4;i++)
 				{
 					SpeedRead(&Module[i], nodeSpeedAngle[i].bldcSpeed);
+					nodeSpeedAngle[i].dcAngle += Module[i].Offset;
+					Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
+					Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
+//					Module[i].VxC = Module[i].Vx*cos(Module[i].Offset*M_PI/180)-Module[i].Vy*sin(Module[i].Offset*M_PI/180);
+//					Module[i].VyC = Module[i].Vx*sin(Module[i].Offset*M_PI/180)+Module[i].Vy*cos(Module[i].Offset*M_PI/180);
+
 					Vx[i] = Module[i].Vx;
 					Vy[i] = Module[i].Vy;
 				}
 		//
 				Forwardkinecal(&Fkine, Vx, Vy);
 		//
-				Odo.dY = Fkine.uOut*DeltaT;
-				Odo.dX = Fkine.vOut*DeltaT;
-				Odo.dTheta = Gyro;
+				Odo.dX = Fkine.uOut*DeltaT;
+				Odo.dY = Fkine.vOut*DeltaT;
+				Odo.dTheta = Gyro*M_PI/180;
 				float sinTheta = sin(Odo.dTheta);
 				float cosTheta = cos(Odo.dTheta);
 
-				if(fabsf(Odo.dTheta)<0.0001){
+				if(abs(Odo.dTheta)<0.000001){
 					Odo.S = 1-((pow(Odo.dTheta,2))/6);
-					Odo.C = 0.5*Odo.dTheta;
+					Odo.C = -0.5*Odo.dTheta;
 				}else{
 					Odo.S = sinTheta/Odo.dTheta;
 					Odo.C = (1-cosTheta)/Odo.dTheta;
 				}
 
-				Odo.poseX += cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)-sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S);
-				Odo.poseY += sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S)+cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C);
+				Odo.poseX += (cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)-sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
+				Odo.poseY += (sin(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)+cos(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
 		osDelay(DeltaT*1000);
 	}
   /* USER CODE END OdometerHandle */
