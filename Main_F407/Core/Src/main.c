@@ -97,6 +97,7 @@ CAN_SpeedBLDC_AngleDC nodeSpeedAngle[4] = { 0 };
 
 EventGroupHandle_t evgMain;
 EventBits_t e1 = 0;
+TIM_HandleTypeDef htim10;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -205,7 +206,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 	}
 }
-
+/*=============================== Error handle ===============================*/
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 	while (1);
 }
@@ -215,6 +216,32 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	memset(UARTRX3_Buffer, 0, sizeof(UARTRX3_Buffer));
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	__HAL_UART_DISABLE(huart);
+}
+
+/*=============================== UART ===============================*/
+static void MX_TIM10_Init(void);
+static void MX_TIM10_Init(void) {
+
+	/* USER CODE BEGIN TIM10_Init 0 */
+
+	/* USER CODE END TIM10_Init 0 */
+
+	/* USER CODE BEGIN TIM10_Init 1 */
+
+	/* USER CODE END TIM10_Init 1 */
+	htim10.Instance = TIM10;
+	htim10.Init.Prescaler = 160 - 1;
+	htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim10.Init.Period = 65000;
+	htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	if (HAL_TIM_Base_Init(&htim10) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN TIM10_Init 2 */
+
+	/* USER CODE END TIM10_Init 2 */
+
 }
 /* USER CODE END 0 */
 
@@ -251,6 +278,7 @@ int main(void) {
 	MX_USART3_UART_Init();
 	MX_TIM1_Init();
 	/* USER CODE BEGIN 2 */
+	MX_TIM10_Init();
 	evgMain = xEventGroupCreate();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 
@@ -706,9 +734,11 @@ void softEmergencyStop() {
  enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
  }
  */
-
+uint16_t count = 0;
 void RTR_SpeedAngle() {
 	uint8_t offsetEventBitRTR = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
+	HAL_TIM_Base_Start(&htim10);
+	__HAL_TIM_SET_COUNTER(&htim10, 0);
 	for (uint8_t i = 0; i < 4; i++) {
 		canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 		bool a = 1;
@@ -718,6 +748,8 @@ void RTR_SpeedAngle() {
 		e1 = xEventGroupWaitBits(evgMain, 1 << (i + offsetEventBitRTR), pdTRUE,
 		pdFALSE, portMAX_DELAY);
 	}
+	count = __HAL_TIM_GET_COUNTER(&htim10);
+	HAL_TIM_Base_Stop(&htim10);
 }
 /* USER CODE END 4 */
 
