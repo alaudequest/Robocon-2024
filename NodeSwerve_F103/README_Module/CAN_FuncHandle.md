@@ -11,7 +11,7 @@ Dùng để đóng gói, gửi đi (Put and Send message) và giải mã dữ li
 
 # API
 
-### canfunc_HandleRxEvent (Sử dụng khi không dùng hệ điều hành RTOS)
+### canfunc_HandleRxEvent
 
 + Chức năng: kiểm tra và xóa cờ sự kiện canEvent, nếu có sự kiện xảy ra - khi canEvent > 0 do chương trình nhảy tới hàm ngắt và gọi hàm canctrl_Receive  - thì thực hiện kiểm tra bit cờ và gọi tới hàm do người dùng viết (nếu có)
 

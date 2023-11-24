@@ -79,7 +79,7 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
 
 # Các hàm API
 
-### canctrl_Receive(Sử dụng khi không dùng hệ điều hành RTOS)
+### canctrl_Receive
 + Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), set một bit cờ sự kiện canEvent tương ứng với enum CANCTRL_MODE_ID (Ví dụ có sự kiện CANCTRL_MODE_PID_DC_SPEED thì canEvent = 1 << CANCTRL_MODE_PID_DC_SPEED), lúc này biến rxHeader và biến rxData (biến private) sẽ được cập nhật với gói tin nhận được, dùng hàm canctrl_GetRxHeader để lấy rxHeader và dùng hàm canctrl_GetMessage để lấy dữ liệu từ rxData.
 + Hàm __*canfunc_HandleRxEvent*__ được dùng để kiểm tra và xóa cờ sự kiện canEvent, và gọi tới một hàm do người dùng tự viết để xử lý các sự kiện đó, tham khảo [CAN_FuncHandle](CAN_FuncHandle.md)
 + Return: HAL_StatusTypeDef
@@ -97,9 +97,9 @@ Còn dư 4 bit ở giữa đang bỏ trống không dùng
 	```
 	__*Note*__: Sử dụng HAL_CAN_DeactivateNotification vì FIFO có 3 Mailbox, giả sử có Mailbox(1) đang trong quá trình xử lý dữ liệu nhận được và Mailbox(2) trong bộ đệm chờ xử lý thì hàm ngắt HAL_CAN_RxFifo0MsgPendingCallback sẽ được gọi liên tục và copy dữ liệu từ Mailbox(2) ghi đè vào Mailbox(1) và bị Critical Section trong khi Mailbox(1) chưa được xử lý xong, chỉ khi Mailbox 1 xử lý xong và set cờ sự kiện để ActiveNotification lại thì mới xử lý tiếp
 
-### canctrl_Receive_2 (tối ưu hơn canctrl_Receive, dùng với hệ điều hành RTOS)
+### canctrl_Receive_2
 
-+ Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), trả về enum CAN_MODE_ID (khác với hàm canctrl_Receive là set cờ - bị overhead do phải quét tìm) 
++ Chức năng: Xử lý gói tin nhận được đang trong trạng thái chờ (message pending), trả về enum CAN_MODE_ID (khác với hàm canctrl_Receive là set cờ) 
 + Return: CAN_MODE_ID
 + Đối số truyền vào:
     + CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
@@ -162,8 +162,8 @@ CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 
 ### canctrl_SetTargetDevice
 
-+ Chức năng: Chọn ID node nhận để gửi dữ liệu tới
-+ Đối số: enum CAN_DEVICE_ID 
++ Chức năng: Chọn ID node nhận để gửi dữ liệu tới.
++ Đối số: enum CAN_DEVICE_ID.
 
 Ví dụ:
 ```
@@ -171,13 +171,13 @@ canctrl_SetTargetDevice(CANCTRL_ID1)
 ```
 ### canctrl_PutMessage
 
-+ Chức năng: copy user data vào txData, chuẩn bị cho việc truyền dữ liệu 
++ Chức năng: copy user data vào txData, chuẩn bị cho việc truyền dữ liệu .
 
-	__*Lưu ý*__: chỉ truyền được dữ liệu nhỏ hơn 9 byte
-+ Return: HAL_StatusTypeDef
+	__*Lưu ý*__: chỉ truyền được dữ liệu nhỏ hơn 9 byte.
++ Return: HAL_StatusTypeDef.
 + Đối số: 
-	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp)
-	+ size_t sizeOfDataType: kích thước gói tin cần truyền (nhỏ hơn 8 byte)
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp).
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền (nhỏ hơn 8 byte).
 
 Ví dụ
 ```
@@ -194,18 +194,45 @@ canctrl_Send(&hcan,CANCTRL_ID2);
 canctrl_PutMessage((void*)&d,sizeof(d));
 canctrl_Send(&hcan,CANCTRL_ID3);
 ```
+
+### canctrl_GetMessage
+
++ Chức năng: Lấy dữ liệu nhận được từ rxData, copy ra địa chỉ của biến data.
+	+ __*Lưu ý*__: 
+		+ Chỉ nhận được dữ liệu nhỏ hơn 9 byte.
+		+ Kích thước và kiểu dữ liệu phải khớp hoàn toàn với dữ liệu đưa vào hàm canctrl_PutMessage.
++ Return: HAL_StatusTypeDef.
++ Đối số: 
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần nhận (do người dùng lựa chọn).
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền (nhỏ hơn 8 byte).
+
+Ví dụ:
+
+```
+float e;
+struct B {
+	float a;
+	int c;
+	uint8_t b;
+};
+
+struct B f;
+canctrl_GetMessage((void*)&e,sizeof(e));
+canctrl_GetMessage((void*)&f,sizeof(f));
+```
+
 ### canctrl_SendMultipleMessages
 
-+ Chức năng: Gửi nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau)
++ Chức năng: Gửi nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau).
 + Return: HAL_StatusTypeDef
-	+ HAL_OK: Nhận thành công đầy đủ gói tin CAN
-	+ HAL_ERROR: truyền con trỏ NULL cho ngoại vi CAN hoặc data hoặc kích thước gói tin là 0
-	+ HAL_BUSY: gói tin CAN chưa gửi xong
+	+ HAL_OK: Nhận thành công đầy đủ gói tin CAN.
+	+ HAL_ERROR: truyền con trỏ NULL cho ngoại vi CAN hoặc data hoặc kích thước gói tin là 0.
+	+ HAL_BUSY: gói tin CAN chưa gửi xong.
 + Đối số: 
-	+ CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN
-	+ CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này
-	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp)
-	+ size_t sizeOfDataType: kích thước gói tin cần truyền
+	+ CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN.
+	+ CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này.
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp).
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền.
 + Ví dụ:
 	```
 	struct A{
@@ -224,11 +251,11 @@ canctrl_Send(&hcan,CANCTRL_ID3);
 	```
 ### canctrl_GetMultipleMessages
 
-+ Chức năng: Nhận nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau)
-+ Return: HAL_StatusTypeDef
++ Chức năng: Nhận nhiều gói tin CAN cùng lúc (lưu ý là cấu trúc dữ liệu nhận và gửi phải giống nhau).
++ Return: HAL_StatusTypeDef.
 + Đối số: 
-	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp)
-	+ size_t sizeOfDataType: kích thước gói tin cần truyền
+	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần truyền (do người dùng cung cấp).
+	+ size_t sizeOfDataType: kích thước gói tin cần truyền.
 + Ví dụ:
 	```
 	struct A{
@@ -241,42 +268,31 @@ canctrl_Send(&hcan,CANCTRL_ID3);
 		// Do something after receiving data complete
 	}
 	```
+### canctrl_RTR_TxRequest
 
-### canctrl_GetMessage
-
-+ Chức năng: Lấy dữ liệu nhận được từ rxData, copy ra địa chỉ của biến data
-	+ __*Lưu ý*__: 
-		+ Chỉ nhận được dữ liệu nhỏ hơn 9 byte
-		+ Kích thước và kiểu dữ liệu phải khớp hoàn toàn với dữ liệu đưa vào hàm canctrl_PutMessage
++ Chức năng: Gửi yêu cầu lấy dữ liệu tới node CAN
 + Return: HAL_StatusTypeDef
 + Đối số: 
-	+ void *data: con trỏ void trỏ tới mảng dữ liệu cần nhận (do người dùng lựa chọn)
-	+ size_t sizeOfDataType: kích thước gói tin cần truyền (nhỏ hơn 8 byte)
+	+ CAN_HandleTypeDef *can: con trỏ trỏ tới địa chỉ của ngoại vi CAN.
+	+ CAN_DEVICE_ID targetID: chỉ định thiết bị nào trong mạng CAN sẽ nhận gói tin này.
+	+ CAN_MODE_ID modeID: thông số yêu cầu node trả về dữ liệu.
++ Ví dụ:
+	```
+	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_SET_HOME);
+	```
 
-Ví dụ:
-
-```
-float e;
-struct B {
-	float a;
-	int c;
-	uint8_t b;
-};
-
-struct B f;
-canctrl_GetMessage((void*)&e,sizeof(e));
-canctrl_GetMessage((void*)&f,sizeof(f));
-```
-
+### canctrl_RxHeaderGetModeID
++ Chức năng: Tách thông số MODE_ID từ Header CAN nhận được.
++ Return: CAN_MODE_ID.
 ### canctrl_Filter_List16
 
 + Chức năng: cài đặt ID lọc cho module CAN theo Scalable là 16bit (vì dùng chuẩn Standard ID chỉ có 11 bit), và mode là List (mã ID khớp hoàn toàn với mã cài đặt thì gói tin mới được chấp nhận)
 + Return: HAL_StatusTypeDef
 + Đối số: 
-	+ CAN_HandleTypeDef *can: địa chỉ module CAN cần cài đặt bộ lọc
-	+ uint16_t ID1, ID2, ID3, ID4: 4 mã ID của 1 filter bank khi dùng chế độ List (phải bao gồm định danh của Node là CANCTRL_DEVICE_ID và chế độ chạy CANCTRL_MODE_ID)
-	+ uint32_t filBank: lựa chọn hàng lọc thứ filBank (0,1,2 ... tới giới hạn hàng lọc của ngoại vi CAN)
-	+ uint32_t FIFO: cài đặt hàng lọc này với 4 ID trên sẽ áp dụng cho FIFO nào
+	+ CAN_HandleTypeDef *can: địa chỉ module CAN cần cài đặt bộ lọc.
+	+ uint16_t ID1, ID2, ID3, ID4: 4 mã ID của 1 filter bank khi dùng chế độ List (phải bao gồm định danh của Node là CANCTRL_DEVICE_ID và chế độ chạy CANCTRL_MODE_ID).
+	+ uint32_t filBank: lựa chọn hàng lọc thứ filBank (0,1,2 ... tới giới hạn hàng lọc của ngoại vi CAN).
+	+ uint32_t FIFO: cài đặt hàng lọc này với 4 ID trên sẽ áp dụng cho FIFO nào.
 
 Ví dụ:
 
@@ -292,19 +308,19 @@ canctrl_Filter_List16(&hcan, 0x105, 0, 0, 0, 1, CAN_RX_FIFO0)
 + Chức năng: cài đặt ID lọc cho module CAN theo Scalable là 16bit (vì dùng chuẩn Standard ID chỉ có 11 bit), và mode là Mask (mã ID khớp một trong số các bit 1 của mặt nạ)
 + Return: HAL_StatusTypeDef
 + Đối số: 
-	+ CAN_HandleTypeDef *can: địa chỉ module CAN cần cài đặt bộ lọc
-	+ uint16_t lowID, maskLow: địa chỉ ID (giống với ID1 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID2 trong List 16)
-	+ uint16_t highID, maskHigh: địa chỉ ID (giống với ID3 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID4 trong List 16)
-	+ uint32_t filBank: lựa chọn hàng lọc thứ filBank (0,1,2 ... tới giới hạn hàng lọc của ngoại vi CAN)
-	+ uint32_t FIFO: cài đặt hàng lọc này với 4 ID trên sẽ áp dụng cho FIFO nào
+	+ CAN_HandleTypeDef *can: địa chỉ module CAN cần cài đặt bộ lọc.
+	+ uint16_t lowID, maskLow: địa chỉ ID (giống với ID1 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID2 trong List 16).
+	+ uint16_t highID, maskHigh: địa chỉ ID (giống với ID3 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID4 trong List 16).
+	+ uint32_t filBank: lựa chọn hàng lọc thứ filBank (0,1,2 ... tới giới hạn hàng lọc của ngoại vi CAN).
+	+ uint32_t FIFO: cài đặt hàng lọc này với 4 ID trên sẽ áp dụng cho FIFO nào.
 
-__*Lưu ý*__: trong chế độ này, nếu sử dụng 3 bit cuối của StdID thì chỉ có thể lọc ra được 3 Node tương ứng với bit 8, bit 9 và bit 10 và Mode chỉ có phân biệt được 4 Mode khác nhau tương ứng với bit 0, 1 ,2 ,3
+__*Lưu ý*__: trong chế độ này, nếu sử dụng 3 bit cuối của StdID thì chỉ có thể lọc ra được 3 Node tương ứng với bit 8, bit 9 và bit 10 và Mode chỉ có phân biệt được 4 Mode khác nhau tương ứng với bit 0, 1 ,2 ,3.
 
 Ví dụ:
 
-Giả sử lọc Node 1 là CANCTRL_ID1 cho lowID(nghĩa là chỉ cần xuất hiện giá trị 1 trong bit 8 của StdID thì bộ lọc sẽ chấp nhận gói tin) áp dụng cho FIFO 0 với filter bank là 1
+Giả sử lọc Node 1 là CANCTRL_ID1 cho lowID(nghĩa là chỉ cần xuất hiện giá trị 1 trong bit 8 của StdID thì bộ lọc sẽ chấp nhận gói tin) áp dụng cho FIFO 0 với filter bank là 1.
 
 ```
 canctrl_Filter_List16(&hcan, 0x105, 0, (CANCTRL_ID1 << CAN_DEVICE_POS), 0, 1, CAN_RX_FIFO0)
 ```
-Ở đây có thể thấy ID là 0x105, tuy nhiên Mask lại là 0x100. Vậy ý nghĩa của bộ lọc là: "Với bất kỳ gói tin nào có bit thứ 8 mang giá trị 1 (chỉ định Node 1) thì sẽ được chấp nhận, không quan tâm tới chế độ chạy của Node.", vậy sau khi nhận được gói tin dành cho Node 1 thì cần phải kiểm tra StdID (StdID & 0x0f) để biết được bản tin đang yêu cầu Node 1 chạy ở chế độ nào. Ngược lại nếu Mask là 0x005 thì tất cả các Node có chức năng được quy định bởi mã 0x005 sẽ thực hiện cùng một lúc (ví dụ chế độ Set Home cho các Node). Giả sử Mask = 0x020 và ID = 0x105 thì bộ lọc sẽ vô dụng do không khớp bit giữa ID và Mask nên sẽ không chấp nhận bất kỳ gói tin nào dù StdID nhận được là 0x105
+Ở đây có thể thấy ID là 0x105, tuy nhiên Mask lại là 0x100. Vậy ý nghĩa của bộ lọc là: "Với bất kỳ gói tin nào có bit thứ 8 mang giá trị 1 (chỉ định Node 1) thì sẽ được chấp nhận, không quan tâm tới chế độ chạy của Node.", vậy sau khi nhận được gói tin dành cho Node 1 thì cần phải kiểm tra StdID (StdID & 0x0f) để biết được bản tin đang yêu cầu Node 1 chạy ở chế độ nào. Ngược lại nếu Mask là 0x005 thì tất cả các Node có chức năng được quy định bởi mã 0x005 sẽ thực hiện cùng một lúc (ví dụ chế độ Set Home cho các Node). Giả sử Mask = 0x020 và ID = 0x105 thì bộ lọc sẽ vô dụng do không khớp bit giữa ID và Mask nên sẽ không chấp nhận bất kỳ gói tin nào dù StdID nhận được là 0x105.
