@@ -196,12 +196,11 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 		break;
-//		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-//			CAN_SpeedBLDC_AngleDC speedAngle;
-////			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
-//			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
-//			speedAngle.dcAngle = brd_GetCurrentAngleDC();
-//			canfunc_RTR_SpeedAngle(can, speedAngle);
+		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+			CAN_RTR_Encx4BLDC_AngleDC rtrData;
+			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
+			rtrData.dcAngle = brd_GetCurrentAngleDC();
+			canfunc_RTR_EncoderX4CountBLDC_Angle(can, rtrData);
 		break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);

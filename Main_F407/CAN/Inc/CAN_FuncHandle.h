@@ -11,9 +11,14 @@
 #include "BoardParameter.h"
 
 typedef struct CAN_SpeedBLDC_AngleDC{
-	int bldcSpeed;
+	float bldcSpeed;
 	float dcAngle;
 }CAN_SpeedBLDC_AngleDC;
+
+typedef struct CAN_RTR_Encx4BLDC_AngleDC{
+	int encx4BLDC;
+	float dcAngle;
+}CAN_RTR_Encx4BLDC_AngleDC;
 
 typedef struct CAN_PID{
 	float kp;
@@ -38,7 +43,7 @@ void canfunc_Convert_CAN_PID_to_PID_Param(CAN_PID canPID, PID_Param *pid);
 void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type));
 HAL_StatusTypeDef canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
-void canfunc_RTR_SpeedAngle(CAN_HandleTypeDef *can, CAN_SpeedBLDC_AngleDC speedAngle);
+void canfunc_RTR_EncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC speedAngle);
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type);
 
 
