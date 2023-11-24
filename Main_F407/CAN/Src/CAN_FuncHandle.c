@@ -26,10 +26,11 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 }
 
 
-void canfunc_RTR_SpeedAngle(CAN_HandleTypeDef *can, CAN_SpeedBLDC_AngleDC speedAngle)
+void canfunc_RTR_EncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC rtrData)
 {
 	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024);
-	canfunc_MotorPutSpeedAndAngle(speedAngle);
+	canctrl_SetID(CANCTRL_MODE_MOTOR_SPEED_ANGLE);
+	canctrl_PutMessage((void*)&rtrData, sizeof(CAN_RTR_Encx4BLDC_AngleDC));
 	canctrl_Send(can, deviceID);
 }
 
