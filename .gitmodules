@@ -1,0 +1,3 @@
+[submodule "STM32-Library"]
+	path = STM32-Library
+	url = https://github.com/TM-khoa/STM32-Library.git
