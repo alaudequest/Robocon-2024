@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "MPU6050.h"
 #include "MPU6050_RegisterDef.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,9 @@ I2C_HandleTypeDef hi2c1;
 uint8_t btnStatus = 0;
 MPU6050 mpu;
 uint16_t temperature;
+InterruptPinConfig intcfg;
+PowerManagement1 pwr1;
+uint8_t value;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,7 +98,17 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	mpu.Init(&hi2c1, 0);
 	while (mpu.IsReady() != HAL_OK);
-	mpu.Read(WHO_AM_I);
+
+	pwr1.temperatureDisable = 0;
+	pwr1.cycle = 1;
+	memcpy(&value, &pwr1, 1);
+	while (mpu.Write(PWR_MGMT_1, value) != HAL_OK);
+	value = mpu.Read(PWR_MGMT_1);
+
+//	intcfg.level = 1;
+//	memcpy(&value, &intcfg, 1);
+//	while (mpu.Write(INT_PIN_CFG, value) != HAL_OK);
+	value = mpu.Read(INT_PIN_CFG);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */

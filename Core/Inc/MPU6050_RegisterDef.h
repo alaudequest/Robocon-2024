@@ -134,14 +134,23 @@ typedef enum MPU6050_RegisterAddress {
 #define INTCLEAR_STATUSREAD 0x00
 #define INTCLEAR_ANYREAD    0x01
 typedef struct InterruptPinConfig {
-		uint8_t level :1;
-		uint8_t driveType :1;
-		uint8_t latchInt :1;
-		uint8_t intRdClear :1;
-		uint8_t fsyncIntLevel :1;
-		uint8_t fsyncIntEnable :1;
-		uint8_t i2cBypassEnable :1;
 		uint8_t reserve :1;
+		uint8_t i2cBypassEnable :1;
+		uint8_t fsyncIntEnable :1;
+		uint8_t fsyncIntLevel :1;
+		uint8_t intRdClear :1;
+		uint8_t latchInt :1;
+		uint8_t driveType :1;
+		uint8_t level :1;
 } InterruptPinConfig;
+
+typedef struct PowerManagement1 {
+		uint8_t clkSelect :3;
+		uint8_t temperatureDisable :1;
+		uint8_t reserve :1;
+		uint8_t cycle :1;
+		uint8_t sleep :1;
+		uint8_t devReset :1;
+} PowerManagement1;
 
 #endif /* INC_MPU6050_REGISTERDEF_H_ */
