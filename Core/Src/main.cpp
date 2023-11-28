@@ -47,7 +47,7 @@ I2C_HandleTypeDef hi2c1;
 /* USER CODE BEGIN PV */
 uint8_t btnStatus = 0;
 MPU6050 mpu;
-uint16_t temperature;
+float temperature;
 InterruptPinConfig intcfg;
 PowerManagement1 pwr1;
 uint8_t value;
@@ -105,17 +105,19 @@ int main(void)
 	while (mpu.Write(PWR_MGMT_1, value) != HAL_OK);
 	value = mpu.Read(PWR_MGMT_1);
 
-//	intcfg.level = 1;
-//	memcpy(&value, &intcfg, 1);
-//	while (mpu.Write(INT_PIN_CFG, value) != HAL_OK);
+	intcfg.level = 0;
+	memcpy(&value, &intcfg, 1);
+	while (mpu.Write(INT_PIN_CFG, value) != HAL_OK);
 	value = mpu.Read(INT_PIN_CFG);
+
+	value = HAL_GPIO_ReadPin(MPU_INT_GPIO_Port, MPU_INT_Pin);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		temperature = mpu.GetTemperature();
+		temperature = (float) mpu.GetTemperature() / 340.0 + 36.53;
 		btnStatus = HAL_GPIO_ReadPin(UserBtn_GPIO_Port, UserBtn_Pin);
 		HAL_GPIO_TogglePin(UserRedLED_GPIO_Port, UserRedLED_Pin);
 //		HAL_GPIO_TogglePin(Ready_GPIO_Port, Ready_Pin);

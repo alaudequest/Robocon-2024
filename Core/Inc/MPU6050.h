@@ -33,14 +33,16 @@ class MPU6050 {
 		I2C_HandleTypeDef *i2c;
 		uint8_t address;
 		uint8_t initValid;
-		public:
+
+	public:
 		void Init(I2C_HandleTypeDef *i2c, bool addressHigh);
 		HAL_StatusTypeDef Write(MPU6050_RegisterAddress reg, uint8_t data);
 		uint8_t Read(MPU6050_RegisterAddress reg);
+		uint16_t Read16(MPU6050_RegisterAddress reg);
 		HAL_StatusTypeDef SendBurst();
 		HAL_StatusTypeDef ReceiveBurst();
 		HAL_StatusTypeDef IsReady();
-		uint16_t GetTemperature();
+		int16_t GetTemperature();
 };
 
 #endif
