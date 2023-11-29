@@ -48,9 +48,10 @@ I2C_HandleTypeDef hi2c1;
 uint8_t btnStatus = 0;
 MPU6050 mpu;
 float temperature;
-InterruptPinConfig intcfg;
-PowerManagement1 pwr1;
+MPU6050_InterruptPinConfig intcfg;
+MPU6050_PowerManagement1 pwr1;
 uint8_t value;
+int16_t gZ;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,19 +97,13 @@ int main(void)
 	MX_GPIO_Init();
 	MX_I2C1_Init();
 	/* USER CODE BEGIN 2 */
-	mpu.Init(&hi2c1, 0);
-	while (mpu.IsReady() != HAL_OK);
-
-	pwr1.temperatureDisable = 0;
-	pwr1.cycle = 1;
-	memcpy(&value, &pwr1, 1);
-	while (mpu.Write(PWR_MGMT_1, value) != HAL_OK);
-	value = mpu.Read(PWR_MGMT_1);
+	mpu.init(&hi2c1, 0);
+	while (mpu.isReady() != HAL_OK);
 
 	intcfg.level = 0;
 	memcpy(&value, &intcfg, 1);
-	while (mpu.Write(INT_PIN_CFG, value) != HAL_OK);
-	value = mpu.Read(INT_PIN_CFG);
+	while (mpu.write(INT_PIN_CFG, value) != HAL_OK);
+	value = mpu.read(INT_PIN_CFG);
 
 	value = HAL_GPIO_ReadPin(MPU_INT_GPIO_Port, MPU_INT_Pin);
 	/* USER CODE END 2 */
@@ -117,10 +112,8 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		temperature = (float) mpu.GetTemperature() / 340.0 + 36.53;
-		btnStatus = HAL_GPIO_ReadPin(UserBtn_GPIO_Port, UserBtn_Pin);
-		HAL_GPIO_TogglePin(UserRedLED_GPIO_Port, UserRedLED_Pin);
-//		HAL_GPIO_TogglePin(Ready_GPIO_Port, Ready_Pin);
+//		temperature = mpu.getTemperature();
+		gZ = mpu.getRotationZ();
 		HAL_Delay(100);
 		/* USER CODE END WHILE */
 

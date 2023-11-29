@@ -125,6 +125,8 @@ typedef enum MPU6050_RegisterAddress {
 	WHO_AM_I = 0x75,
 } MPU6050_RegisterAddress;
 
+/* INTERRUPT PIN CONFIG--------------------------------------------------------------------------------*/
+
 #define INTLEVEL_ACTIVEHIGH 0x00
 #define INTLEVEL_ACTIVELOW  0x01
 #define INTDRV_PUSHPULL     0x00
@@ -133,7 +135,7 @@ typedef enum MPU6050_RegisterAddress {
 #define INTLATCH_WAITCLEAR  0x01
 #define INTCLEAR_STATUSREAD 0x00
 #define INTCLEAR_ANYREAD    0x01
-typedef struct InterruptPinConfig {
+typedef struct MPU6050_InterruptPinConfig {
 		uint8_t reserve :1;
 		uint8_t i2cBypassEnable :1;
 		uint8_t fsyncIntEnable :1;
@@ -142,15 +144,154 @@ typedef struct InterruptPinConfig {
 		uint8_t latchInt :1;
 		uint8_t driveType :1;
 		uint8_t level :1;
-} InterruptPinConfig;
+} MPU6050_InterruptPinConfig;
 
-typedef struct PowerManagement1 {
+/* POWER MANAGEMENT 1--------------------------------------------------------------------------------*/
+
+/*
+ * CLKSEL Clock Source
+ * 0 Internal 8MHz oscillator
+ * 1 PLL with X axis gyroscope reference
+ * 2 PLL with Y axis gyroscope reference
+ * 3 PLL with Z axis gyroscope reference
+ * 4 PLL with external 32.768kHz reference
+ * 5 PLL with external 19.2MHz reference
+ * 6 Reserved
+ * 7 Stops the clock and keeps the timing generator in reset
+ *
+ */
+
+typedef enum MPU6050_ClockSource {
+	CLOCK_INTERNAL = 0x00,
+	CLOCK_PLL_XGYRO = 0x01,
+	CLOCK_PLL_YGYRO = 0x02,
+	CLOCK_PLL_ZGYRO = 0x03,
+	CLOCK_PLL_EXT32K = 0x04,
+	CLOCK_PLL_EXT19M = 0x05,
+	CLOCK_KEEP_RESET = 0x07,
+} MPU6050_ClockSource;
+
+typedef struct MPU6050_PowerManagement1 {
 		uint8_t clkSelect :3;
 		uint8_t temperatureDisable :1;
 		uint8_t reserve :1;
 		uint8_t cycle :1;
 		uint8_t sleep :1;
 		uint8_t devReset :1;
-} PowerManagement1;
+} MPU6050_PowerManagement1;
+
+/* CONFIGURATION--------------------------------------------------------------------------------*/
+
+/** Get digital low-pass filter configuration.
+ * The DLPF_CFG parameter sets the digital low pass filter configuration. It
+ * also determines the internal sampling rate used by the device as shown in
+ * the table below.
+ *
+ * Note: The accelerometer output rate is 1kHz. This means that for a Sample
+ * Rate greater than 1kHz, the same accelerometer sample may be output to the
+ * FIFO, DMP, and sensor registers more than once.
+ *
+ * <pre>
+ *          |   ACCELEROMETER    |           GYROSCOPE
+ * DLPF_CFG | Bandwidth | Delay  | Bandwidth | Delay  | Sample Rate
+ * ---------+-----------+--------+-----------+--------+-------------
+ * 0        | 260Hz     | 0ms    | 256Hz     | 0.98ms | 8kHz
+ * 1        | 184Hz     | 2.0ms  | 188Hz     | 1.9ms  | 1kHz
+ * 2        | 94Hz      | 3.0ms  | 98Hz      | 2.8ms  | 1kHz
+ * 3        | 44Hz      | 4.9ms  | 42Hz      | 4.8ms  | 1kHz
+ * 4        | 21Hz      | 8.5ms  | 20Hz      | 8.3ms  | 1kHz
+ * 5        | 10Hz      | 13.8ms | 10Hz      | 13.4ms | 1kHz
+ * 6        | 5Hz       | 19.0ms | 5Hz       | 18.6ms | 1kHz
+ * 7        |   -- Reserved --   |   -- Reserved --   | Reserved
+ * </pre>
+ *
+ * @return DLFP configuration
+ * @see MPU6050_RA_CONFIG
+ * @see MPU6050_CFG_DLPF_CFG_BIT
+ * @see MPU6050_CFG_DLPF_CFG_LENGTH
+ */
+
+typedef enum MPU6050_ExternalSync {
+	DISABLED = 0x0,
+	EXT_TEMP_OUT_L = 0x1,
+	EXT_GYRO_XOUT_L = 0x2,
+	EXT_GYRO_YOUT_L = 0x3,
+	EXT_GYRO_ZOUT_L = 0x4,
+	EXT_ACCEL_XOUT_L = 0x5,
+	EXT_ACCEL_YOUT_L = 0x6,
+	EXT_ACCEL_ZOUT_L = 0x7,
+} MPU6050_ExternalSync;
+
+typedef enum MPU6050_DigitalLowPassFilterBandwidth {
+	BW_256 = 0x00,
+	BW_188 = 0x01,
+	BW_98 = 0x02,
+	BW_42 = 0x03,
+	BW_20 = 0x04,
+	BW_10 = 0x05,
+	BW_5 = 0x06,
+} MPU6050_DigitalLowPassFilterBandwidth;
+
+typedef struct MPU6050_Configuration {
+		uint8_t reserve :2;
+		uint8_t externalSync :3;
+		uint8_t digitalLowPassFilter :3;
+} MPU6050_Configuration;
+
+/* INTERRUPT ENABLE--------------------------------------------------------------------------------*/
+typedef struct MPU6050_InterruptEnable {
+		uint8_t reserve :3;
+		uint8_t OverflowFIFO :1;
+		uint8_t MasterInterrupt :1;
+		uint8_t reserve2 :2;
+		uint8_t DataReady :1;
+} MPU6050_InterruptEnable;
+
+/* SEFT TEST--------------------------------------------------------------------------------*/
+
+typedef struct MPU6050_SeftTest {
+		struct axisX {
+				uint8_t xA_High3Bit :3; //bit 2 to bit 4
+				uint8_t xG :5;
+		} axisX;
+		struct axisY {
+				uint8_t yA_High3Bit :3; //bit 2 to bit 4
+				uint8_t yG :5;
+		} axisY;
+		struct axisZ {
+				uint8_t zA_High3Bit :3; //bit 2 to bit 4
+				uint8_t zG :5;
+		} axisZ;
+		struct axisLowBit {
+				uint8_t reserve :2;
+				uint8_t xA_Low2Bit :2; //bit 0 to bit 1
+				uint8_t yA_Low2Bit :2; //bit 0 to bit 1
+				uint8_t zA_Low2Bit :2; //bit 0 to bit 1
+		} axisLowBit;
+} MPU6050_SeftTest;
+
+/* GYRO CONFIG--------------------------------------------------------------------------------*/
+/*
+ * FS_SEL Full Scale Range LSB Sensitivity
+ * 0 ± 250 °/s 131 LSB/°/s
+ * 1 ± 500 °/s 65.5 LSB/°/s
+ * 2 ± 1000 °/s 32.8 LSB/°/s
+ * 3 ± 2000 °/s 16.4 LSB/°/s
+ */
+
+typedef enum MPU6050_FullscaleRange {
+	FS_250 = 0x00,
+	FS_500 = 0x01,
+	FS_1000 = 0x02,
+	FS_2000 = 0x03,
+} MPU6050_FullscaleRange;
+
+typedef struct MPU6050_GyroConfig {
+		uint8_t XG_ST :1;
+		uint8_t YG_ST :1;
+		uint8_t ZG_ST :1;
+		uint8_t fullscaleRange :3;
+		uint8_t reserve :3;
+} MPU6050_GyroConfig;
 
 #endif /* INC_MPU6050_REGISTERDEF_H_ */

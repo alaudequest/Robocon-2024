@@ -35,14 +35,22 @@ class MPU6050 {
 		uint8_t initValid;
 
 	public:
-		void Init(I2C_HandleTypeDef *i2c, bool addressHigh);
-		HAL_StatusTypeDef Write(MPU6050_RegisterAddress reg, uint8_t data);
-		uint8_t Read(MPU6050_RegisterAddress reg);
-		uint16_t Read16(MPU6050_RegisterAddress reg);
-		HAL_StatusTypeDef SendBurst();
-		HAL_StatusTypeDef ReceiveBurst();
-		HAL_StatusTypeDef IsReady();
-		int16_t GetTemperature();
+		void init(I2C_HandleTypeDef *i2c, bool addressHigh);
+		HAL_StatusTypeDef write(MPU6050_RegisterAddress reg, uint8_t data);
+		uint8_t read(MPU6050_RegisterAddress reg);
+		int16_t readSignHalfWord(MPU6050_RegisterAddress reg);
+		HAL_StatusTypeDef writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime);
+		HAL_StatusTypeDef readBurst(MPU6050_RegisterAddress reg, uint8_t *rdata, uint8_t readTime);
+		HAL_StatusTypeDef isReady();
+		float getTemperature();
+		void setSampleRateDivider(uint8_t div);
+		uint8_t getSampleRateDivider();
+		void setClockSource(MPU6050_ClockSource clksource);
+		MPU6050_ClockSource getClockSource();
+		void setLowPassFilterBandwidth(MPU6050_DigitalLowPassFilterBandwidth bw);
+		MPU6050_DigitalLowPassFilterBandwidth getLowPassFilterBandwidth();
+		int16_t getRotationZ();
+
 };
 
 #endif
