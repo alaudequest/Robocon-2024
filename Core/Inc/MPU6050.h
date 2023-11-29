@@ -28,11 +28,19 @@ extern "C" {
 
 #ifdef __cplusplus
 
+typedef struct ConfigRegister {
+		MPU6050_PowerManagement1 pwr1;
+		MPU6050_GyroConfig gycfg;
+		MPU6050_Configuration cfg;
+		MPU6050_InterruptPinConfig intPinCfg;
+} ConfigRegister;
+
 class MPU6050 {
 	private:
 		I2C_HandleTypeDef *i2c;
 		uint8_t address;
 		uint8_t initValid;
+		ConfigRegister cfgReg;
 
 	public:
 		void init(I2C_HandleTypeDef *i2c, bool addressHigh);
@@ -43,13 +51,20 @@ class MPU6050 {
 		HAL_StatusTypeDef readBurst(MPU6050_RegisterAddress reg, uint8_t *rdata, uint8_t readTime);
 		HAL_StatusTypeDef isReady();
 		float getTemperature();
+		int16_t getRotationZ();
+
 		void setSampleRateDivider(uint8_t div);
 		uint8_t getSampleRateDivider();
 		void setClockSource(MPU6050_ClockSource clksource);
 		MPU6050_ClockSource getClockSource();
 		void setLowPassFilterBandwidth(MPU6050_DigitalLowPassFilterBandwidth bw);
 		MPU6050_DigitalLowPassFilterBandwidth getLowPassFilterBandwidth();
-		int16_t getRotationZ();
+		void setFullScaleGyroRange(MPU6050_FullscaleRange fs);
+		MPU6050_FullscaleRange getFullScaleGyroRange();
+		void setDisableTemperature(bool disable);
+		bool getDisableTemperature();
+		void setConfigInterruptPin(bool level, bool driverType);
+		void updateConfigRegister();
 
 };
 

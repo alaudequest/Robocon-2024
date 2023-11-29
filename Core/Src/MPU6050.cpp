@@ -8,18 +8,28 @@
 #include "MPU6050.h"
 #include "string.h"
 
-void MPU6050::setClockSource(MPU6050_ClockSource clksource) {
-	MPU6050_PowerManagement1 pwr1;
+void MPU6050::setFullScaleGyroRange(MPU6050_FullscaleRange fs) {
 	uint8_t data;
-	data = this->read(PWR_MGMT_1);
-	memcpy(&pwr1, &data, 1);
-	pwr1.clkSelect = clksource;
-	memcpy(&data, &pwr1, 1);
+	this->cfgReg.gycfg.fullscaleRange = fs;
+	memcpy(&data, &this->cfgReg.gycfg, 1);
+	this->write(GYRO_CONFIG, data);
+}
+
+MPU6050_FullscaleRange MPU6050::getFullScaleGyroRange() {
+	if ((this->initValid & 0x02) != 0x02) this->updateConfigRegister();
+	return (MPU6050_FullscaleRange) this->cfgReg.gycfg.fullscaleRange;
+}
+
+void MPU6050::setClockSource(MPU6050_ClockSource clksource) {
+	uint8_t data;
+	this->cfgReg.pwr1.clkSelect = clksource;
+	memcpy(&data, &this->cfgReg.pwr1, 1);
 	this->write(PWR_MGMT_1, data);
 }
 
 MPU6050_ClockSource MPU6050::getClockSource() {
-	this->read(PWR_MGMT_1);
+	if ((this->initValid & 0x02) != 0x02) this->updateConfigRegister();
+	return (MPU6050_ClockSource) this->cfgReg.pwr1.clkSelect;
 }
 
 void MPU6050::setSampleRateDivider(uint8_t div) {
@@ -31,28 +41,47 @@ uint8_t MPU6050::getSampleRateDivider() {
 }
 
 void MPU6050::setLowPassFilterBandwidth(MPU6050_DigitalLowPassFilterBandwidth bw) {
-	MPU6050_Configuration cfg;
 	uint8_t data;
-	/* To avoid override data from other bit fields in the same register, only need to change specific bit field
-	 * so first read data from sensor, then change only these field and write data back to sensor
-	 */
-	data = this->read(CONFIG);
-	memcpy(&cfg, &data, 1);
-	cfg.digitalLowPassFilter = bw;
-	memcpy(&data, &cfg, 1);
+	this->cfgReg.cfg.digitalLowPassFilter = bw;
+	memcpy(&data, &this->cfgReg.cfg, 1);
 	this->write(CONFIG, data);
 }
 
 MPU6050_DigitalLowPassFilterBandwidth MPU6050::getLowPassFilterBandwidth() {
-	return (MPU6050_DigitalLowPassFilterBandwidth) (this->read(CONFIG) & 0x07); // 0x07 is mask bit of bit field LowPassFilterBandwidth
+	if ((this->initValid & 0x02) != 0x02) this->updateConfigRegister();
+	return (MPU6050_DigitalLowPassFilterBandwidth) this->cfgReg.cfg.digitalLowPassFilter;
 }
 
-int16_t MPU6050::getRotationZ() {
-	return this->readSignHalfWord(GYRO_ZOUT_H);
+void MPU6050::setConfigInterruptPin(bool level, bool driverType) {
+	uint8_t data;
+	this->cfgReg.intPinCfg.driveType = driverType;
+	this->cfgReg.intPinCfg.level = level;
+	memcpy(&data, &this->cfgReg.intPinCfg, 1);
+	this->write(INT_PIN_CFG, data);
+}
+
+void MPU6050::setDisableTemperature(bool disable) {
+	uint8_t data;
+	if (disable)
+		this->cfgReg.pwr1.temperatureDisable = true;
+	else
+		this->cfgReg.pwr1.temperatureDisable = false;
+
+	memcpy(&data, &this->cfgReg.pwr1, 1);
+	this->write(PWR_MGMT_1, data);
+}
+
+bool MPU6050::getDisableTemperature() {
+	if ((this->initValid & 0x02) != 0x02) this->updateConfigRegister();
+	return this->cfgReg.pwr1.temperatureDisable;
 }
 
 float MPU6050::getTemperature() {
 	return ((float) this->readSignHalfWord(TEMP_OUT_H) / 340.0 + 36.53);
+}
+
+int16_t MPU6050::getRotationZ() {
+	return this->readSignHalfWord(GYRO_ZOUT_H);
 }
 
 HAL_StatusTypeDef MPU6050::writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime) {
@@ -70,6 +99,19 @@ HAL_StatusTypeDef MPU6050::readBurst(MPU6050_RegisterAddress reg, uint8_t *rdata
 	return HAL_OK;
 }
 
+void MPU6050::updateConfigRegister() {
+	uint8_t data;
+	data = this->read(PWR_MGMT_1);
+	memcpy(&this->cfgReg.pwr1, &data, 1);
+	data = this->read(GYRO_CONFIG);
+	memcpy(&this->cfgReg.gycfg, &data, 1);
+	data = this->read(INT_PIN_CFG);
+	memcpy(&this->cfgReg.intPinCfg, &data, 1);
+	data = this->read(CONFIG);
+	memcpy(&this->cfgReg.cfg, &data, 1);
+	this->initValid |= 0x02;
+}
+
 void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
 	this->i2c = i2c;
 	if (addressHigh)
@@ -85,7 +127,8 @@ HAL_StatusTypeDef MPU6050::isReady() {
 }
 
 HAL_StatusTypeDef MPU6050::write(MPU6050_RegisterAddress reg, uint8_t data) {
-	if (!this->initValid) return HAL_ERROR;
+	if ((this->initValid & 0x01) != 0x01) return HAL_ERROR;
+	if ((this->initValid & 0x02) != 0x02) this->updateConfigRegister();
 	uint8_t dataTemp[2] = { reg, data };
 	return HAL_I2C_Master_Transmit(this->i2c, this->address << 1, dataTemp, 2, HAL_MAX_DELAY);
 

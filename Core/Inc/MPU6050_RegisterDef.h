@@ -290,7 +290,7 @@ typedef struct MPU6050_GyroConfig {
 		uint8_t XG_ST :1;
 		uint8_t YG_ST :1;
 		uint8_t ZG_ST :1;
-		uint8_t fullscaleRange :3;
+		uint8_t fullscaleRange :2;
 		uint8_t reserve :3;
 } MPU6050_GyroConfig;
 
