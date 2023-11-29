@@ -106,11 +106,11 @@ int main(void)
 	value = (uint8_t) mpu.getFullScaleGyroRange();
 	value = (uint8_t) mpu.getLowPassFilterBandwidth();
 
-//	mpu.setClockSource(CLOCK_PLL_XGYRO);
-//	mpu.setFullScaleGyroRange(FS_500);
-//	mpu.setLowPassFilterBandwidth(BW_98);
-//	mpu.setDisableTemperature(true);
-//	mpu.setConfigInterruptPin(1, 1);
+	mpu.setClockSource(CLOCK_PLL_XGYRO);
+	mpu.setFullScaleGyroRange(FS_500);
+	mpu.setLowPassFilterBandwidth(BW_98);
+	mpu.setDisableTemperature(true);
+	mpu.setConfigInterruptPin(1, 1);
 
 	value = HAL_GPIO_ReadPin(MPU_INT_GPIO_Port, MPU_INT_Pin);
 	/* USER CODE END 2 */
@@ -119,9 +119,8 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-
-		gZ = mpu.getRotationZ();
-		HAL_Delay(100);
+		mpu.getRaw6Axis();
+		HAL_Delay(10);
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

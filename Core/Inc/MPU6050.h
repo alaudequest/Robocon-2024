@@ -35,24 +35,52 @@ typedef struct ConfigRegister {
 		MPU6050_InterruptPinConfig intPinCfg;
 } ConfigRegister;
 
+typedef enum Axis {
+	AXIS_X,
+	AXIS_Y,
+	AXIS_Z,
+} Axis;
+
+typedef enum AccelGyro {
+	ACCEL,
+	GYRO,
+} AccelGyro;
+
+typedef struct rawDataAxis {
+		int16_t ax;
+		int16_t ay;
+		int16_t az;
+		int16_t gx;
+		int16_t gy;
+		int16_t gz;
+} rawDataAxis;
+
 class MPU6050 {
 	private:
 		I2C_HandleTypeDef *i2c;
 		uint8_t address;
 		uint8_t initValid;
 		ConfigRegister cfgReg;
+		rawDataAxis rawAxis;
 
 	public:
+		// base methods to reading and writing registers
 		void init(I2C_HandleTypeDef *i2c, bool addressHigh);
 		HAL_StatusTypeDef write(MPU6050_RegisterAddress reg, uint8_t data);
 		uint8_t read(MPU6050_RegisterAddress reg);
 		int16_t readSignHalfWord(MPU6050_RegisterAddress reg);
+		uint16_t readUnsignHalfWord(MPU6050_RegisterAddress reg);
 		HAL_StatusTypeDef writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime);
 		HAL_StatusTypeDef readBurst(MPU6050_RegisterAddress reg, uint8_t *rdata, uint8_t readTime);
 		HAL_StatusTypeDef isReady();
-		float getTemperature();
-		int16_t getRotationZ();
 
+		// methods for reading data registers
+		uint16_t getCountFIFO();
+		float getTemperature();
+		void getRaw6Axis();
+		int16_t MPU6050::getRawAxis(AccelGyro ag, Axis axis);
+
+		// methods for configuring Config registers
 		void setSampleRateDivider(uint8_t div);
 		uint8_t getSampleRateDivider();
 		void setClockSource(MPU6050_ClockSource clksource);
