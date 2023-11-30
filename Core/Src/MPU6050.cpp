@@ -77,9 +77,17 @@ bool MPU6050::getDisableTemperature() {
 }
 
 // Methods for reading data registers ****************************************************************************************************
+void swapByte(uint8_t *byte1, uint8_t *byte2) {
+	*byte1 += *byte2;
+	*byte2 = *byte1 - *byte2;
+	*byte1 -= *byte2;
+}
 void MPU6050::getRaw6Axis() {
 	uint8_t temp[14] = { 0 };
 	this->readBurst(ACCEL_XOUT_H, temp, sizeof(temp));
+	for (uint8_t i = 0; i < sizeof(temp); i += 2) {
+		swapByte(temp + i, temp + i + 1);
+	}
 	memcpy(&this->rawAxis.ax, temp, 6);
 	memcpy(&this->rawAxis.gx, temp + 8, 6);
 }
@@ -95,7 +103,7 @@ float MPU6050::getTemperature() {
 int16_t MPU6050::getRawAxis(AccelGyro ag, Axis axis) {
 	uint8_t offset = 0;
 	uint8_t gyroOffset = 8;
-
+	uint8_t reg = ACCEL_XOUT_H;
 	int16_t *pRawAxis = &this->rawAxis.ax;
 	/* each of axis address take 2 bytes, first assign target addr is ACCEL_XOUT_H(0x3b)
 	 * if axis = AXIS_Y = 1 then current register address need to offset 2 bytes, which is reg = ACCEL_OUT_H + 2
@@ -104,15 +112,19 @@ int16_t MPU6050::getRawAxis(AccelGyro ag, Axis axis) {
 	offset += axis * 2;
 	if (ag == GYRO) {
 		offset += gyroOffset;
-		*(pAxis + (offset - 2) / 2) = this->readSignHalfWord(ACCEL_XOUT_H + offset); // (offset - 2) because Temperature register
+		reg += offset;
+		*(pRawAxis + (offset - 2) / 2) = this->readSignHalfWord((MPU6050_RegisterAddress) reg); // (offset - 2) because Temperature register
 	}
-	else
-		*(pAxis + offset / 2) = this->readSignHalfWord(ACCEL_XOUT_H + offset);
+	else {
+		reg += offset;
+		*(pRawAxis + offset / 2) = this->readSignHalfWord((MPU6050_RegisterAddress) reg);
+	}
 
-	return this->readSignHalfWord(ACCEL_XOUT_H + offset);
+	return this->readSignHalfWord((MPU6050_RegisterAddress) reg);
 }
 
 // Base methods to control read and write registers **************************************************************************************
+
 HAL_StatusTypeDef MPU6050::writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime) {
 	if (!this->initValid) return HAL_ERROR;
 	HAL_I2C_Master_Transmit(this->i2c, this->address << 1, (uint8_t*) &reg, 1, HAL_MAX_DELAY);
@@ -125,6 +137,7 @@ HAL_StatusTypeDef MPU6050::readBurst(MPU6050_RegisterAddress reg, uint8_t *rdata
 	if (!this->initValid) return HAL_ERROR;
 	HAL_I2C_Master_Transmit(this->i2c, this->address << 1, (uint8_t*) &reg, 1, HAL_MAX_DELAY);
 	HAL_I2C_Master_Receive(this->i2c, this->address << 1, rdata, readTime, HAL_MAX_DELAY);
+
 	return HAL_OK;
 }
 

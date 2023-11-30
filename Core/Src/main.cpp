@@ -119,6 +119,12 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
+//		mpu.getRawAxis(ACCEL, AXIS_X);
+//		mpu.getRawAxis(ACCEL, AXIS_Y);
+		mpu.getRawAxis(ACCEL, AXIS_Z);
+//		mpu.getRawAxis(GYRO, AXIS_X);
+//		mpu.getRawAxis(GYRO, AXIS_Y);
+//		mpu.getRawAxis(GYRO, AXIS_Z);
 		mpu.getRaw6Axis();
 		HAL_Delay(10);
 		/* USER CODE END WHILE */

@@ -78,7 +78,7 @@ class MPU6050 {
 		uint16_t getCountFIFO();
 		float getTemperature();
 		void getRaw6Axis();
-		int16_t MPU6050::getRawAxis(AccelGyro ag, Axis axis);
+		int16_t getRawAxis(AccelGyro ag, Axis axis);
 
 		// methods for configuring Config registers
 		void setSampleRateDivider(uint8_t div);
