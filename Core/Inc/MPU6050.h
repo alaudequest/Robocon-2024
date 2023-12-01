@@ -77,7 +77,7 @@ class MPU6050 {
 		// methods for reading data registers
 		uint16_t getCountFIFO();
 		float getTemperature();
-		void getRaw6Axis();
+		rawDataAxis getRaw6Axis();
 		int16_t getRawAxis(AccelGyro ag, Axis axis);
 
 		// methods for configuring Config registers
