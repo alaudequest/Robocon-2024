@@ -2,6 +2,7 @@
 #include "string.h"
 #include "SimpleKalmanFilter.h"
 #include "stdio.h"
+#include "math.h"
 SimpleKalmanFilter loc_goc (1, 1, 0.1);
 
 #include "MPU6050_6Axis_MotionApps612.h"
@@ -18,7 +19,12 @@ MPU6050 mpu;
 #define LED_OK PB14 
 #define DataPin PB1
 #define ReadyPin PB0
-#define UserBtn PB5
+#define USER_BTN PB5
+
+#define DIFF_HIGH 0.10
+#define DIFF_LOW 0.02
+#define STABLE_TIME_MS 3000
+#define RATE_CHANGE_TIME_MS 4
 
 bool blinkState = false;
 
@@ -30,7 +36,8 @@ uint16_t fifoCount;
 uint8_t fifoBuffer[64]; 
 
 Quaternion q;                   
-VectorFloat gravity;    
+VectorFloat gravity;
+    
 
 float ypr[3],yprPre[3];  
 int goc, gochc, gocloc, gocraw;
@@ -42,15 +49,23 @@ void dmpDataReady() {
 }
 unsigned long long time1, timeled, timedata;
 int offset, DaGetOffSet;
-float xdeg,ydeg,zdeg;
+
+typedef struct AxisDegree{
+  float xdeg;
+  float ydeg;
+  float zdeg;
+}AxisDegree; 
+
+AxisDegree axCurrent, axPre, axSteady;
+uint64_t tPre,tDiff,tStable;
+uint8_t lockStableValue = false;
 
 String s;
 void plotterAddParam(String *outputStr, char* name, float data){
-  *outputStr+=' ';
   *outputStr+=name;
   *outputStr+=':';
   *outputStr+= String(data);
-  *outputStr+= ",\t";
+  *outputStr+= "\t";
 }
 
 void plotterPrint(String *outputStr){
@@ -84,11 +99,16 @@ void setup() {
     while (!Serial);    
     Serial.println("Initialize MPU with DMP firmware loading");
     mpu.initialize();
+    mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_2000);
+    mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_4);
+    // mpu.setDLPFMode(MPU6050_DLPF_BW_5);
+    // mpu.setDHPFMode(MPU6050_DHPF_5);
+    // mpu.setXFineGain(-9);
     devStatus = mpu.dmpInitialize();
     // mpu.setXGyroOffset(220);
     // mpu.setYGyroOffset(76);
     // mpu.setZGyroOffset(-85);
-    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+    // mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
     if(devStatus)
       Serial.println("Fail to load firmware to DMP");
     else 
@@ -111,18 +131,53 @@ void setup() {
     digitalWrite(LED_PIN, HIGH);    
 }
 
+
 void getDataDMP(){
   if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
       mpu.dmpGetQuaternion(&q, fifoBuffer); 
       mpu.dmpGetGravity(&gravity, &q);
       mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-      xdeg = ypr[0] * 180.0/PI;
-      ydeg = ypr[1] * 180.0/PI;
-      zdeg = ypr[2] * 180.0/PI;
+      axCurrent.xdeg = ypr[0] * 180.0/PI;
+      axCurrent.ydeg = ypr[1] * 180.0/PI;
+      axCurrent.zdeg = ypr[2] * 180.0/PI;
 
-      plotterAddParam(&s,"x",xdeg);
-      plotterAddParam(&s,"y",ydeg);
-      plotterAddParam(&s,"z",zdeg);
+      AxisDegree axDiff;
+      tDiff = millis() - tPre;
+      axDiff.xdeg = abs(axCurrent.xdeg - axPre.xdeg);
+      axDiff.ydeg = abs(axCurrent.ydeg - axPre.ydeg);
+      axDiff.zdeg = abs(axCurrent.zdeg - axPre.zdeg);
+
+      if(axDiff.xdeg <= DIFF_LOW 
+      && axDiff.ydeg <= DIFF_LOW 
+      && axDiff.zdeg <= DIFF_LOW
+      && tStable < STABLE_TIME_MS){
+        tStable += tDiff;
+      } else if(tStable >= STABLE_TIME_MS && !lockStableValue) {
+        lockStableValue = true;
+        axSteady.xdeg = axCurrent.xdeg;
+        axSteady.ydeg = axCurrent.ydeg;
+        axSteady.zdeg = axCurrent.zdeg;
+      }
+      
+      // update if axis rate change is bigger a threshold in short period of time, and reset stable time
+      if((axDiff.xdeg > DIFF_HIGH
+      || axDiff.ydeg > DIFF_HIGH
+      || axDiff.zdeg > DIFF_HIGH) ) {
+        tStable = 0;
+        lockStableValue = false;
+      }
+      tPre = millis();
+      axPre.xdeg = axCurrent.xdeg;
+      axPre.ydeg = axCurrent.ydeg;
+      axPre.zdeg = axCurrent.zdeg;
+
+      plotterAddParam(&s,"x",axCurrent.xdeg);
+      plotterAddParam(&s,"y",axCurrent.ydeg);
+      plotterAddParam(&s,"z",axCurrent.zdeg);
+      plotterAddParam(&s,"sx",axSteady.xdeg);
+      plotterAddParam(&s,"sy",axSteady.ydeg);
+      plotterAddParam(&s,"sz",axSteady.zdeg);
+      plotterAddParam(&s,"tStable",tStable);
       plotterPrint(&s);
       // goc = ypr[0] * 180/PI; 
       // gocf = (1-0.96)*gocf_p+0.96*goc;
@@ -144,7 +199,7 @@ void loop() {
     getDataDMP();
     mpuInterrupt = false;
   }
-  if(!digitalRead(UserBtn)){
+  if(!digitalRead(USER_BTN)){
     Serial.println("press btn");
     setZero();
   }
@@ -153,10 +208,22 @@ void loop() {
       digitalWrite(LED_OK, blinkState);
       time1 = millis();  
   }
+  if(Serial.available()){
+    String s = Serial.readStringUntil('\n');
+    if(!s.compareTo("zero")){
+      setZero();
+    }
+  }
 }
 
 void setZero(){
-  mpu.setXGyroOffset(-100);
-  mpu.setYGyroOffset(-100);
-  mpu.setZGyroOffset(-100);
+  mpu.setDMPEnabled(false);
+  delay(1);
+  if(mpu.dmpInitialize()) return;
+  mpu.setXGyroOffset(220);
+  mpu.setYGyroOffset(76);
+  mpu.setZGyroOffset(-85);
+  mpu.CalibrateAccel(6);
+  mpu.CalibrateGyro(6);
+  mpu.setDMPEnabled(true);
 }
