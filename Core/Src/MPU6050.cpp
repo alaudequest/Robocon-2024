@@ -156,7 +156,7 @@ void MPU6050::updateConfigRegister() {
 }
 
 void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
-	i2c = i2c;
+	this->i2c = i2c;
 	if (addressHigh)
 		address = MPU6050_ADDRESS_AD0_HIGH;
 	else
