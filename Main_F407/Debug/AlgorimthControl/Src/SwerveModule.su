@@ -1,0 +1,11 @@
+../AlgorimthControl/Src/SwerveModule.c:11:6:swer0_CalVector	24	static,ignoring_inline_asm
+../AlgorimthControl/Src/SwerveModule.c:14:6:swer1_CalVector	64	static
+../AlgorimthControl/Src/SwerveModule.c:22:6:swer2_CalVector	64	static
+../AlgorimthControl/Src/SwerveModule.c:30:6:swer3_CalVector	64	static
+../AlgorimthControl/Src/SwerveModule.c:39:6:swer4_CalVector	64	static
+../AlgorimthControl/Src/SwerveModule.c:48:6:swer_Init	4	static
+../AlgorimthControl/Src/SwerveModule.c:68:6:swer_SetWheelVector	24	static
+../AlgorimthControl/Src/SwerveModule.c:69:13:swer_GetWheelVector	32	static
+../AlgorimthControl/Src/SwerveModule.c:70:6:swer_SetOptAngle	24	static
+../AlgorimthControl/Src/SwerveModule.c:71:17:swer_GetOptAngle	24	static
+../AlgorimthControl/Src/SwerveModule.c:72:14:swer_GetFuncHandle	16	static

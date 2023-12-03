@@ -1,0 +1,3 @@
+../Core/Src/ControlUserLED.c:11:6:usrled_RunLED	16	static
+../Core/Src/ControlUserLED.c:31:6:usrled_SetModeLED	16	static
+../Core/Src/ControlUserLED.c:32:10:usrled_GetModeLED	4	static
