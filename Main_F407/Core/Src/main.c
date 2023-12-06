@@ -953,7 +953,7 @@ void InverseKinematic(void const * argument)
 	for (;;) {
 
 
-		osDelay(20);
+    osDelay(20);
 	}
   /* USER CODE END InverseKinematic */
 }
