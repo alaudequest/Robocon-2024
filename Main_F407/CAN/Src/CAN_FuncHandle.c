@@ -26,12 +26,18 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 }
 
 
-void canfunc_RTR_EncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC rtrData)
+void canfunc_RTR_SetEncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC rtrData)
 {
 	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024);
-	canctrl_SetID(CANCTRL_MODE_MOTOR_SPEED_ANGLE);
+	canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 	canctrl_PutMessage((void*)&rtrData, sizeof(CAN_RTR_Encx4BLDC_AngleDC));
 	canctrl_Send(can, deviceID);
+}
+
+CAN_RTR_Encx4BLDC_AngleDC canfunc_RTR_GetEncoderX4CountBLDC_Angle(){
+	CAN_RTR_Encx4BLDC_AngleDC rtrData;
+	if(canctrl_GetMessage(&rtrData, sizeof(CAN_RTR_Encx4BLDC_AngleDC)) != HAL_OK) while(1);
+	return rtrData;
 }
 
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type)

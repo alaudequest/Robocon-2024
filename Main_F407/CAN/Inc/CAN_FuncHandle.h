@@ -43,7 +43,9 @@ void canfunc_Convert_CAN_PID_to_PID_Param(CAN_PID canPID, PID_Param *pid);
 void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type));
 HAL_StatusTypeDef canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID, PID_Param pid, PID_type type);
 
-void canfunc_RTR_EncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC speedAngle);
+void canfunc_RTR_SetEncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC speedAngle);
+CAN_RTR_Encx4BLDC_AngleDC canfunc_RTR_GetEncoderX4CountBLDC_Angle();
+
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type);
 
 

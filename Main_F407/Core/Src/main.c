@@ -206,7 +206,6 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 		default:
 			break;
 	}
-
 }
 /*=============================== UART ===============================*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
@@ -783,17 +782,14 @@ void softEmergencyStop() {
  }
  */
 int count;
-int Lmao = 2200;
+int delay = 2200;
 void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Start(&htim10);
 //	__HAL_TIM_SET_COUNTER(&htim10,0);
 	for (uint8_t i = 0;i < 4;i++){
-		canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
-		bool a = 1;
-		canctrl_PutMessage((void*)&a, sizeof(bool));
+		while(canctrl_RTR_TxRequest(&hcan1, targetID, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE) != HAL_OK);
 		targetID = i + 1;
-		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
-		for(uint16_t i = 0; i < Lmao; i++) __NOP();
+		for(uint16_t i = 0; i < delay; i++) __NOP();
 	}
 //	count = __HAL_TIM_GET_COUNTER(&htim10);
 //	HAL_TIM_Base_Stop(&htim10);

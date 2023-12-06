@@ -57,11 +57,11 @@ Sau khi định danh được thiết bị trong mã StdID, tiếp theo gắn th
 ```
 typedef enum CAN_MODE_ID{
 	CANCTRL_MODE_START,
-	CANCTRL_MODE_LED_BLUE,
-	CANCTRL_MODE_SHOOT,
-	CANCTRL_MODE_ENCODER,
 	CANCTRL_MODE_SET_HOME,
 	CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+	CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
+	CANCTRL_MODE_LED_BLUE,
+	CANCTRL_MODE_SHOOT,
 	CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 	CANCTRL_MODE_PID_DC_SPEED,
 	CANCTRL_MODE_PID_DC_ANGLE,
@@ -73,7 +73,7 @@ typedef enum CAN_MODE_ID{
 ```
 Vì là bit LSB nên không cần dịch bit.
 
-Giả sử mong muốn cụm bánh có ID1 sẽ chạy với tốc độ BLDC __X__ và góc xoay DC __Y__ thì mã StdID cần gửi xuống cho cụm bánh đó sẽ là 0x106 theo như enum CAN_MODE_ID
+Giả sử mong muốn cụm bánh có ID1 sẽ chạy với tốc độ BLDC __X__ và góc xoay DC __Y__ thì mã StdID cần gửi xuống cho cụm bánh đó sẽ là 0x102 theo như enum CAN_MODE_ID
 
 Còn dư 4 bit ở giữa đang bỏ trống không dùng
 
@@ -309,8 +309,10 @@ canctrl_Filter_List16(&hcan, 0x105, 0, 0, 0, 1, CAN_RX_FIFO0)
 + Return: HAL_StatusTypeDef
 + Đối số: 
 	+ CAN_HandleTypeDef *can: địa chỉ module CAN cần cài đặt bộ lọc.
-	+ uint16_t lowID, maskLow: địa chỉ ID (giống với ID1 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID2 trong List 16).
-	+ uint16_t highID, maskHigh: địa chỉ ID (giống với ID3 trong List 16) và mặt nạ bit áp dụng cho địa chỉ này (giống với ID4 trong List 16).
+	+ uint16_t highID: địa chỉ ID (giống với ID1 trong List 16).
+	+ uint16_t maskHigh: mặt nạ bit áp dụng cho địa chỉ highID (giống với ID2 trong List 16).
+	+ uint16_t lowID: địa chỉ ID (giống với ID3 trong List 16).
+	+ uint16_t maskLow: mặt nạ bit áp dụng cho địa chỉ này (giống với ID4 trong List 16).
 	+ uint32_t filBank: lựa chọn hàng lọc thứ filBank (0,1,2 ... tới giới hạn hàng lọc của ngoại vi CAN).
 	+ uint32_t FIFO: cài đặt hàng lọc này với 4 ID trên sẽ áp dụng cho FIFO nào.
 

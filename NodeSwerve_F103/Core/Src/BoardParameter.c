@@ -15,7 +15,6 @@ extern TIM_HandleTypeDef htim4;
 
 
 float brd_GetCurrentAngleDC(){return encoder_GetPulse(&brdParam.encDC, MODE_ANGLE);}
-float brd_GetCurrentSpeedBLDC(){return encoder_GetSpeed(&brdParam.encBLDC);}
 int brd_GetCurrentCountBLDC(){return (int)encoder_GetPulse(&brdParam.encBLDC, MODE_X4);}
 
 void brd_Init()
