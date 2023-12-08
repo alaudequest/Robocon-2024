@@ -785,6 +785,7 @@ void softEmergencyStop() {
 int count;
 int Lmao = 2200;
 
+float preGyro;
 void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Start(&htim10);
 //	__HAL_TIM_SET_COUNTER(&htim10,0);
@@ -837,6 +838,7 @@ typedef struct SwerveOdoHandle{
 
 	float poseX;
 	float poseY;
+	float poseTheta;
 
 	float S;
 	float C;
@@ -858,6 +860,7 @@ void Forwardkinecal(ForwardKine *kine, float* VxA, float* VyA)
 {
 	kine->uOut = MATRIX_COEF1*VxA[0] - MATRIX_COEF1*VyA[0] + MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] + MATRIX_COEF1*VyA[2] - MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
 	kine->vOut = MATRIX_COEF1*VxA[0] + MATRIX_COEF1*VyA[0] - MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] - MATRIX_COEF1*VyA[2] + MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
+	kine->thetaOut = MATRIX_COEF2*VxA[0] - MATRIX_COEF3*VyA[0] + MATRIX_COEF2*VxA[1] - MATRIX_COEF2*VyA[1] + MATRIX_COEF2*VxA[2] - MATRIX_COEF3*VyA[2] + MATRIX_COEF2*VxA[3] - MATRIX_COEF3*VyA[3];
 }
 
 SwerveOdoHandle Odo;
@@ -866,7 +869,72 @@ SpeedReadSlave Module[4];
 float Vx[4],Vy[4];
 float Gyro;
 
+#define UABOVE_X 	0.3
+#define UBELOW_X	-0.3
 
+#define UABOVE_Y 	0.3
+#define UBELOW_Y	-0.3
+
+#define UABOVE_THETA 	5
+#define UBELOW_THETA	-5
+
+#define ROBOT_RADIUS	0.25;
+
+typedef struct PDParam{
+	float e;
+	float pre;
+
+	float kP;
+	float kD;
+
+	float uP;
+	float uD;
+	float uDf;
+	float uDfpre;
+	float Alpha;
+
+	float u;
+	float uAbove;
+	float uBelow;
+}PDParam;
+
+void PD_Controller(PDParam *pd,float Target,float Current)
+{
+	pd->e = Target - Current;
+//	if(abs(pd->e)<0.001)pd->e = 0;
+	pd->uP = pd->kP*pd->e;
+	pd->uD = pd->kD*(pd->e - pd->pre)/DeltaT;
+	pd->uDf = (1-pd->Alpha)*pd->uDfpre+(pd->Alpha)*pd->uD;
+	pd->uDfpre = pd->uDf;
+	pd->pre = pd->e;
+
+	pd->u = pd->uP + pd->uD;
+	if(pd->u > pd->uAbove)pd->u = pd->uAbove;
+	else if (pd->u < pd->uBelow)pd->u = pd->uBelow;
+}
+
+void PD_setParam(PDParam *pd,float kP,float kD,float Alpha)
+{
+	pd->kP = kP;
+	pd->kD = kD;
+	pd->Alpha = Alpha;
+}
+
+void PD_setLimit(PDParam *pd,float uAbove,float uBelow)
+{
+	pd->uAbove = uAbove;
+	pd->uBelow = uBelow;
+}
+
+PDParam pDX;
+PDParam pDY;
+PDParam pDTheta;
+
+float TargetX;
+float TargetY;
+float TargetTheta;
+
+uint8_t Break;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -900,8 +968,10 @@ void StartDefaultTask(void const * argument)
 		if(nodeSwerveSetHomeComplete == 30)
 		{
 			if (!stopFlag) {
-				if (GamePad.Square == 1) {
+				if ((GamePad.Square == 1)||(Break==1)) {
 					TestBreakProtection();
+					Break = 0;
+					u = v = r = 0;
 				} else {
 	//			  DeltaYR = Odo_GetPOS_YTest();
 	//			  DeltaX = Odo_GetPOS_XTest();
@@ -1023,7 +1093,7 @@ void Actuator(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
-
+uint8_t Run;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1031,7 +1101,15 @@ void OdometerHandle(void const * argument)
 	{
 		Module[i].filterAlpha = 0.2;
 	}
-	Odo.Suy = 2*M_PI*0.1/PulsePerRev;
+	Odo.Suy = 2*M_PI*0.045/PulsePerRev;
+
+	PD_setParam(&pDX, 0.1, 0.007, 0.2);
+	PD_setParam(&pDY, 0.1, 0.007, 0.2);
+	PD_setParam(&pDTheta, 0.07, 0.01, 0.2);
+
+	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
+	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
+
 //	Module[0].Offset = 45;
 //	Module[1].Offset = -45;
 //	Module[2].Offset = 45;
@@ -1056,10 +1134,13 @@ void OdometerHandle(void const * argument)
 		//
 				Odo.dX = Fkine.uOut*DeltaT;
 				Odo.dY = Fkine.vOut*DeltaT;
-				Odo.dTheta = Gyro*M_PI/180;
+				Odo.dTheta = Gyro*M_PI/180 - preGyro;
+//				Odo.dTheta = Fkine.thetaOut*DeltaT;
+				preGyro = Gyro*M_PI/180;
 				float sinTheta = sin(Odo.dTheta);
 				float cosTheta = cos(Odo.dTheta);
 
+				// Cong thuc sap xi chuoi taylor
 				if(abs(Odo.dTheta)<0.000001){
 					Odo.S = 1-((pow(Odo.dTheta,2))/6);
 					Odo.C = -0.5*Odo.dTheta;
@@ -1070,6 +1151,20 @@ void OdometerHandle(void const * argument)
 
 				Odo.poseX += (cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)-sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
 				Odo.poseY += (sin(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)+cos(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
+				Odo.poseTheta += (Odo.dTheta*Odo.Suy)/ROBOT_RADIUS;
+//				Odo.poseTheta += Odo.dTheta;
+//				Gyro = Odo.poseTheta;
+				PD_Controller(&pDX, TargetX, Odo.poseX);
+				PD_Controller(&pDY, TargetY, Odo.poseY);
+//				PD_Controller(&pDTheta, TargetTheta, Odo.poseY);
+				if(Run == 1)
+				{
+					u = pDX.u;
+					v = pDY.u;
+					r = pDTheta.u;
+				}
+
+
 		osDelay(DeltaT*1000);
 	}
   /* USER CODE END OdometerHandle */
