@@ -25,6 +25,7 @@
 #include "MPU6050_RegisterDef.h"
 #include "string.h"
 #include "stdio.h"
+#include "LogPort.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,13 +50,9 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 uint8_t btnStatus = 0;
 MPU6050 mpu;
-float temperature;
-MPU6050_InterruptPinConfig intcfg;
-MPU6050_PowerManagement1 pwr1;
+UART_Log plotter;
 uint8_t value;
-int16_t gZ;
 rawDataAxis mpuRaw;
-char s[200] = { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,20 +101,12 @@ int main(void)
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 	mpu.init(&hi2c1, 0);
-	while (mpu.isReady() != HAL_OK);
+	plotter.begin(&huart1);
 
-	//internal clock cannot read value, and clock from gyro is better
 	value = (uint8_t) mpu.getClockSource();
 	value = (uint8_t) mpu.getDisableTemperature();
 	value = (uint8_t) mpu.getFullScaleGyroRange();
 	value = (uint8_t) mpu.getLowPassFilterBandwidth();
-
-	mpu.setClockSource(CLOCK_PLL_XGYRO);
-	mpu.setFullScaleGyroRange(FS_500);
-	mpu.setLowPassFilterBandwidth(BW_98);
-	mpu.setDisableTemperature(true);
-	mpu.setConfigInterruptPin(1, 1);
-
 	value = HAL_GPIO_ReadPin(MPU_INT_GPIO_Port, MPU_INT_Pin);
 	/* USER CODE END 2 */
 
@@ -125,22 +114,14 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-//		mpu.getRawAxis(ACCEL, AXIS_X);
-//		mpu.getRawAxis(ACCEL, AXIS_Y);
-//		mpu.getRawAxis(ACCEL, AXIS_Z);
-//		mpu.getRawAxis(GYRO, AXIS_X);
-//		mpu.getRawAxis(GYRO, AXIS_Y);
-//		mpu.getRawAxis(GYRO, AXIS_Z);
 		mpuRaw = mpu.getRaw6Axis();
-		sprintf(s, "ax:%d,\t ay:%d,\t az:%d,\t gx:%d,\t gy:%d,\t gz:%d\n",
-				mpuRaw.ax,
-				mpuRaw.ay,
-				mpuRaw.az,
-				mpuRaw.gx,
-				mpuRaw.gy,
-				mpuRaw.gz
-				);
-		HAL_UART_Transmit(&huart1, (uint8_t*) s, strlen(s), HAL_MAX_DELAY);
+		plotter.addParam((char*) "ax", mpuRaw.ax);
+		plotter.addParam((char*) "ay", mpuRaw.ay);
+		plotter.addParam((char*) "az", mpuRaw.az);
+		plotter.addParam((char*) "gx", mpuRaw.gx);
+		plotter.addParam((char*) "gy", mpuRaw.gy);
+		plotter.addParam((char*) "gz", mpuRaw.gz);
+		plotter.print();
 		HAL_Delay(10);
 		/* USER CODE END WHILE */
 

@@ -162,6 +162,13 @@ void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
 	else
 		address = MPU6050_ADDRESS_AD0_LOW;
 	initValid = 1;
+	while (isReady() != HAL_OK);
+	//internal clock cannot read value, and clock from gyro is better
+	setClockSource(CLOCK_PLL_XGYRO);
+	setFullScaleGyroRange(FS_500);
+	setLowPassFilterBandwidth(BW_98);
+	setDisableTemperature(true);
+	setConfigInterruptPin(1, 1);
 }
 
 HAL_StatusTypeDef MPU6050::isReady() {
