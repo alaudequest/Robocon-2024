@@ -40,7 +40,8 @@ typedef struct ConfigRegister {
 		MPU6050_Configuration cfg;
 		MPU6050_InterruptPinConfig intPinCfg;
 		MPU6050_FIFO_Enable fifoEn;
-
+		MPU6050_UserControl usrCtrl;
+		MPU6050_InterruptEnable intCfgStatus;
 } ConfigRegister;
 
 typedef enum Axis {
@@ -92,6 +93,8 @@ class MPU6050 {
 		float getRoll();
 		float getPitch();
 		float getYaw();
+		bool isDataReady();
+		bool isOverflowFIFO();
 
 		// methods for configuring Config registers
 		void setSampleRateDivider(uint8_t div);
@@ -108,7 +111,13 @@ class MPU6050 {
 		bool getDisableTemperature();
 		void setConfigInterruptPin(bool level, bool driverType);
 		void updateConfigRegister();
-
+		void fifoEnableTemperature(bool enable);
+		void fifoEnableGyro(Axis axis, bool enable);
+		void fifoEnableAccel(bool enable);
+		void fifoEnable(bool enable);
+		HAL_StatusTypeDef fifoReset();
+		void fifoSetOverflowInterrupt(bool enable);
+		void fifoSetDataReadyInterrupt(bool enable);
 };
 
 #endif

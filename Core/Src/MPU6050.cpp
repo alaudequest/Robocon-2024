@@ -74,11 +74,7 @@ void MPU6050::setConfigInterruptPin(bool level, bool driverType) {
 
 void MPU6050::setDisableTemperature(bool disable) {
 	uint8_t data;
-	if (disable)
-		cfgReg.pwr1.temperatureDisable = true;
-	else
-		cfgReg.pwr1.temperatureDisable = false;
-
+	cfgReg.pwr1.temperatureDisable = disable;
 	memcpy(&data, &cfgReg.pwr1, 1);
 	write(PWR_MGMT_1, data);
 }
@@ -86,6 +82,74 @@ void MPU6050::setDisableTemperature(bool disable) {
 bool MPU6050::getDisableTemperature() {
 	if ((initValid & 0x02) != 0x02) updateConfigRegister();
 	return cfgReg.pwr1.temperatureDisable;
+}
+
+void MPU6050::fifoEnableTemperature(bool enable) {
+	uint8_t data;
+	cfgReg.fifoEn.temperature = enable;
+	memcpy(&data, &cfgReg.fifoEn, 1);
+	write(FIFO_EN, data);
+}
+void MPU6050::fifoEnableGyro(Axis axis, bool enable) {
+	uint8_t data;
+	switch (axis) {
+		case AXIS_X:
+			cfgReg.fifoEn.xg = enable;
+		break;
+		case AXIS_Y:
+			cfgReg.fifoEn.yg = enable;
+		break;
+		case AXIS_Z:
+			cfgReg.fifoEn.zg = enable;
+		break;
+
+	}
+	memcpy(&data, &cfgReg.fifoEn, 1);
+	write(FIFO_EN, data);
+}
+void MPU6050::fifoEnableAccel(bool enable) {
+	uint8_t data;
+	cfgReg.fifoEn.accel = enable;
+	memcpy(&data, &cfgReg.fifoEn, 1);
+	write(FIFO_EN, data);
+}
+void MPU6050::fifoEnable(bool enable) {
+	uint8_t data;
+	cfgReg.usrCtrl.fifoEnable = enable;
+	memcpy(&data, &cfgReg.usrCtrl, 1);
+	write(USER_CTRL, data);
+}
+HAL_StatusTypeDef MPU6050::fifoReset() {
+	uint8_t data;
+	// According to datasheet, should disable FIFO before reset
+	cfgReg.usrCtrl.fifoEnable = 0;
+	memcpy(&data, &cfgReg.usrCtrl, 1);
+	write(USER_CTRL, data);
+
+	cfgReg.usrCtrl.fifoReset = 1;
+	memcpy(&data, &cfgReg.usrCtrl, 1);
+	write(USER_CTRL, data);
+
+	// Automatically set to 0 after triggering reset, check if FIFO_RESET is 0
+	data = read(USER_CTRL);
+	memcpy(&cfgReg.usrCtrl, &data, 1);
+	if (!cfgReg.usrCtrl.fifoReset)
+		return HAL_OK;
+	else
+		return HAL_ERROR;
+}
+
+void MPU6050::fifoSetOverflowInterrupt(bool enable) {
+	uint8_t data;
+	cfgReg.intCfgStatus.OverflowFIFO = enable;
+	memcpy(&data, &cfgReg.intCfgStatus, 1);
+	write(INT_ENABLE, data);
+}
+void MPU6050::fifoSetDataReadyInterrupt(bool enable) {
+	uint8_t data;
+	cfgReg.intCfgStatus.DataReady = enable;
+	memcpy(&data, &cfgReg.intCfgStatus, 1);
+	write(INT_ENABLE, data);
 }
 
 // Methods for reading data registers ****************************************************************************************************
@@ -167,7 +231,21 @@ float MPU6050::getYaw() {
 	float yawRad = atan((sqrt(Ax * Ax + Ay * Ay)) / Az);
 	return yawRad * 180 / 3.142;
 }
+bool MPU6050::isDataReady() {
+	uint8_t data = read(INT_STATUS);
+	if (data & 0x01)
+		return true;
+	else
+		return false;
 
+}
+bool MPU6050::isOverflowFIFO() {
+	uint8_t data = read(INT_STATUS);
+	if (data & 0x10)
+		return true;
+	else
+		return false;
+}
 // Base methods to control read and write registers **************************************************************************************
 
 HAL_StatusTypeDef MPU6050::writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime) {
@@ -192,10 +270,16 @@ void MPU6050::updateConfigRegister() {
 	memcpy(&cfgReg.pwr1, &data, 1);
 	data = read(GYRO_CONFIG);
 	memcpy(&cfgReg.gycfg, &data, 1);
+	data = read(ACCEL_CONFIG);
+	memcpy(&cfgReg.acccfg, &data, 1);
 	data = read(INT_PIN_CFG);
 	memcpy(&cfgReg.intPinCfg, &data, 1);
 	data = read(CONFIG);
 	memcpy(&cfgReg.cfg, &data, 1);
+	data = read(FIFO_EN);
+	memcpy(&cfgReg.fifoEn, &data, 1);
+	data = read(USER_CTRL);
+	memcpy(&cfgReg.usrCtrl, &data, 1);
 	initValid |= 0x02;
 }
 

@@ -319,4 +319,16 @@ typedef struct MPU6050_FIFO_Enable {
 		uint8_t slave1 :1;
 		uint8_t slave0 :1;
 } MPU6050_FIFO_Enable;
+
+typedef struct MPU6050_UserControl {
+		uint8_t reverse2 :1;
+		uint8_t fifoEnable :1;
+		uint8_t i2cMasterEnable :1;
+		uint8_t i2cInterfaceDisable :1;
+		uint8_t reverse1 :1;
+		uint8_t fifoReset :1;
+		uint8_t i2cMasterReset :1;
+		uint8_t signalCondReset :1;
+} MPU6050_UserControl;
+
 #endif /* INC_MPU6050_REGISTERDEF_H_ */
