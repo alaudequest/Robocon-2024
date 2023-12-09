@@ -279,12 +279,12 @@ typedef struct MPU6050_SeftTest {
  * 3 ± 2000 °/s 16.4 LSB/°/s
  */
 
-typedef enum MPU6050_FullscaleRange {
+typedef enum MPU6050_GyroFullscaleRange {
 	FS_250 = 0x00,
 	FS_500 = 0x01,
 	FS_1000 = 0x02,
 	FS_2000 = 0x03,
-} MPU6050_FullscaleRange;
+} MPU6050_GyroFullscaleRange;
 
 typedef struct MPU6050_GyroConfig {
 		uint8_t XG_ST :1;
@@ -294,4 +294,29 @@ typedef struct MPU6050_GyroConfig {
 		uint8_t reserve :3;
 } MPU6050_GyroConfig;
 
+typedef enum MPU6050_AccelFullscaleRange {
+	AFS_2g = 0x00,
+	AFS_4g = 0x01,
+	AFS_8g = 0x02,
+	AFS_16g = 0x03,
+} MPU6050_AccelFullscaleRange;
+
+typedef struct MPU6050_AccelConfig {
+		uint8_t XA_ST :1;
+		uint8_t YA_ST :1;
+		uint8_t ZA_ST :1;
+		uint8_t fullscaleRange :2;
+		uint8_t reserve :3;
+} MPU6050_AccelConfig;
+
+typedef struct MPU6050_FIFO_Enable {
+		uint8_t temperature :1;
+		uint8_t xg :1;
+		uint8_t yg :1;
+		uint8_t zg :1;
+		uint8_t accel :1;
+		uint8_t slave2 :1;
+		uint8_t slave1 :1;
+		uint8_t slave0 :1;
+} MPU6050_FIFO_Enable;
 #endif /* INC_MPU6050_REGISTERDEF_H_ */

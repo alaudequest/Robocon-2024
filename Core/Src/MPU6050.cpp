@@ -8,16 +8,28 @@
 #include "MPU6050.h"
 #include "string.h"
 // Methods for configuring config registers ****************************************************************************************************
-void MPU6050::setFullScaleGyroRange(MPU6050_FullscaleRange fs) {
+void MPU6050::setFullScaleGyroRange(MPU6050_GyroFullscaleRange fs) {
 	uint8_t data;
 	cfgReg.gycfg.fullscaleRange = fs;
 	memcpy(&data, &cfgReg.gycfg, 1);
 	write(GYRO_CONFIG, data);
 }
 
-MPU6050_FullscaleRange MPU6050::getFullScaleGyroRange() {
+MPU6050_GyroFullscaleRange MPU6050::getFullScaleGyroRange() {
 	if ((initValid & 0x02) != 0x02) updateConfigRegister();
-	return (MPU6050_FullscaleRange) cfgReg.gycfg.fullscaleRange;
+	return (MPU6050_GyroFullscaleRange) cfgReg.gycfg.fullscaleRange;
+}
+
+void MPU6050::setFullScaleAccelRange(MPU6050_AccelFullscaleRange afs) {
+	uint8_t data;
+	cfgReg.acccfg.fullscaleRange = afs;
+	memcpy(&data, &cfgReg.acccfg, 1);
+	write(ACCEL_CONFIG, data);
+}
+
+MPU6050_AccelFullscaleRange MPU6050::getFullScaleAccelRange() {
+	if ((initValid & 0x02) != 0x02) updateConfigRegister();
+	return (MPU6050_AccelFullscaleRange) cfgReg.acccfg.fullscaleRange;
 }
 
 void MPU6050::setClockSource(MPU6050_ClockSource clksource) {
@@ -124,6 +136,38 @@ int16_t MPU6050::getRawAxis(AccelGyro ag, Axis axis) {
 	return readSignHalfWord((MPU6050_RegisterAddress) reg);
 }
 
+float MPU6050::getGyro(Axis axis) {
+	uint8_t temp;
+	int16_t rawAxis;
+	rawAxis = getRawAxis(GYRO, axis);
+	//LSB Sensitivity divided by 2 for each FS_SEL + 1, so 1 << n is 2^n
+	temp = 1 << (uint8_t) getFullScaleGyroRange();
+	return ((float) rawAxis / (float) (131 / temp));
+}
+
+float MPU6050::getAccel(Axis axis) {
+	uint8_t temp;
+	int16_t rawAxis;
+	rawAxis = getRawAxis(ACCEL, axis);
+	//LSB Sensitivity divided by 2 for each AFS_SEL + 1, so 1 << n is 2^n
+	temp = 1 << (uint8_t) getFullScaleAccelRange();
+	return ((float) rawAxis / (float) (16384 / temp));
+}
+
+float MPU6050::getRoll() {
+	return 0;
+}
+float MPU6050::getPitch() {
+	return 0;
+}
+float MPU6050::getYaw() {
+	float Ax = getAccel(AXIS_X) + OFFSET_AX;
+	float Ay = getAccel(AXIS_Y) + OFFSET_AY;
+	float Az = getAccel(AXIS_Z) + OFFSET_AZ;
+	float yawRad = atan((sqrt(Ax * Ax + Ay * Ay)) / Az);
+	return yawRad * 180 / 3.142;
+}
+
 // Base methods to control read and write registers **************************************************************************************
 
 HAL_StatusTypeDef MPU6050::writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime) {
@@ -163,12 +207,13 @@ void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
 		address = MPU6050_ADDRESS_AD0_LOW;
 	initValid = 1;
 	while (isReady() != HAL_OK);
-	//internal clock cannot read value, and clock from gyro is better
+//internal clock cannot read value, and clock from gyro is better
 	setClockSource(CLOCK_PLL_XGYRO);
 	setFullScaleGyroRange(FS_500);
+	setFullScaleAccelRange(AFS_8g);
 	setLowPassFilterBandwidth(BW_98);
 	setDisableTemperature(true);
-	setConfigInterruptPin(1, 1);
+	setConfigInterruptPin(INTLEVEL_ACTIVELOW, INTDRV_PUSHPULL);
 }
 
 HAL_StatusTypeDef MPU6050::isReady() {

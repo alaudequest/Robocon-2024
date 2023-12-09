@@ -10,6 +10,7 @@
 #include "main.h"
 #include "MPU6050_RegisterDef.h"
 #include "stdbool.h"
+#include "math.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,10 @@ extern "C" {
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
 #define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
 
+#define OFFSET_AX 0.85
+#define OFFSET_AY 0.06
+#define OFFSET_AZ -0.46
+
 #define INIT_NOT_VALID 0
 #define INIT_VALID 1
 
@@ -31,8 +36,11 @@ extern "C" {
 typedef struct ConfigRegister {
 		MPU6050_PowerManagement1 pwr1;
 		MPU6050_GyroConfig gycfg;
+		MPU6050_AccelConfig acccfg;
 		MPU6050_Configuration cfg;
 		MPU6050_InterruptPinConfig intPinCfg;
+		MPU6050_FIFO_Enable fifoEn;
+
 } ConfigRegister;
 
 typedef enum Axis {
@@ -79,6 +87,11 @@ class MPU6050 {
 		float getTemperature();
 		rawDataAxis getRaw6Axis();
 		int16_t getRawAxis(AccelGyro ag, Axis axis);
+		float getGyro(Axis axis);
+		float getAccel(Axis axis);
+		float getRoll();
+		float getPitch();
+		float getYaw();
 
 		// methods for configuring Config registers
 		void setSampleRateDivider(uint8_t div);
@@ -87,8 +100,10 @@ class MPU6050 {
 		MPU6050_ClockSource getClockSource();
 		void setLowPassFilterBandwidth(MPU6050_DigitalLowPassFilterBandwidth bw);
 		MPU6050_DigitalLowPassFilterBandwidth getLowPassFilterBandwidth();
-		void setFullScaleGyroRange(MPU6050_FullscaleRange fs);
-		MPU6050_FullscaleRange getFullScaleGyroRange();
+		void setFullScaleGyroRange(MPU6050_GyroFullscaleRange fs);
+		MPU6050_GyroFullscaleRange getFullScaleGyroRange();
+		void setFullScaleAccelRange(MPU6050_AccelFullscaleRange afs);
+		MPU6050_AccelFullscaleRange getFullScaleAccelRange();
 		void setDisableTemperature(bool disable);
 		bool getDisableTemperature();
 		void setConfigInterruptPin(bool level, bool driverType);

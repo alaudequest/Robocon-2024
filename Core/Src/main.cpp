@@ -102,7 +102,6 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	mpu.init(&hi2c1, 0);
 	plotter.begin(&huart1);
-
 	value = (uint8_t) mpu.getClockSource();
 	value = (uint8_t) mpu.getDisableTemperature();
 	value = (uint8_t) mpu.getFullScaleGyroRange();
@@ -114,13 +113,10 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		mpuRaw = mpu.getRaw6Axis();
-		plotter.addParam((char*) "ax", mpuRaw.ax);
-		plotter.addParam((char*) "ay", mpuRaw.ay);
-		plotter.addParam((char*) "az", mpuRaw.az);
-		plotter.addParam((char*) "gx", mpuRaw.gx);
-		plotter.addParam((char*) "gy", mpuRaw.gy);
-		plotter.addParam((char*) "gz", mpuRaw.gz);
+//		plotter.addParam((char*) "yaw", mpu.getYaw());
+		plotter.addParam((char*) "ax", mpu.getAccel(AXIS_X) + OFFSET_AX);
+		plotter.addParam((char*) "ay", mpu.getAccel(AXIS_Y) + OFFSET_AY);
+		plotter.addParam((char*) "az", mpu.getAccel(AXIS_Z) + OFFSET_AZ);
 		plotter.print();
 		HAL_Delay(10);
 		/* USER CODE END WHILE */
@@ -144,6 +140,7 @@ void SystemClock_Config(void)
 	 */
 	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
