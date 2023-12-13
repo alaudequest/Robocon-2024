@@ -68,11 +68,11 @@ class MPU6050 {
 	private:
 		I2C_HandleTypeDef *i2c;
 		uint8_t address;
-		uint8_t initValid;
 		ConfigRegister cfgReg;
 		rawDataAxis rawAxis;
 
 	public:
+		uint8_t initValid;
 		// base methods to reading and writing registers
 		void init(I2C_HandleTypeDef *i2c, bool addressHigh);
 		HAL_StatusTypeDef write(MPU6050_RegisterAddress reg, uint8_t data);
@@ -95,6 +95,7 @@ class MPU6050 {
 		float getYaw();
 		bool isDataReady();
 		bool isOverflowFIFO();
+		void fifoHandle(uint8_t *outputData, uint8_t sizeData);
 
 		// methods for configuring Config registers
 		void setSampleRateDivider(uint8_t div);

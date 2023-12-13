@@ -118,13 +118,11 @@ void MPU6050::fifoEnable(bool enable) {
 	cfgReg.usrCtrl.fifoEnable = enable;
 	memcpy(&data, &cfgReg.usrCtrl, 1);
 	write(USER_CTRL, data);
+	data = read(USER_CTRL);
+	memcpy(&cfgReg.usrCtrl, &data, 1);
 }
 HAL_StatusTypeDef MPU6050::fifoReset() {
 	uint8_t data;
-	// According to datasheet, should disable FIFO before reset
-	cfgReg.usrCtrl.fifoEnable = 0;
-	memcpy(&data, &cfgReg.usrCtrl, 1);
-	write(USER_CTRL, data);
 
 	cfgReg.usrCtrl.fifoReset = 1;
 	memcpy(&data, &cfgReg.usrCtrl, 1);
@@ -133,6 +131,8 @@ HAL_StatusTypeDef MPU6050::fifoReset() {
 	// Automatically set to 0 after triggering reset, check if FIFO_RESET is 0
 	data = read(USER_CTRL);
 	memcpy(&cfgReg.usrCtrl, &data, 1);
+	data = read(INT_STATUS);
+	memcpy(&cfgReg.intCfgStatus, &data, 1);
 	if (!cfgReg.usrCtrl.fifoReset)
 		return HAL_OK;
 	else
@@ -246,6 +246,27 @@ bool MPU6050::isOverflowFIFO() {
 	else
 		return false;
 }
+
+void MPU6050::fifoHandle(uint8_t *outputData, uint8_t sizeData) {
+	if (isOverflowFIFO()) {
+		fifoReset();
+	}
+	else if (isDataReady()) {
+		static uint16_t fifoLength = getCountFIFO();
+		if (fifoLength > sizeData) {
+			for (uint8_t i = 0; i < sizeData; i++) {
+				*(outputData + i) = read(FIFO_R_W);
+			}
+			fifoLength -= sizeData;
+		}
+		else if (fifoLength < sizeData) {
+			for (uint8_t i = 0; i < fifoLength; i++) {
+				*(outputData + i) = read(FIFO_R_W);
+			}
+			fifoLength = getCountFIFO();
+		}
+	}
+}
 // Base methods to control read and write registers **************************************************************************************
 
 HAL_StatusTypeDef MPU6050::writeBurst(MPU6050_RegisterAddress reg, uint8_t *wdata, uint8_t writeTime) {
@@ -280,7 +301,7 @@ void MPU6050::updateConfigRegister() {
 	memcpy(&cfgReg.fifoEn, &data, 1);
 	data = read(USER_CTRL);
 	memcpy(&cfgReg.usrCtrl, &data, 1);
-	initValid |= 0x02;
+
 }
 
 void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
@@ -297,7 +318,16 @@ void MPU6050::init(I2C_HandleTypeDef *i2c, bool addressHigh) {
 	setFullScaleAccelRange(AFS_8g);
 	setLowPassFilterBandwidth(BW_98);
 	setDisableTemperature(true);
-	setConfigInterruptPin(INTLEVEL_ACTIVELOW, INTDRV_PUSHPULL);
+	if (getCountFIFO())
+		while (fifoReset() != HAL_OK);
+	fifoEnable(true);
+	fifoSetDataReadyInterrupt(true);
+	fifoSetOverflowInterrupt(true);
+//	fifoEnableAccel(true);
+	fifoEnableGyro(AXIS_X, 1);
+	setConfigInterruptPin(INTLEVEL_ACTIVEHIGH, INTDRV_PUSHPULL);
+	updateConfigRegister();
+	initValid |= 0x02;
 }
 
 HAL_StatusTypeDef MPU6050::isReady() {

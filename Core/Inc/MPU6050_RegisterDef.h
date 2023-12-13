@@ -240,11 +240,11 @@ typedef struct MPU6050_Configuration {
 
 /* INTERRUPT ENABLE--------------------------------------------------------------------------------*/
 typedef struct MPU6050_InterruptEnable {
-		uint8_t reserve :3;
-		uint8_t OverflowFIFO :1;
-		uint8_t MasterInterrupt :1;
-		uint8_t reserve2 :2;
 		uint8_t DataReady :1;
+		uint8_t reserve2 :2;
+		uint8_t MasterInterrupt :1;
+		uint8_t OverflowFIFO :1;
+		uint8_t reserve :3;
 } MPU6050_InterruptEnable;
 
 /* SEFT TEST--------------------------------------------------------------------------------*/
@@ -287,11 +287,11 @@ typedef enum MPU6050_GyroFullscaleRange {
 } MPU6050_GyroFullscaleRange;
 
 typedef struct MPU6050_GyroConfig {
-		uint8_t XG_ST :1;
-		uint8_t YG_ST :1;
-		uint8_t ZG_ST :1;
-		uint8_t fullscaleRange :2;
 		uint8_t reserve :3;
+		uint8_t fullscaleRange :2;
+		uint8_t ZG_ST :1;
+		uint8_t YG_ST :1;
+		uint8_t XG_ST :1;
 } MPU6050_GyroConfig;
 
 typedef enum MPU6050_AccelFullscaleRange {
@@ -302,33 +302,33 @@ typedef enum MPU6050_AccelFullscaleRange {
 } MPU6050_AccelFullscaleRange;
 
 typedef struct MPU6050_AccelConfig {
-		uint8_t XA_ST :1;
-		uint8_t YA_ST :1;
-		uint8_t ZA_ST :1;
-		uint8_t fullscaleRange :2;
 		uint8_t reserve :3;
+		uint8_t fullscaleRange :2;
+		uint8_t ZA_ST :1;
+		uint8_t YA_ST :1;
+		uint8_t XA_ST :1;
 } MPU6050_AccelConfig;
 
 typedef struct MPU6050_FIFO_Enable {
-		uint8_t temperature :1;
-		uint8_t xg :1;
-		uint8_t yg :1;
-		uint8_t zg :1;
-		uint8_t accel :1;
-		uint8_t slave2 :1;
-		uint8_t slave1 :1;
 		uint8_t slave0 :1;
+		uint8_t slave1 :1;
+		uint8_t slave2 :1;
+		uint8_t accel :1;
+		uint8_t zg :1;
+		uint8_t yg :1;
+		uint8_t xg :1;
+		uint8_t temperature :1;
 } MPU6050_FIFO_Enable;
 
 typedef struct MPU6050_UserControl {
-		uint8_t reverse2 :1;
-		uint8_t fifoEnable :1;
-		uint8_t i2cMasterEnable :1;
-		uint8_t i2cInterfaceDisable :1;
-		uint8_t reverse1 :1;
-		uint8_t fifoReset :1;
-		uint8_t i2cMasterReset :1;
 		uint8_t signalCondReset :1;
+		uint8_t i2cMasterReset :1;
+		uint8_t fifoReset :1;
+		uint8_t reverse1 :1;
+		uint8_t i2cInterfaceDisable :1;
+		uint8_t i2cMasterEnable :1;
+		uint8_t fifoEnable :1;
+		uint8_t reverse2 :1;
 } MPU6050_UserControl;
 
 #endif /* INC_MPU6050_REGISTERDEF_H_ */
