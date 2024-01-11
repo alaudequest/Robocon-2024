@@ -9,6 +9,8 @@
 #define INC_CAN_FUNCHANDLE_H_
 #include "main.h"
 #include "BoardParameter.h"
+#include "stdbool.h"
+#include "CAN_Control.h"
 
 typedef struct CAN_SpeedBLDC_AngleDC{
 	int bldcSpeed;

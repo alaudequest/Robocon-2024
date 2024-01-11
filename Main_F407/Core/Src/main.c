@@ -31,6 +31,7 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
+#include "SwerveOdometry.h"
 //#include "OdometerHandle.h"
 #include "PIDPosition.h"
 /* USER CODE END Includes */
@@ -677,13 +678,13 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 }
 
 void TestBreakProtection() {
-	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_4; i++) {
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
 		canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 		while (canctrl_Send(&hcan1, i) != HAL_OK);
 		osDelay(1);
 	}
 	osDelay(1000);
-	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_4; i++) {
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
 		canfunc_SetBoolValue(0, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
 		while (canctrl_Send(&hcan1, i) != HAL_OK);
 		osDelay(1);
@@ -695,7 +696,7 @@ void softEmergencyStop() {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	speedAngle.bldcSpeed = 0;
 	speedAngle.dcAngle = 0;
-	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_4; i++) {
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
 		canfunc_MotorPutSpeedAndAngle(speedAngle);
 		while (canctrl_Send(&hcan1, i) != HAL_OK);
 	}
@@ -783,7 +784,7 @@ void softEmergencyStop() {
  }
  */
 
-/*
+
 int count;
 int Lmao = 2200;
 
@@ -791,7 +792,7 @@ float preGyro;
 void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Start(&htim10);
 //	__HAL_TIM_SET_COUNTER(&htim10,0);
-	for (uint8_t i = 0;i < 4;i++){
+	for (uint8_t i = 0;i < 3;i++){
 		canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
 		bool a = 1;
 		canctrl_PutMessage((void*)&a, sizeof(bool));
@@ -802,7 +803,7 @@ void RTR_SpeedAngle(){
 //	count = __HAL_TIM_GET_COUNTER(&htim10);
 //	HAL_TIM_Base_Stop(&htim10);
 }
-
+/*
 #define DeltaT	0.05
 #define PulsePerRev 400*2.5
 
@@ -986,8 +987,8 @@ void StartDefaultTask(void const * argument)
 	//			u = GamePad.YLeftCtr;
 	//			v = GamePad.XLeftCtr;
 	//			r = GamePad.XRightCtr;
-	//				u = 1 * cos(goc * M_PI / 180);
-	//				v = 1 * sin(goc * M_PI / 180);
+//					u = 1 * cos(goc * M_PI / 180);
+//					v = 1 * sin(goc * M_PI / 180);
 
 
 
@@ -996,7 +997,7 @@ void StartDefaultTask(void const * argument)
 					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
 					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
+//					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
 //					count = __HAL_TIM_GET_COUNTER(&htim10);
 //					HAL_TIM_Base_Stop(&htim10);
 //					canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
@@ -1056,8 +1057,8 @@ void CAN_Bus(void const * argument)
 	osDelay(1);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3, CANCTRL_MODE_SET_HOME);
 	osDelay(1);
-	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
-	osDelay(1);
+//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
+//	osDelay(1);
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
@@ -1117,7 +1118,8 @@ void OdometerHandle(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-//		RTR_SpeedAngle();
+		RTR_SpeedAngle();
+		Odometry(nodeSpeedAngle);
 //				for (int i = 0;i<4;i++)
 //				{
 //					SpeedRead(&Module[i], nodeSpeedAngle[i].bldcSpeed);

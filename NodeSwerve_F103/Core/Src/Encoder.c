@@ -36,7 +36,7 @@ float encoder_GetPulse(Encoder_t *enc, EncoderCountMode count_Mode)
 	if (count_Mode == MODE_X4) return enc->count_X4;
 	else if (count_Mode == MODE_X1) return (float)enc->count_X4/4;
 	else if (count_Mode == MODE_ANGLE) {
-		enc->Degree = (float)((float)enc->count_X4*(float)360/((float)enc->count_PerRevol*(float)4));
+		enc->Degree = (float)((float)enc->count_X4*360.0/((float)enc->count_PerRevol*4.0));
 		return enc->Degree;
 	}
 	return 0;

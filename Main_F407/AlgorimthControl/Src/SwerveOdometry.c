@@ -6,15 +6,19 @@
  */
 
 #include "SwerveOdometry.h"
+#include "CAN_FuncHandle.h"
+//#include "main.h"
+//#include "BoardParameter.h"
 
 #define PULSEPERREVOL 400*2.5
 #define Ts 0.05
+#define WHEELRADIUS 0.0045
 SwerveOdoParam OdoParam;
 
 
 void SpeedRead(ReadSpeedSlave *sp, float count)
 {
-	sp->V = (((count-sp->preCount)/Ts)/PULSEPERREVOL)*60;
+	sp->V = ((((count-sp->preCount)/Ts)/PULSEPERREVOL)*2*M_PI)*WHEELRADIUS;
 	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
 	sp->VfiltPre = sp->Vfilt;
 
@@ -29,15 +33,15 @@ void Forwardkinecal(ForwardKine *kine, float* VxA, float* VyA)
 }
 
 void OdometryInit(){
-	OdoParam.Odo.Suy = 2*M_PI*0.045/PulsePerRev;
+	OdoParam.Odo.Suy = 2*M_PI*0.045/PULSEPERREVOL;
 
 }
-void Odometry(){
+void Odometry(CAN_SpeedBLDC_AngleDC *SpeedAngle){
 	for (int i = 0; i < 3; i ++)
 	{
-		SpeedRead(&OdoParam.Module[i] , OdoParam.SpeedAngle[i].bldcSpeed);
-		OdoParam.Module[i].Vx = OdoParam.Module[i].V*cos(OdoParam.SpeedAngle[i].dcAngle*M_PI);
-		OdoParam.Module[i].Vy = OdoParam.Module[i].V*sin(OdoParam.SpeedAngle[i].dcAngle*M_PI);
+		SpeedRead(&OdoParam.Module[i] , SpeedAngle[i].bldcSpeed);
+		OdoParam.Module[i].Vx = OdoParam.Module[i].V*cos(SpeedAngle[i].dcAngle*M_PI);
+		OdoParam.Module[i].Vy = OdoParam.Module[i].V*sin(SpeedAngle[i].dcAngle*M_PI);
 		OdoParam.Vx[i] = OdoParam.Module[i].Vx;
 		OdoParam.Vy[i] = OdoParam.Module[i].Vy;
 	}
@@ -58,8 +62,12 @@ void Odometry(){
 	}
 	OdoParam.Odo.poseX += (cos(OdoParam.Odo.OffsetGyro)*(OdoParam.Odo.dX*OdoParam.Odo.S-OdoParam.Odo.dY*OdoParam.Odo.C)-sin(OdoParam.Odo.OffsetGyro)*(OdoParam.Odo.dX*OdoParam.Odo.C+OdoParam.Odo.dY*OdoParam.Odo.S));
 	OdoParam.Odo.poseY += (sin(OdoParam.Odo.OffsetGyro)*(OdoParam.Odo.dX*OdoParam.Odo.S-OdoParam.Odo.dY*OdoParam.Odo.C)+cos(OdoParam.Odo.OffsetGyro)*(OdoParam.Odo.dX*OdoParam.Odo.C+OdoParam.Odo.dY*OdoParam.Odo.S));
-	OdoParam.Odo.poseTheta += 0;
-
+	OdoParam.Odo.poseTheta += OdoParam.Odo.dTheta;
 }
-
+//void GetbldcSpeed(int speed,int i){
+//	OdoParam.SpeedAngle[i].bldcSpeed = speed;
+//}
+//void GetDcAngle(float dcAngle,int i){
+//	OdoParam.SpeedAngle[i].dcAngle = dcAngle;
+//}
 //ReadSpeedSlave Module[4];

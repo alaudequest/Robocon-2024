@@ -7,9 +7,9 @@
 
 #ifndef INC_SWERVEODOMETRY_H_
 #define INC_SWERVEODOMETRY_H_
-#include "main.h"
+//#include "main.h"
 #include "math.h"
-
+//#include "CAN_FuncHandle.h"
 typedef struct ReadSpeedSlave{
 	float V;
 	float Vx;
@@ -59,7 +59,6 @@ typedef struct SwerveOdoParam{
 	float Vx[3];
 	float Vy[3];
 	ReadSpeedSlave Module[3];
-	SlaveSpeedAngle SpeedAngle[3];
 	SwerveOdoHandle Odo;
 	ForwardKine kine;
 
@@ -68,5 +67,7 @@ typedef struct SwerveOdoParam{
 void ReadSpeed();
 void ForwardCal();
 void Odometry();
+//void GetbldcSpeed(int speed,int i);
+//void GetDcAngle(float dcAngle,int i);
 
 #endif /* INC_SWERVEODOMETRY_H_ */
