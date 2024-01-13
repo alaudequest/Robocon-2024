@@ -97,7 +97,9 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL); // xoay góc
 	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL); // rulo bắn 1
-	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL); // rulo bắn 2
+
+	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_1); // rulo bắn 2
+	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_2); // rulo bắn 2
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
