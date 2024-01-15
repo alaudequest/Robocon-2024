@@ -67,6 +67,10 @@ osMessageQId qCANHandle;
 uint8_t TestMode = 0;
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
+
+
+
+uint32_t pageError = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -714,7 +718,8 @@ void StartTaskPID(void const * argument)
 			osDelay(1);
 			goto SET_HOME_PID_TASK;
 		}
-		PID_DC_CalPos(test1);
+//		PID_DC_CalPos(test1);
+		PID_DC_CalPos(brd_GetTargetAngleDC());
 
 		osDelay(2);
 	}
@@ -776,6 +781,7 @@ void StartTaskPIDSpeed(void const * argument)
 		goto SET_HOME_PID_SPEED;
 	}
 	PID_BLDC_CalSpeed(test);
+//	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
     osDelay(2);
   }
   /* USER CODE END StartTaskPIDSpeed */

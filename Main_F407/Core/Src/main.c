@@ -31,7 +31,7 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
-#include "SwerveOdometry.h"
+//#include "SwerveOdometry.h"
 //#include "OdometerHandle.h"
 #include "PIDPosition.h"
 /* USER CODE END Includes */
@@ -101,7 +101,7 @@ float u, v, r;
 
 float DeltaYR, DeltaYL, DeltaX;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
-CAN_SpeedBLDC_AngleDC nodeSpeedAngle[4] = { 0 };
+CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
 
 
 uint32_t flagMain = 0;
@@ -266,7 +266,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -786,7 +787,7 @@ void softEmergencyStop() {
 
 
 int count;
-int Lmao = 2200;
+int Lmao = 3000;
 
 float preGyro;
 void RTR_SpeedAngle(){
@@ -803,14 +804,17 @@ void RTR_SpeedAngle(){
 //	count = __HAL_TIM_GET_COUNTER(&htim10);
 //	HAL_TIM_Base_Stop(&htim10);
 }
-/*
+
 #define DeltaT	0.05
-#define PulsePerRev 400*2.5
+#define PulsePerRev 200*2.56
 
-#define MATRIX_COEF1	0.1768
-#define MATRIX_COEF2 	0
-#define MATRIX_COEF3 	0.7071
-
+#define dy1	0
+#define dx1	0.37545
+#define dy2 0.23373/2
+#define dx2 -0.07171
+#define dy3 -0.23373/2
+#define dx3	-0.07171
+#define a 0.045
 typedef struct SpeedReadSlave{
 	float V;
 	float Vx;
@@ -851,20 +855,20 @@ typedef struct SwerveOdoHandle{
 }SwerveOdoHandle;
 
 
-void SpeedRead(SpeedReadSlave *sp, float count)
+void SpeedRead2(SpeedReadSlave *sp, float count)
 {
-	sp->V = (((count-sp->preCount)/DeltaT)/PulsePerRev)*60;
+	sp->V = 60*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
 	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
 	sp->VfiltPre = sp->Vfilt;
 
 	sp->preCount = count;
 }
 
-void Forwardkinecal(ForwardKine *kine, float* VxA, float* VyA)
+void omegaToZeta(ForwardKine *kine, float* VxA, float* VyA)
 {
-	kine->uOut = MATRIX_COEF1*VxA[0] - MATRIX_COEF1*VyA[0] + MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] + MATRIX_COEF1*VyA[2] - MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
-	kine->vOut = MATRIX_COEF1*VxA[0] + MATRIX_COEF1*VyA[0] - MATRIX_COEF1*VxA[1] + MATRIX_COEF1*VyA[1] - MATRIX_COEF1*VxA[2] - MATRIX_COEF1*VyA[2] + MATRIX_COEF1*VxA[3] - MATRIX_COEF1*VyA[3];
-	kine->thetaOut = MATRIX_COEF2*VxA[0] - MATRIX_COEF3*VyA[0] + MATRIX_COEF2*VxA[1] - MATRIX_COEF2*VyA[1] + MATRIX_COEF2*VxA[2] - MATRIX_COEF3*VyA[2] + MATRIX_COEF2*VxA[3] - MATRIX_COEF3*VyA[3];
+	kine->uOut = 0.3333*VxA[0] - 0*VyA[0] + 0.3333*VxA[1] + 0*VyA[1] + 0.3333*VxA[2] + 0*VyA[2] ;
+	kine->vOut = 0*VxA[0] + 0.1898*VyA[0] - 0.0563*VxA[1] + 0.4051*VyA[1] - 0.0563*VxA[2] - 0.4051*VyA[2] ;
+	kine->thetaOut = 0*VxA[0] - 1.8560*VyA[0] - 0.7276*VxA[1] - 0.9280*VyA[1] + 0.7276*VxA[2] - 0.9280*VyA[2] ;
 }
 
 SwerveOdoHandle Odo;
@@ -938,8 +942,30 @@ float TargetX;
 float TargetY;
 float TargetTheta;
 
-*/
+
 uint8_t Break;
+
+
+//#define dy1
+//#define dx1
+//#define dy2
+//#define dx2
+//#define dy3
+//#define dx3
+//
+//float omega1,omega2,omega3;
+//float omega1Real,omega2Real,omega3Real;
+//float uControl,vControl,rControl;
+
+//void omegaToZeta(float u,float v, float r)
+//{
+//
+//}
+//void zetaToOmega(float omega1,float omega2,float omega3);
+//void ForwardKinematic(float u,float v,float r);
+//void inverseKinematic(float xdot,float ydot,float psidot);
+//void ControlSignal(float xd,float yd,float psid,float xc,float yc,float psic);
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -950,70 +976,39 @@ uint8_t Break;
  */
 
 /* USER CODE END Header_StartDefaultTask */
+int testSpeed,testPos;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
 
 	swer_Init();
-//	u = 0.5;
-//
-//	OdoInit();
-//	PID_Pos_Init();
 	for (;;) {
-//	  if(GamePad.Touch == 1)
-//	  {
-//		  osDelay(50);
-//		  if(GamePad.Touch == 1)
-//		  	  {
-//			  	  softEmergencyStop();
-//		  	  }
-//	  }
-
-		if(nodeSwerveSetHomeComplete == 30)
-		{
-			if (!stopFlag) {
-				if ((GamePad.Square == 1)||(Break==1)) {
-					TestBreakProtection();
-					Break = 0;
-					u = v = r = 0;
-				} else {
-	//			  DeltaYR = Odo_GetPOS_YTest();
-	//			  DeltaX = Odo_GetPOS_XTest();
-	//			u = PID_CalPos_y(TestTargetY);
-	//			v = PID_CalPos_x(TestTargetX);
-	//			r = PID_CalPos_theta(TestTargetTheta);
-
-	//			u = GamePad.YLeftCtr;
-	//			v = GamePad.XLeftCtr;
-	//			r = GamePad.XRightCtr;
-//					u = 1 * cos(goc * M_PI / 180);
-//					v = 1 * sin(goc * M_PI / 180);
-
-
-
-//					HAL_TIM_Base_Start(&htim10);
-//					__HAL_TIM_SET_COUNTER(&htim10,0);
-					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-//					invkine_Implementation(MODULE_ID_4, u, v, r, &InvCpltCallback);
-//					count = __HAL_TIM_GET_COUNTER(&htim10);
-//					HAL_TIM_Base_Stop(&htim10);
-//					canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
-//					bool a = 1;
-//					canctrl_PutMessage((void*)&a, sizeof(bool));
-//					while(canctrl_Send(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2) != HAL_OK);
-				}
-			}
-		}
-		if (gamepadRxIsBusy) {
-			gamepadRxIsBusy = 0;
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-		}
-		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
-			__HAL_UART_ENABLE(&huart3);
-		}
+		invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+		invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+		invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+//		InvCpltCallback(MODULE_ID_2, testSpeed, testPos) ;
+//		if(nodeSwerveSetHomeComplete == 30)
+//		{
+//			if (!stopFlag) {
+//				if ((GamePad.Square == 1)||(Break==1)) {
+//					TestBreakProtection();
+//					Break = 0;
+//					u = v = r = 0;
+//				} else {
+//					invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
+//					invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+//					invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
+//				}
+//			}
+//		}
+//		if (gamepadRxIsBusy) {
+//			gamepadRxIsBusy = 0;
+//			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+//		}
+//		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
+//			__HAL_UART_ENABLE(&huart3);
+//		}
 		osDelay(50);
 	}
   /* USER CODE END 5 */
@@ -1102,12 +1097,7 @@ uint8_t Run;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
-//	for (int i = 0;i<4;i++)
-//	{
-//		Module[i].filterAlpha = 0.2;
-//	}
-//	Odo.Suy = 2*M_PI*0.045/PulsePerRev;
-//
+
 //	PD_setParam(&pDX, 0.1, 0.007, 0.2);
 //	PD_setParam(&pDY, 0.1, 0.007, 0.2);
 //	PD_setParam(&pDTheta, 0.07, 0.01, 0.2);
@@ -1119,57 +1109,36 @@ void OdometerHandle(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		RTR_SpeedAngle();
-		Odometry(nodeSpeedAngle);
-//				for (int i = 0;i<4;i++)
-//				{
-//					SpeedRead(&Module[i], nodeSpeedAngle[i].bldcSpeed);
-//					nodeSpeedAngle[i].dcAngle += Module[i].Offset;
-//					Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
-//					Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
-////					Module[i].VxC = Module[i].Vx*cos(Module[i].Offset*M_PI/180)-Module[i].Vy*sin(Module[i].Offset*M_PI/180);
-////					Module[i].VyC = Module[i].Vx*sin(Module[i].Offset*M_PI/180)+Module[i].Vy*cos(Module[i].Offset*M_PI/180);
+		for (int i = 0;i<3;i++)
+		{
+			SpeedRead2(&Module[i], nodeSpeedAngle[i].bldcSpeed);
+//			nodeSpeedAngle[i].dcAngle += Module[i].Offset;
+//			Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
+//			Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
 //
-//					Vx[i] = Module[i].Vx;
-//					Vy[i] = Module[i].Vy;
-//				}
-//		//
-//				Forwardkinecal(&Fkine, Vx, Vy);
-//		//
-//				Odo.dX = Fkine.uOut*DeltaT;
-//				Odo.dY = Fkine.vOut*DeltaT;
-//				Odo.dTheta = Gyro*M_PI/180 - preGyro;
-////				Odo.dTheta = Fkine.thetaOut*DeltaT;
-//				preGyro = Gyro*M_PI/180;
-//				float sinTheta = sin(Odo.dTheta);
-//				float cosTheta = cos(Odo.dTheta);
+//			Vx[i] = Module[i].Vx;
+//			Vy[i] = Module[i].Vy;
+		}
 //
-//				// Cong thuc sap xi chuoi taylor
-//				if(abs(Odo.dTheta)<0.000001){
-//					Odo.S = 1-((pow(Odo.dTheta,2))/6);
-//					Odo.C = -0.5*Odo.dTheta;
-//				}else{
-//					Odo.S = sinTheta/Odo.dTheta;
-//					Odo.C = (1-cosTheta)/Odo.dTheta;
-//				}
+//		omegaToZeta(&Fkine, Vx, Vy);
 //
-//				Odo.poseX += (cos(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)-sin(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
-//				Odo.poseY += (sin(Odo.OffsetGyro)*(Odo.dX*Odo.S-Odo.dY*Odo.C)+cos(Odo.OffsetGyro)*(Odo.dX*Odo.C+Odo.dY*Odo.S))*Odo.Suy;
-//				Odo.poseTheta += (Odo.dTheta*Odo.Suy)/ROBOT_RADIUS;
-////				Odo.poseTheta += Odo.dTheta;
-////				Gyro = Odo.poseTheta;
-//				PD_Controller(&pDX, TargetX, Odo.poseX);
-//				PD_Controller(&pDY, TargetY, Odo.poseY);
-////				PD_Controller(&pDTheta, TargetTheta, Odo.poseY);
-//				if(Run == 1)
-//				{
-//					u = pDX.u;
-//					v = pDY.u;
-//					r = pDTheta.u;
-//				}
+//		Odo.poseTheta += Fkine.thetaOut*DeltaT;
+//		Odo.poseX += (Fkine.uOut*cos(Odo.dTheta)-Fkine.vOut*sin(Odo.dTheta))*DeltaT;
+//		Odo.poseY += (Fkine.uOut*sin(Odo.dTheta)+Fkine.vOut*cos(Odo.dTheta))*DeltaT;
+//		PD_Controller(&pDX, TargetX, Odo.poseX);
+//		PD_Controller(&pDY, TargetY, Odo.poseY);
+//		PD_Controller(&pDTheta, TargetTheta, Odo.poseTheta);
+//		if(Run == 1)
+//		{
+//			u = pDX.u*cos(Odo.poseTheta)-pDY.u*sin(Odo.poseTheta);
+//			v = pDX.u*sin(Odo.poseTheta)+pDY.u*cos(Odo.poseTheta);
+//			r = pDTheta.u;
+//		}
+//
 
+		osDelay(DeltaT*1000);
 
-//		osDelay(DeltaT*1000);
-		osDelay(1);
+//		osDelay(1);
 
 	}
   /* USER CODE END OdometerHandle */

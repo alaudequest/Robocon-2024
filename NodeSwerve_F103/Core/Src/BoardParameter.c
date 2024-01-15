@@ -36,7 +36,7 @@ void brd_Init()
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
 	brdParam.pidBLDC_Speed.kP = 0.02;
-	brdParam.pidBLDC_Speed.kI = 6.0;
+	brdParam.pidBLDC_Speed.kI = 5.0;
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
 	brdParam.pidBLDC_Speed.deltaT = 0.002;
