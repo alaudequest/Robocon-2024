@@ -1,0 +1,9 @@
+../Core/Src/main.c:80:5:main	1
+../Core/Src/main.c:164:6:SystemClock_Config	3
+../Core/Src/main.c:210:13:MX_TIM1_Init	8
+../Core/Src/main.c:289:13:MX_TIM2_Init	7
+../Core/Src/main.c:352:13:MX_TIM5_Init	7
+../Core/Src/main.c:415:13:MX_GPIO_Init	1
+../Core/Src/main.c:448:6:StartAccelTask	1
+../Core/Src/main.c:471:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:488:6:Error_Handler	1
