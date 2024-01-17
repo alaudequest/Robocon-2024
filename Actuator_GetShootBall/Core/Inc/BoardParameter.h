@@ -12,6 +12,7 @@
 #include "LibraryConfig.h"
 #include "PID.h"
 #include "Flag.h"
+#include "Motor.h"
 #include "Encoder.h"
 #include "CAN_Control.h"
 
@@ -48,11 +49,17 @@ typedef struct BoardParameter_t {
 	float targetAngleDC;
 	float targetSpeedBLDC;
 	int16_t countTimer;
-//	MotorDC mdc;
-//	MotorBLDC mbldc;
+
+	Motor gun1;
+	Motor gun2;
+	Motor ball1;
+	Motor ball2;
+	Motor rotary;
+
 	Encoder_t encRotary;
 	Encoder_t encGun1;
 	Encoder_t encGun2;
+
 	PID_Param pidGun1;
 	PID_Param pidGun2;
 	PID_Param pidAngle;

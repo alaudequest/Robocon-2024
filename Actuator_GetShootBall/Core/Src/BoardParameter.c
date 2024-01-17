@@ -17,10 +17,16 @@ void brd_Init()
 {
 	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
 
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
+
+	Motor_Init(&brdParam.rotary, MOTOR_PWM, 0, 0, &htim1, TIM_CHANNEL_2, TIM_CHANNEL_3);
+	Motor_Init(&brdParam.gun1, MOTOR_PWM, 0, 0, &htim2, TIM_CHANNEL_3, 0);
+	Motor_Init(&brdParam.gun2, MOTOR_PWM, 0, 0, &htim2, TIM_CHANNEL_4, 0);
+	Motor_Init(&brdParam.ball1, MOTOR_LL, RuloBall1_GPIO_Port, RuloBall1_Pin, NULL, 0, 0);
+	Motor_Init(&brdParam.ball2, MOTOR_LL, RuloBall2_GPIO_Port, RuloBall2_Pin, NULL, 0, 0);
 
 	brdParam.pidAngle.kP = 0.1;
 	brdParam.pidAngle.kI = 5;
