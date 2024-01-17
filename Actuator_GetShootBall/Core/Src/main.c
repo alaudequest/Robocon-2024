@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "BoardParameter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -117,13 +117,7 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL); // rulo bắn 1
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL); // rulo bắn 2
 
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -167,19 +161,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-//		count1 = __HAL_TIM_GetCounter(&htim2);
-		count2 = __HAL_TIM_GetCounter(&htim3);
-		count3 = __HAL_TIM_GetCounter(&htim4);
-		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, state);
-		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, state);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwm1);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pwm2);
-		HAL_Delay(5000);
-		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, 0);
-		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, 0);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-		HAL_Delay(5000);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
