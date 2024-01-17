@@ -857,7 +857,7 @@ typedef struct SwerveOdoHandle{
 
 void SpeedRead2(SpeedReadSlave *sp, float count)
 {
-	sp->V = 60*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
+	sp->V = 0.045*2*M_PI*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
 	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
 	sp->VfiltPre = sp->Vfilt;
 
@@ -866,9 +866,9 @@ void SpeedRead2(SpeedReadSlave *sp, float count)
 
 void omegaToZeta(ForwardKine *kine, float* VxA, float* VyA)
 {
-	kine->uOut = 0.3333*VxA[0] - 0*VyA[0] + 0.3333*VxA[1] + 0*VyA[1] + 0.3333*VxA[2] + 0*VyA[2] ;
-	kine->vOut = 0*VxA[0] + 0.1898*VyA[0] - 0.0563*VxA[1] + 0.4051*VyA[1] - 0.0563*VxA[2] - 0.4051*VyA[2] ;
-	kine->thetaOut = 0*VxA[0] - 1.8560*VyA[0] - 0.7276*VxA[1] - 0.9280*VyA[1] + 0.7276*VxA[2] - 0.9280*VyA[2] ;
+	kine->uOut 		= - 0.2357*VxA[0] + 0.2357*VyA[0] - 0.2357*VxA[1] - 0.2357*VyA[1] + 0.3333*VxA[2] + 0.0000*VyA[2] ;
+	kine->vOut 		= - 0.2467*VxA[0] - 0.3262*VyA[0] + 0.2467*VxA[1] - 0.3262*VyA[1] - 0.0000*VxA[2] + 0.1898*VyA[2] ;
+	kine->thetaOut 	=   0.1417*VxA[0] + 1.1707*VyA[0] - 0.1417*VxA[1] + 1.1707*VyA[1] + 0.0000*VxA[2] + 1.8560*VyA[2] ;
 }
 
 SwerveOdoHandle Odo;
@@ -984,9 +984,12 @@ void StartDefaultTask(void const * argument)
 
 	swer_Init();
 	for (;;) {
+//		u = GamePad.YLeftCtr;
+//		v = GamePad.XLeftCtr;
+//		r = - GamePad.XRightCtr;
+		invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 		invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
 		invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
-		invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
 //		InvCpltCallback(MODULE_ID_2, testSpeed, testPos) ;
 //		if(nodeSwerveSetHomeComplete == 30)
 //		{
@@ -1002,13 +1005,13 @@ void StartDefaultTask(void const * argument)
 //				}
 //			}
 //		}
-//		if (gamepadRxIsBusy) {
-//			gamepadRxIsBusy = 0;
-//			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-//		}
-//		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
-//			__HAL_UART_ENABLE(&huart3);
-//		}
+		if (gamepadRxIsBusy) {
+			gamepadRxIsBusy = 0;
+			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+		}
+		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
+			__HAL_UART_ENABLE(&huart3);
+		}
 		osDelay(50);
 	}
   /* USER CODE END 5 */
@@ -1085,6 +1088,18 @@ void Actuator(void const * argument)
 	}
   /* USER CODE END Actuator */
 }
+float absFloat(float num){
+	if (num<0)num*=-1.0;
+	return num;
+}
+uint8_t Isteady(float e)
+{
+	if (absFloat(e)<0.0001){
+		return 1;
+	}
+
+	return 0;
+}
 
 /* USER CODE BEGIN Header_OdometerHandle */
 /**
@@ -1094,17 +1109,18 @@ void Actuator(void const * argument)
  */
 /* USER CODE END Header_OdometerHandle */
 uint8_t Run;
+float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=1,kdTheta,alphaCtrol = 0.2;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 
-//	PD_setParam(&pDX, 0.1, 0.007, 0.2);
-//	PD_setParam(&pDY, 0.1, 0.007, 0.2);
-//	PD_setParam(&pDTheta, 0.07, 0.01, 0.2);
+	PD_setParam(&pDX, kpX, kdX, alphaCtrol);
+	PD_setParam(&pDY, kpY, kdY, alphaCtrol);
+	PD_setParam(&pDTheta, kpTheta, kdTheta, alphaCtrol);
 //
-//	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
-//	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
-
+	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
+	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
+	PD_setLimit(&pDY, 1, -1);
 
 	/* Infinite loop */
 	for (;;) {
@@ -1113,27 +1129,47 @@ void OdometerHandle(void const * argument)
 		{
 			SpeedRead2(&Module[i], nodeSpeedAngle[i].bldcSpeed);
 //			nodeSpeedAngle[i].dcAngle += Module[i].Offset;
-//			Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
-//			Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
+			Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
+			Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
 //
-//			Vx[i] = Module[i].Vx;
-//			Vy[i] = Module[i].Vy;
+			Vx[i] = Module[i].Vx;
+			Vy[i] = Module[i].Vy;
 		}
 //
-//		omegaToZeta(&Fkine, Vx, Vy);
-//
-//		Odo.poseTheta += Fkine.thetaOut*DeltaT;
-//		Odo.poseX += (Fkine.uOut*cos(Odo.dTheta)-Fkine.vOut*sin(Odo.dTheta))*DeltaT;
-//		Odo.poseY += (Fkine.uOut*sin(Odo.dTheta)+Fkine.vOut*cos(Odo.dTheta))*DeltaT;
-//		PD_Controller(&pDX, TargetX, Odo.poseX);
-//		PD_Controller(&pDY, TargetY, Odo.poseY);
-//		PD_Controller(&pDTheta, TargetTheta, Odo.poseTheta);
-//		if(Run == 1)
-//		{
-//			u = pDX.u*cos(Odo.poseTheta)-pDY.u*sin(Odo.poseTheta);
-//			v = pDX.u*sin(Odo.poseTheta)+pDY.u*cos(Odo.poseTheta);
-//			r = pDTheta.u;
-//		}
+		omegaToZeta(&Fkine, Vx, Vy);
+
+
+
+		Odo.poseTheta += Fkine.thetaOut*DeltaT;
+		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
+		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
+
+		Odo.dTheta = Odo.poseTheta*180/M_PI;
+
+		PD_Controller(&pDX, TargetX, Odo.poseX);
+		PD_Controller(&pDY, TargetY, Odo.poseY);
+		PD_Controller(&pDTheta, TargetTheta, Odo.poseTheta);
+		if(Run == 1)
+		{
+			if (!Isteady(pDX.e)){
+				u = pDX.u*cos(Odo.poseTheta)-pDY.u*sin(Odo.poseTheta);
+			}else {
+				u = 0;
+			}
+
+			if(!Isteady(pDY.e)){
+				v = pDX.u*sin(Odo.poseTheta)+pDY.u*cos(Odo.poseTheta);
+			}else{
+				v = 0;
+			}
+
+			if(!Isteady(pDTheta.e))
+			{
+				r = pDTheta.u;
+			}else{
+				r = 0;
+			}
+		}
 //
 
 		osDelay(DeltaT*1000);

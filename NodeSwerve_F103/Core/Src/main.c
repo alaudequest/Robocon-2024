@@ -780,8 +780,8 @@ void StartTaskPIDSpeed(void const * argument)
 	if (IsSetHome) {
 		goto SET_HOME_PID_SPEED;
 	}
-	PID_BLDC_CalSpeed(test);
-//	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
+//	PID_BLDC_CalSpeed(test);
+	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
     osDelay(2);
   }
   /* USER CODE END StartTaskPIDSpeed */

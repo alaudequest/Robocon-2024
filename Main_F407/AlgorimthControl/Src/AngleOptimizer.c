@@ -7,8 +7,8 @@
 
 #include "AngleOptimizer.h"
 float modulo360(float Angle){
-	int Result = (int)Angle/360;
-	return Angle-Result*360;
+	int Result = (int)Angle/360.0;
+	return Angle-Result*360.0;
 }
 
 float absf(float num)
@@ -19,15 +19,15 @@ float absf(float num)
 
 float modulo180(float Angle)
 {
-	int Result = (int)Angle/180;
-	return Angle-Result*180;
+	int Result = (int)Angle/180.0;
+	return Angle-Result*180.0;
 }
 
 int angopt_QuadrantCheckInput(float x, float y)
 {
 	float xT = x,yT = y;
-	if(absf(xT)<0.00001) xT = 0;
-	if(absf(yT)<0.00001) yT = 0;
+	if(absf(xT)<0.0001) xT = 0;
+	if(absf(yT)<0.0001) yT = 0;
 
 	if((xT>0)&&(yT>0))return 1;
 	else if((xT>0)&&(yT<0))return 2;
@@ -132,7 +132,7 @@ void angopt_Cal(ModuleID ID,float input)
 		preAngle = input;
 		preCal = calInput;
 		currentAngle += deltaAngle;
-		if(currentAngle>=1080) currentAngle-=360;
+//		if(currentAngle>=1080) currentAngle-=360;
 		swer_SetOptAngle(ID, opt);
 	}
 }
