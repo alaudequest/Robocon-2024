@@ -81,6 +81,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		else
 			count1--;
 	}
+	if(GPIO_Pin == ECD1A_Pin){
+		if(HAL_GPIO_ReadPin(ECD1B_GPIO_Port, ECD1B_Pin)){
+			count2++;
+		}
+		else
+			count2--;
+	}
 }
 /* USER CODE END 0 */
 
@@ -117,7 +124,7 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
+  brd_Init();
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -464,15 +471,21 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : ECD3B_Pin */
   GPIO_InitStruct.Pin = ECD3B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ECD3B_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ECD3A_Pin ECD1B_Pin ECD1A_Pin */
-  GPIO_InitStruct.Pin = ECD3A_Pin|ECD1B_Pin|ECD1A_Pin;
+  /*Configure GPIO pins : ECD3A_Pin ECD1A_Pin */
+  GPIO_InitStruct.Pin = ECD3A_Pin|ECD1A_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ECD1B_Pin */
+  GPIO_InitStruct.Pin = ECD1B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ECD1B_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
@@ -480,9 +493,6 @@ static void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -523,6 +533,7 @@ void StartPIDTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+
     osDelay(1);
   }
   /* USER CODE END StartPIDTask */

@@ -77,13 +77,11 @@ void Error_Handler(void);
 #define RuloGun1_GPIO_Port GPIOA
 #define ECD3B_Pin GPIO_PIN_15
 #define ECD3B_GPIO_Port GPIOA
-#define ECD3B_EXTI_IRQn EXTI15_10_IRQn
 #define ECD3A_Pin GPIO_PIN_3
 #define ECD3A_GPIO_Port GPIOB
 #define ECD3A_EXTI_IRQn EXTI3_IRQn
 #define ECD1B_Pin GPIO_PIN_6
 #define ECD1B_GPIO_Port GPIOB
-#define ECD1B_EXTI_IRQn EXTI9_5_IRQn
 #define ECD1A_Pin GPIO_PIN_7
 #define ECD1A_GPIO_Port GPIOB
 #define ECD1A_EXTI_IRQn EXTI9_5_IRQn
