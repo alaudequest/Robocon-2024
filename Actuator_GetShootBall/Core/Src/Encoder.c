@@ -9,8 +9,8 @@
 
 void encoder_Init(Encoder_t *enc,
 					TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT,
-					GPIO_TypeDef portA, uint16_t pinA,
-					GPIO_TypeDef portB, uint16_t pinB)
+					GPIO_TypeDef *portA, uint16_t pinA,
+					GPIO_TypeDef *portB, uint16_t pinB)
 {
 //------------------------Timer Mode-----------------//
 	enc->htim = htim;
@@ -25,12 +25,12 @@ void encoder_Init(Encoder_t *enc,
 
 float encoder_GetSpeed(Encoder_t *enc)
 {
-
+	return 0;
 }
 
 float encoder_GetPulse(Encoder_t *enc, EncoderCountMode count_Mode)
 {
-
+	return 0;
 }
 
 void encoder_ResetCount(Encoder_t *enc)

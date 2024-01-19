@@ -509,12 +509,15 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
+
+int16_t testEncoder = 0;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
+	testEncoder = __HAL_TIM_GET_COUNTER(&htim3);
     osDelay(1);
   }
   /* USER CODE END 5 */
