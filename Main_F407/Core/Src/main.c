@@ -787,7 +787,7 @@ void softEmergencyStop() {
 
 
 int count;
-int Lmao = 3000;
+int Lmao = 3500;
 
 float preGyro;
 void RTR_SpeedAngle(){
@@ -814,7 +814,7 @@ void RTR_SpeedAngle(){
 #define dx2 -0.07171
 #define dy3 -0.23373/2
 #define dx3	-0.07171
-#define a 0.045
+//#define a 0.045
 typedef struct SpeedReadSlave{
 	float V;
 	float Vx;
@@ -857,7 +857,7 @@ typedef struct SwerveOdoHandle{
 
 void SpeedRead2(SpeedReadSlave *sp, float count)
 {
-	sp->V = 0.045*2*M_PI*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
+	sp->V = 0.044*2*M_PI*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
 	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
 	sp->VfiltPre = sp->Vfilt;
 
@@ -909,7 +909,6 @@ typedef struct PDParam{
 void PD_Controller(PDParam *pd,float Target,float Current)
 {
 	pd->e = Target - Current;
-//	if(abs(pd->e)<0.001)pd->e = 0;
 	pd->uP = pd->kP*pd->e;
 	pd->uD = pd->kD*(pd->e - pd->pre)/DeltaT;
 	pd->uDf = (1-pd->Alpha)*pd->uDfpre+(pd->Alpha)*pd->uD;
@@ -944,28 +943,174 @@ float TargetTheta;
 
 
 uint8_t Break;
+float absFloat(float num){
+	if (num<0.0){
+		return num*-1.0;
+	}
+	else
+	return num;
+}
+float min(float a,float b){
+	float min;
+	min = a;
+	if(b<=min){
+		min = b;
+	}
+	return min;
+}
 
+float max(float a,float b){
+	float max;
+	max = a;
+	if(b>=max){
+		max = b;
+	}
+	return max;
+}
+int Isteady(float e,float thresthold)
+{
+	if (absFloat(e)<thresthold){
+		return 1;
+	}
 
-//#define dy1
-//#define dx1
-//#define dy2
-//#define dx2
-//#define dy3
-//#define dx3
-//
-//float omega1,omega2,omega3;
-//float omega1Real,omega2Real,omega3Real;
-//float uControl,vControl,rControl;
+	return 0;
+}
+float PointDistances(float* pt1,float* pt2)
+{
+	float Distance = 0.0;
+	Distance = sqrtf(powf((pt2[0]-pt1[0]),2.0)+powf((pt2[1]-pt1[1]),2.0));
+	return Distance;
+}
+int equalCompare(float a,float b)
+{
+	if(absFloat(a - b)<0.0001){
+		return 1;
+	}
+	return 0;
+}
+float path[3][2] = {
+		{0,0},
+		{2,0},
+		{0,0},
+};
 
-//void omegaToZeta(float u,float v, float r)
-//{
-//
-//}
-//void zetaToOmega(float omega1,float omega2,float omega3);
-//void ForwardKinematic(float u,float v,float r);
-//void inverseKinematic(float xdot,float ydot,float psidot);
-//void ControlSignal(float xd,float yd,float psid,float xc,float yc,float psic);
+int sgn(float num){
+	if(num >=0)return 1;
+	else return -1;
+}
 
+float solPtn1[2] = {0,0};
+float solPtn2[2] = {0,0};
+float currPtn[2] = {0,0};
+float goalPtn[2] = {0,0};
+float lastgoalPtn[2] = {0,0};
+
+int lFindex = 0,stIndex = 0;
+float lookAheadDis = 0.4;
+float X1,Y1,X2,Y2;
+float dx,dy,dr,D;
+float discriminant;
+float minX,minY,maxX,maxY;
+float pathlen;
+int len;
+void Purepursuilt(SwerveOdoHandle *od){
+	currPtn[0] = od->poseX;
+	currPtn[1] = od->poseY;
+//	pathlen = sizeof(path) / sizeof(path[0]);
+	stIndex = lFindex;
+	for (int i = stIndex;i<len-1;i++)
+	{
+		X1 = path[i][0] - currPtn[0];
+		Y1 = path[i][1]	- currPtn[1];
+
+		X2 = path[i+1][0] - currPtn[0];
+		Y2 = path[i+1][1] - currPtn[1];
+
+		dx = X2 - X1;
+		dy = Y2	- Y1;
+
+		dr = sqrtf(dx*dx + dy*dy);
+		D  = X1*Y2 - X2*Y1;
+
+		discriminant = (lookAheadDis*lookAheadDis)*(dr*dr)-D*D;
+
+		if(discriminant >= 0){
+			solPtn1[0] = (D*dy+(float)sgn(dy)*dx*sqrtf(discriminant))/powf(dr,2);
+			solPtn2[0] = (D*dy-(float)sgn(dy)*dx*sqrtf(discriminant))/powf(dr,2);
+			solPtn1[1] = (-D*dx+absFloat(dy)*sqrtf(discriminant))/powf(dr,2);
+			solPtn2[1] = (-D*dx-absFloat(dy)*sqrtf(discriminant))/powf(dr,2);
+
+			solPtn1[0] += currPtn[0];
+			solPtn1[1] += currPtn[1];
+
+			solPtn2[0] += currPtn[0];
+			solPtn2[1] += currPtn[1];
+
+			minX = min(path[i][0], path[i+1][0]);
+			minY = min(path[i][1], path[i+1][1]);
+			maxX = max(path[i][0], path[i+1][0]);
+			maxY = max(path[i][1], path[i+1][1]);
+
+			if(
+			(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
+			||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
+
+			||
+
+			(((minX <= solPtn2[0] && solPtn2[0]<= maxX)&&(minY <= solPtn2[1] && solPtn2[1]<= maxY))
+			||((equalCompare(solPtn2[0], minX)==1)||(equalCompare(solPtn2[0], maxX)==1)||(equalCompare(solPtn2[1], minY)==1)||(equalCompare(solPtn2[1], maxY)==1)))
+			)
+			{
+				if(
+				(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
+				||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
+
+				&&
+
+				(((minX <= solPtn2[0] && solPtn2[0]<= maxX)&&(minY <= solPtn2[1] && solPtn2[1]<= maxY))
+				||((equalCompare(solPtn2[0], minX)==1)||(equalCompare(solPtn2[0], maxX)==1)||(equalCompare(solPtn2[1], minY)==1)||(equalCompare(solPtn2[1], maxY)==1)))
+				){
+						if (PointDistances(solPtn1, path[i+1])<PointDistances(solPtn2, path[i+1])){
+							goalPtn[0] = solPtn1[0];
+							goalPtn[1] = solPtn1[1];
+						}else{
+							goalPtn[0] = solPtn2[0];
+							goalPtn[1] = solPtn2[1];
+						}
+					}
+				else{
+					if
+					(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
+					||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
+					{
+						goalPtn[0] = solPtn1[0];
+						goalPtn[1] = solPtn1[1];
+					}
+					else{
+						goalPtn[0] = solPtn2[0];
+						goalPtn[1] = solPtn2[1];
+					}
+				}
+
+				if (PointDistances(goalPtn, path[i+1])<PointDistances(currPtn, path[i+1])){
+					lFindex = i;
+					break;
+				}else if(lFindex == (len-2)){
+					goalPtn[0] = path[len-1][0];
+					goalPtn[1] = path[len-1][1];
+					lFindex += 1;
+					break;
+				}else{
+
+					lFindex += 1;
+				}
+			}
+		}else{
+			goalPtn[0] = path[lFindex][0];
+			goalPtn[1] = path[lFindex][1];
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -977,19 +1122,21 @@ uint8_t Break;
 
 /* USER CODE END Header_StartDefaultTask */
 int testSpeed,testPos;
+float uControlX,uControlY,uControlTheta;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
 
 	swer_Init();
+
 	for (;;) {
 //		u = GamePad.YLeftCtr;
 //		v = GamePad.XLeftCtr;
 //		r = - GamePad.XRightCtr;
-		invkine_Implementation(MODULE_ID_3, u, v, r, &InvCpltCallback);
-		invkine_Implementation(MODULE_ID_1, u, v, r, &InvCpltCallback);
-		invkine_Implementation(MODULE_ID_2, u, v, r, &InvCpltCallback);
+		invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 //		InvCpltCallback(MODULE_ID_2, testSpeed, testPos) ;
 //		if(nodeSwerveSetHomeComplete == 30)
 //		{
@@ -1088,18 +1235,7 @@ void Actuator(void const * argument)
 	}
   /* USER CODE END Actuator */
 }
-float absFloat(float num){
-	if (num<0)num*=-1.0;
-	return num;
-}
-uint8_t Isteady(float e)
-{
-	if (absFloat(e)<0.0001){
-		return 1;
-	}
 
-	return 0;
-}
 
 /* USER CODE BEGIN Header_OdometerHandle */
 /**
@@ -1108,8 +1244,9 @@ uint8_t Isteady(float e)
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
-uint8_t Run;
-float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=1,kdTheta,alphaCtrol = 0.2;
+uint8_t Run,resetParam;
+
+float kpX = 1.2 ,kpY = 1.2,kdX,kdY,kpTheta=1,kdTheta,alphaCtrol = 0.2;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1120,22 +1257,21 @@ void OdometerHandle(void const * argument)
 //
 	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
 	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
-	PD_setLimit(&pDY, 1, -1);
+	PD_setLimit(&pDTheta, 0.5, -0.5);
 
+	len = sizeof(path) / sizeof(path[0]);
 	/* Infinite loop */
 	for (;;) {
 		RTR_SpeedAngle();
 		for (int i = 0;i<3;i++)
 		{
 			SpeedRead2(&Module[i], nodeSpeedAngle[i].bldcSpeed);
-//			nodeSpeedAngle[i].dcAngle += Module[i].Offset;
 			Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
 			Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
-//
 			Vx[i] = Module[i].Vx;
 			Vy[i] = Module[i].Vy;
 		}
-//
+
 		omegaToZeta(&Fkine, Vx, Vy);
 
 
@@ -1144,37 +1280,51 @@ void OdometerHandle(void const * argument)
 		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
 		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
 
+		if(resetParam == 1){
+			Odo.poseX = 0;
+			Odo.poseY = 0;
+			Odo.poseTheta = 0;
+			resetParam = 0;
+		}
+
 		Odo.dTheta = Odo.poseTheta*180/M_PI;
 
-		PD_Controller(&pDX, TargetX, Odo.poseX);
-		PD_Controller(&pDY, TargetY, Odo.poseY);
-		PD_Controller(&pDTheta, TargetTheta, Odo.poseTheta);
+		Purepursuilt(&Odo);
+
+		PD_Controller(&pDX, goalPtn[0], Odo.poseX);
+		PD_Controller(&pDY, goalPtn[1], Odo.poseY);
+		PD_Controller(&pDTheta, TargetTheta*M_PI/180, Odo.poseTheta);
+
 		if(Run == 1)
 		{
-			if (!Isteady(pDX.e)){
-				u = pDX.u*cos(Odo.poseTheta)-pDY.u*sin(Odo.poseTheta);
-			}else {
-				u = 0;
-			}
-
-			if(!Isteady(pDY.e)){
-				v = pDX.u*sin(Odo.poseTheta)+pDY.u*cos(Odo.poseTheta);
+			if(lFindex<1){
+				TargetTheta = -90;
 			}else{
-				v = 0;
+				TargetTheta = 0;
 			}
 
-			if(!Isteady(pDTheta.e))
+			if (Isteady(pDX.e,0.01)){
+				pDX.u = 0;
+			}
+
+			if(Isteady(pDY.e,0.01)){
+				pDY.u = 0;
+			}
+
+			if(Isteady(pDX.e,0.05)&&Isteady(pDY.e,0.05))
 			{
-				r = pDTheta.u;
-			}else{
-				r = 0;
+				pDTheta.u = 0;
 			}
+
+			u = pDX.u;
+			v = pDY.u;
+			r = pDTheta.u;
 		}
-//
-
+			uControlX = u*cos(-Odo.poseTheta) - v*sin(-Odo.poseTheta);
+			uControlY = u*sin(-Odo.poseTheta) + v*cos(-Odo.poseTheta);
+			uControlTheta = r;
+//		Purepursuilt(&Odo);
 		osDelay(DeltaT*1000);
-
-//		osDelay(1);
 
 	}
   /* USER CODE END OdometerHandle */
