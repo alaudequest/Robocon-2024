@@ -1115,6 +1115,23 @@ void Purepursuilt(SwerveOdoHandle *od){
 		}
 	}
 }
+
+float t;
+float a0,a1,a2,a3;
+float xTrajec;
+
+float P0,Pf,tf,v0,vf;
+void TrajecPlanning(float P0,float Pf,float tf,float v0,float vf){
+	a0 = P0;
+	a1 = v0;
+	a2 = (3/(tf*tf))*(Pf - P0) - (2/tf)*v0 - (1/tf)*vf;
+	a3 = (-2/(tf*tf*tf))*(Pf - P0) + (1/(tf*tf))*(vf + v0);
+
+	if (t > tf) t = tf;
+
+	xTrajec = a0 + a1*t + a2*t*t + a3*t*t*t;
+
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1248,9 +1265,9 @@ void Actuator(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
-uint8_t Run,resetParam;
+uint8_t Run,resetParam,breakProtect;
 
-float kpX = 1.5 ,kpY = 1.5,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
+float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1259,11 +1276,13 @@ void OdometerHandle(void const * argument)
 	PD_setParam(&pDY, kpY, kdY, alphaCtrol);
 	PD_setParam(&pDTheta, kpTheta, kdTheta, alphaCtrol);
 
-	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
-	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
-	PD_setLimit(&pDTheta, 1.5, -1.5);
+	PD_setLimit(&pDX, 1, -1);
+	PD_setLimit(&pDY, 1, -1);
+	PD_setLimit(&pDTheta, 1, -1);
 
 	len = sizeof(path) / sizeof(path[0]);
+	tf = 5;
+	Pf = 1.5;
 	/* Infinite loop */
 	for (;;) {
 		RTR_SpeedAngle();
@@ -1284,6 +1303,11 @@ void OdometerHandle(void const * argument)
 		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
 		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
 
+		if (breakProtect == 1)
+		{
+			TestBreakProtection();
+			breakProtect = 0;
+		}
 		if(resetParam == 1){
 			Odo.poseX = 0;
 			Odo.poseY = 0;
@@ -1293,36 +1317,16 @@ void OdometerHandle(void const * argument)
 
 		Odo.dTheta = Odo.poseTheta*180/M_PI;
 
-		Purepursuilt(&Odo);
+//		Purepursuilt(&Odo);
 
-		PD_Controller(&pDX, goalPtn[0], Odo.poseX);
-		PD_Controller(&pDY, goalPtn[1], Odo.poseY);
+		PD_Controller(&pDX, xTrajec, Odo.poseX);
+		PD_Controller(&pDY, 0, Odo.poseY);
 		PD_Controller(&pDTheta, TargetTheta*M_PI/180, Odo.poseTheta);
 
 		if(Run == 1)
 		{
-			if(kpX>3) kpX = 3;
-			if(kpY>3) kpY = 3;
-			if(kpX<1.2) kpX = 1.2;
-			if(kpY<1.2) kpY = 1.2;
-			PD_setParam(&pDX, kpX, kdX, alphaCtrol);
-			PD_setParam(&pDY, kpX, kdY, alphaCtrol);
-			if((lFindex<2)){
-				kpX += 0.08;
-				kpY += 0.08;
-				PD_setLimit(&pDX, 1, -1);
-				PD_setLimit(&pDY, 1, -1);
-			}else{
-				kpX -= 0.2;
-				kpY -= 0.2;
-				PD_setLimit(&pDX, 0.8, -0.8);
-				PD_setLimit(&pDY, 0.8, -0.8);
-			}
-			if(lFindex<3){
-				TargetTheta = -90;
-			}else{
-				TargetTheta = 0;
-			}
+			t += DeltaT;
+			TrajecPlanning(P0, Pf, tf, v0, vf);
 
 			if (Isteady(pDX.e,0.01)){
 				pDX.u = 0;
