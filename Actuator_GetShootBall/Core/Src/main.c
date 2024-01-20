@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "BoardParameter.h"
+//#include "BoardParameter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,7 +52,7 @@ osThreadId PIDTaskHandle;
 osThreadId CANTaskHandle;
 /* USER CODE BEGIN PV */
 int count1 = 0, count2 = 0, count3 = 0;
-uint16_t pwm1 = 0, pwm2 = 0;
+uint16_t pwm = 0;
 uint8_t state = 0;
 /* USER CODE END PV */
 
@@ -124,7 +124,13 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  brd_Init();
+//  brd_Init();
+	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -510,14 +516,18 @@ static void MX_GPIO_Init(void)
   */
 /* USER CODE END Header_StartDefaultTask */
 
-int16_t testEncoder = 0;
+//int16_t testEncoder = 0;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
-	testEncoder = __HAL_TIM_GET_COUNTER(&htim3);
+	count3 = __HAL_TIM_GET_COUNTER(&htim3);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pwm);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwm);
+	HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, state);
+	HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, state);
     osDelay(1);
   }
   /* USER CODE END 5 */
