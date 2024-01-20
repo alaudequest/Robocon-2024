@@ -787,7 +787,7 @@ void softEmergencyStop() {
 
 
 int count;
-int Lmao = 3500;
+int NopeCycle = 3500;
 
 float preGyro;
 void RTR_SpeedAngle(){
@@ -799,7 +799,7 @@ void RTR_SpeedAngle(){
 		canctrl_PutMessage((void*)&a, sizeof(bool));
 		targetID = i + 1;
 		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
-		for(uint16_t i = 0; i < Lmao; i++) __NOP();
+		for(uint16_t i = 0; i < NopeCycle; i++) __NOP();
 	}
 //	count = __HAL_TIM_GET_COUNTER(&htim10);
 //	HAL_TIM_Base_Stop(&htim10);
@@ -988,9 +988,13 @@ int equalCompare(float a,float b)
 	}
 	return 0;
 }
-float path[3][2] = {
+float path[7][2] = {
 		{0,0},
-		{2,0},
+		{0.35,-0.35},
+		{1,-0.35},
+		{2.5,-0.35},
+		{3,-0.1},
+		{3,0},
 		{0,0},
 };
 
@@ -1006,7 +1010,7 @@ float goalPtn[2] = {0,0};
 float lastgoalPtn[2] = {0,0};
 
 int lFindex = 0,stIndex = 0;
-float lookAheadDis = 0.4;
+float lookAheadDis = 0.45;
 float X1,Y1,X2,Y2;
 float dx,dy,dr,D;
 float discriminant;
@@ -1246,7 +1250,7 @@ void Actuator(void const * argument)
 /* USER CODE END Header_OdometerHandle */
 uint8_t Run,resetParam;
 
-float kpX = 1.2 ,kpY = 1.2,kdX,kdY,kpTheta=1,kdTheta,alphaCtrol = 0.2;
+float kpX = 1.5 ,kpY = 1.5,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1254,10 +1258,10 @@ void OdometerHandle(void const * argument)
 	PD_setParam(&pDX, kpX, kdX, alphaCtrol);
 	PD_setParam(&pDY, kpY, kdY, alphaCtrol);
 	PD_setParam(&pDTheta, kpTheta, kdTheta, alphaCtrol);
-//
+
 	PD_setLimit(&pDX, UABOVE_X, UBELOW_X);
 	PD_setLimit(&pDY, UABOVE_Y, UBELOW_Y);
-	PD_setLimit(&pDTheta, 0.5, -0.5);
+	PD_setLimit(&pDTheta, 1.5, -1.5);
 
 	len = sizeof(path) / sizeof(path[0]);
 	/* Infinite loop */
@@ -1297,7 +1301,24 @@ void OdometerHandle(void const * argument)
 
 		if(Run == 1)
 		{
-			if(lFindex<1){
+			if(kpX>3) kpX = 3;
+			if(kpY>3) kpY = 3;
+			if(kpX<1.2) kpX = 1.2;
+			if(kpY<1.2) kpY = 1.2;
+			PD_setParam(&pDX, kpX, kdX, alphaCtrol);
+			PD_setParam(&pDY, kpX, kdY, alphaCtrol);
+			if((lFindex<2)){
+				kpX += 0.08;
+				kpY += 0.08;
+				PD_setLimit(&pDX, 1, -1);
+				PD_setLimit(&pDY, 1, -1);
+			}else{
+				kpX -= 0.2;
+				kpY -= 0.2;
+				PD_setLimit(&pDX, 0.8, -0.8);
+				PD_setLimit(&pDY, 0.8, -0.8);
+			}
+			if(lFindex<3){
 				TargetTheta = -90;
 			}else{
 				TargetTheta = 0;
