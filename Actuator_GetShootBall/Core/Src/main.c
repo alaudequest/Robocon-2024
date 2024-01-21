@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "BoardParameter.h"
+#include "PID_GunModule.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,11 +50,15 @@ TIM_HandleTypeDef htim3;
 osThreadId defaultTaskHandle;
 osThreadId PIDTaskHandle;
 osThreadId CANTaskHandle;
+osMessageQId qPIDHandle;
 /* USER CODE BEGIN PV */
 int count1 = 0, count2 = 0, count3 = 0;
 uint16_t pwm = 0;
 uint8_t state = 0;
 uint8_t fire = 0;
+bool IsSetHome = false;
+bool IsFirePhoenix = false;
+QueueHandle_t qPID;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -127,13 +131,9 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-//  brd_Init();
-	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+  qPID = xQueueCreate(2, sizeof(float));
+  brd_Init();
 
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -147,6 +147,11 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* definition and creation of qPID */
+  osMessageQDef(qPID, 8, uint8_t);
+  qPIDHandle = osMessageCreate(osMessageQ(qPID), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -478,6 +483,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Sensor_Home_Pin */
+  GPIO_InitStruct.Pin = Sensor_Home_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Sensor_Home_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : ECD3B_Pin */
   GPIO_InitStruct.Pin = ECD3B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -521,21 +532,21 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+	SET_HOME_DEFAULT_TASK:
+	sethome_Begin();
+	while (!sethome_IsComplete()) {
+		sethome_Procedure();
+		float speed = sethome_GetSpeed();
+		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+		osDelay(1);
+	}
+	IsSetHome = 0;
   /* Infinite loop */
   for(;;)
   {
-	  if(fire){
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pwm);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwm);
-		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, 1);
-		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, 1);
-		vTaskDelay(pdMS_TO_TICKS(3000));
-		fire = 0;
-	  }else{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, 0);
-		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, 0);
+	  if(IsSetHome){
+		  osDelay(1);
+		  goto SET_HOME_DEFAULT_TASK;
 	  }
     osDelay(1);
   }
@@ -552,11 +563,23 @@ void StartDefaultTask(void const * argument)
 void StartPIDTask(void const * argument)
 {
   /* USER CODE BEGIN StartPIDTask */
+  SET_HOME_PID_TASK: float TargetValue = 0;
+  while (!sethome_IsComplete()) {
+	  xQueueReceive(qPID, &TargetValue, 0);
+	  PID_Rotary_CalSpeed((float) TargetValue);
+	  osDelay(5);
+  }
   /* Infinite loop */
   for(;;)
   {
-	count3 = __HAL_TIM_GET_COUNTER(&htim3);
-    osDelay(1);
+	  if(IsSetHome) {
+		  goto SET_HOME_PID_TASK;
+	  }
+	  if(IsFirePhoenix){
+		  PID_Rotary_CalPos(TargetValue);
+		  PID_Gun_CalSpeed(TargetValue);
+	  }
+	  osDelay(1);
   }
   /* USER CODE END StartPIDTask */
 }

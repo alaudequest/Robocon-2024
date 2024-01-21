@@ -67,6 +67,8 @@ void Error_Handler(void);
 #define RotaryGun2_GPIO_Port GPIOA
 #define RuloBall2_Pin GPIO_PIN_4
 #define RuloBall2_GPIO_Port GPIOA
+#define Sensor_Home_Pin GPIO_PIN_5
+#define Sensor_Home_GPIO_Port GPIOA
 #define ECD2A_Pin GPIO_PIN_6
 #define ECD2A_GPIO_Port GPIOA
 #define ECD2B_Pin GPIO_PIN_7

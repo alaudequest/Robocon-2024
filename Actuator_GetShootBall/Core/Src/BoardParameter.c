@@ -30,14 +30,23 @@ void brd_Init()
 
 //	encoder_Init(&brdParam.encGun2, &htim3, 200,0.005, GPIOA, GPIO_PIN_6, GPIOA, GPIO_PIN_7);
 
-	brdParam.pidAngle.kP = 0.1;
-	brdParam.pidAngle.kI = 5;
-	brdParam.pidAngle.kD = 0;
-	brdParam.pidAngle.alpha = 0;
-	brdParam.pidAngle.deltaT = PIDDeltaT;
-	brdParam.pidAngle.u_AboveLimit = 1000;
-	brdParam.pidAngle.u_BelowLimit = -1000;
-	brdParam.pidAngle.kB = 1/PIDDeltaT;
+	brdParam.pidRotaryAngle.kP = 0.1;
+	brdParam.pidRotaryAngle.kI = 5;
+	brdParam.pidRotaryAngle.kD = 0;
+	brdParam.pidRotaryAngle.alpha = 0;
+	brdParam.pidRotaryAngle.deltaT = PIDDeltaT;
+	brdParam.pidRotaryAngle.u_AboveLimit = 1000;
+	brdParam.pidRotaryAngle.u_BelowLimit = -1000;
+	brdParam.pidRotaryAngle.kB = 1/PIDDeltaT;
+
+	brdParam.pidRotarySpeed.kP = 0.1;
+	brdParam.pidRotarySpeed.kI = 5;
+	brdParam.pidRotarySpeed.kD = 0;
+	brdParam.pidRotarySpeed.alpha = 0;
+	brdParam.pidRotarySpeed.deltaT = PIDDeltaT;
+	brdParam.pidRotarySpeed.u_AboveLimit = 1000;
+	brdParam.pidRotarySpeed.u_BelowLimit = -1000;
+	brdParam.pidRotarySpeed.kB = 1/PIDDeltaT;
 
 	brdParam.pidGun2.kP = 5;
 	brdParam.pidGun2.kI = 0;
@@ -57,3 +66,85 @@ void brd_Init()
 	brdParam.pidGun1.u_BelowLimit = DC_SUM_BELOW_LIMIT;
 	brdParam.pidGun1.kB = 1/PIDDeltaT;
 }
+
+void brd_SetPID(PID_Param pid,PID_type type){
+	switch(type){
+	case PID_GUN1:
+		brdParam.pidGun1 = pid;
+		break;
+	case PID_GUN2:
+		brdParam.pidGun2 = pid;
+		break;
+	case PID_ROTARY_ANGLE:
+		brdParam.pidRotaryAngle = pid;
+		break;
+	case PID_ROTARY_SPEED:
+		brdParam.pidRotarySpeed = pid;
+		break;
+	}
+}
+
+PID_Param brd_GetPID(PID_type type){
+	switch(type){
+	case PID_GUN1:
+		return brdParam.pidGun1;
+		break;
+	case PID_GUN2:
+		return brdParam.pidGun2;
+		break;
+	case PID_ROTARY_ANGLE:
+		return brdParam.pidRotaryAngle;
+		break;
+	case PID_ROTARY_SPEED:
+		return brdParam.pidRotarySpeed;
+		break;
+	}
+	return brdParam.pidRotarySpeed;
+}
+
+Motor brd_GetObjMotor(Motor_Type type){
+	switch(type){
+	case MOTOR_GUN1:
+		return brdParam.gun1;
+		break;
+	case MOTOR_GUN2:
+		return brdParam.gun2;
+		break;
+	case MOTOR_BALL1:
+		return brdParam.ball1;
+		break;
+	case MOTOR_BALL2:
+		return brdParam.ball2;
+		break;
+	case MOTOR_ROTARY:
+		return brdParam.rotary;
+		break;
+	}
+	return brdParam.rotary;
+}
+
+void brd_SetObjMotor(Motor motor, Motor_Type type){
+	switch(type){
+	case MOTOR_GUN1:
+		brdParam.gun1 = motor;
+		break;
+	case MOTOR_GUN2:
+		brdParam.gun2 = motor;
+		break;
+	case MOTOR_BALL1:
+		brdParam.ball1 = motor;
+		break;
+	case MOTOR_BALL2:
+		brdParam.ball2 = motor;
+		break;
+	case MOTOR_ROTARY:
+		brdParam.rotary = motor;
+		break;
+	}
+}
+
+
+
+
+
+

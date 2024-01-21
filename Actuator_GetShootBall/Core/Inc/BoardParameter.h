@@ -15,6 +15,7 @@
 #include "Motor.h"
 #include "Encoder.h"
 #include "CAN_Control.h"
+#include "SetHome.h"
 
 /*-----------------------------Begin:Gun1 Macro-------------------------------*/
 #define _Gun1EncoderPerRound 				  200
@@ -39,15 +40,18 @@
 
 #define PIDDeltaT							0.001
 
+
+
 typedef enum PID_type{
 	PID_GUN1 = 1,
 	PID_GUN2,
-	PID_ANGLE,
+	PID_ROTARY_ANGLE,
+	PID_ROTARY_SPEED
 }PID_type;
 
 typedef struct BoardParameter_t {
 	float targetAngleDC;
-	float targetSpeedBLDC;
+	float targetSpeedDC;
 	int16_t countTimer;
 
 	Motor gun1;
@@ -62,9 +66,22 @@ typedef struct BoardParameter_t {
 
 	PID_Param pidGun1;
 	PID_Param pidGun2;
-	PID_Param pidAngle;
+	PID_Param pidRotaryAngle;
+	PID_Param pidRotarySpeed;
 }BoardParameter_t;
 
-void brd_Init();
+typedef enum Motor_Type{
+	MOTOR_GUN1,
+	MOTOR_GUN2,
+	MOTOR_BALL1,
+	MOTOR_BALL2,
+	MOTOR_ROTARY,
+}Motor_Type;
 
+void brd_Init();
+void brd_SetPID(PID_Param pid,PID_type type);
+PID_Param brd_GetPID(PID_type type);
+
+Motor brd_GetObjMotor(Motor_Type type);
+void brd_SetObjMotor(Motor motor, Motor_Type type);
 #endif /* INC_BOARDPARAMETER_H_ */
