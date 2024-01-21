@@ -54,6 +54,7 @@ osThreadId CANTaskHandle;
 int count1 = 0, count2 = 0, count3 = 0;
 uint16_t pwm = 0;
 uint8_t state = 0;
+uint8_t fire = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,6 +89,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		else
 			count2--;
 	}
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 /* USER CODE END 0 */
 
@@ -125,7 +128,7 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 //  brd_Init();
-	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
@@ -425,11 +428,11 @@ static void MX_TIM3_Init(void)
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_FALLING;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_FALLING;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC2Filter = 0;
@@ -515,19 +518,25 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-
-//int16_t testEncoder = 0;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
-	count3 = __HAL_TIM_GET_COUNTER(&htim3);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pwm);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwm);
-	HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, state);
-	HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, state);
+	  if(fire){
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pwm);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwm);
+		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, 1);
+		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, 1);
+		vTaskDelay(pdMS_TO_TICKS(3000));
+		fire = 0;
+	  }else{
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+		HAL_GPIO_WritePin(RuloBall1_GPIO_Port, RuloBall1_Pin, 0);
+		HAL_GPIO_WritePin(RuloBall2_GPIO_Port, RuloBall2_Pin, 0);
+	  }
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -546,7 +555,7 @@ void StartPIDTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-
+	count3 = __HAL_TIM_GET_COUNTER(&htim3);
     osDelay(1);
   }
   /* USER CODE END StartPIDTask */

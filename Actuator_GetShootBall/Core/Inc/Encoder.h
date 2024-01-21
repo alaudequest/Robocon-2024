@@ -10,7 +10,10 @@
 
 #include "main.h"
 #include "stdbool.h"
-
+typedef enum EncoderTypeMode{
+	 INTERRUPT,
+	 TIMER,
+}EncoderTypeMode;
 typedef enum EncoderCountMode{
 	 MODE_X1,
 	 MODE_X4,
@@ -18,6 +21,7 @@ typedef enum EncoderCountMode{
 }EncoderCountMode;
 
 typedef struct Encoder_t{
+	EncoderTypeMode mode;
 //------------------------Pins & Ports---------------//
 	GPIO_TypeDef *portA;
 	uint16_t pinA;
@@ -38,7 +42,7 @@ typedef struct Encoder_t{
 	float deltaT;
 }Encoder_t;
 
-void encoder_Init(Encoder_t *enc,
+void encoder_Init(Encoder_t *enc,EncoderTypeMode mode,
 					TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT,
 					GPIO_TypeDef *portA, uint16_t pinA,
 					GPIO_TypeDef *portB, uint16_t pinB);

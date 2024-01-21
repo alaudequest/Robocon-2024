@@ -28,7 +28,7 @@ void brd_Init()
 	Motor_Init(&brdParam.ball1, MOTOR_LL, RuloBall1_GPIO_Port, RuloBall1_Pin, NULL, 0, 0);
 	Motor_Init(&brdParam.ball2, MOTOR_LL, RuloBall2_GPIO_Port, RuloBall2_Pin, NULL, 0, 0);
 
-	encoder_Init(&brdParam.encGun2, &htim3, 200,0.005, GPIOA, GPIO_PIN_6, GPIOA, GPIO_PIN_7);
+//	encoder_Init(&brdParam.encGun2, &htim3, 200,0.005, GPIOA, GPIO_PIN_6, GPIOA, GPIO_PIN_7);
 
 	brdParam.pidAngle.kP = 0.1;
 	brdParam.pidAngle.kI = 5;
