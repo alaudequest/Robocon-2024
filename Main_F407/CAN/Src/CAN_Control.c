@@ -184,10 +184,10 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 	canFilCfg.FilterActivation = CAN_FILTER_ENABLE;
 	canFilCfg.FilterBank = filBank;
 	canFilCfg.FilterFIFOAssignment = FIFO;
-	canFilCfg.FilterIdLow = 		ID1 << 5; // 0010000000100000
-	canFilCfg.FilterIdHigh = 		ID2 << 5; // 0010000001000000
-	canFilCfg.FilterMaskIdLow = 	ID3 << 5; // 0010000001100000
-	canFilCfg.FilterMaskIdHigh = 	ID4 << 5; // 0010000010000000
+	canFilCfg.FilterIdLow = 		ID3 << 5; // 0010000000100000
+	canFilCfg.FilterIdHigh = 		ID1 << 5; // 0010000001000000
+	canFilCfg.FilterMaskIdLow = 	ID4 << 5; // 0010000001100000
+	canFilCfg.FilterMaskIdHigh = 	ID2 << 5; // 0010000010000000
 	canFilCfg.FilterMode = CAN_FILTERMODE_IDLIST;
 	canFilCfg.FilterScale = CAN_FILTERSCALE_16BIT;
 	canFilCfg.SlaveStartFilterBank = 13;

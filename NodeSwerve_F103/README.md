@@ -34,18 +34,18 @@ Mô hình tổ chức các module chức năng:
 + __Motor__
 
     Khởi tạo chân điều khiển cho động cơ DC và BLDC, thay đổi Duty Cycle của PWM cấp cho 2 động cơ DC và BLDC.
-
+    Tham khảo [CAN_FuncHandle](README_Module/Motor.md)
 + __Encoder__
 
     Đảm nhiệm việc khởi tạo và cấu hình bộ Timer cụ thể cho chức năng Timer Encoder, Timer sẽ tự động đếm số xung encoder đọc được, tăng giảm xung tùy vào chiều quay của 2 kênh A, B.
 
     Dùng để tính số xung đọc được trong khoảng thời gian lấy mẫu (deltaT) nhất định (dùng cho PID), hoặc trả về tổng số xung đọc được khi xoay encoder(dùng để test chức năng).
-
+    Tham khảo [CAN_FuncHandle](README_Module/Encoder.md)
 
 + __SetHome__
 
     Điều khiển quy trình xoay cụm bánh đến vị trí cài đặt gốc ban đầu - vị trí lắp cảm biến hồng ngoại chữ U 24V, sau đó sẵn sàng nhận lệnh từ main F4 để điều khiển xoay bánh DC và chạy BLDC.
-
+    Tham khảo [CAN_FuncHandle](README_Module/SetHome.md)
 + __PID_SwerveModule__
 
     Đảm nhiệm việc tính toán thông số PID cho động cơ DC và BLDC theo SetPoint đặt trước, một cụm bánh có 3 thông số PID như sau:
@@ -53,7 +53,7 @@ Mô hình tổ chức các module chức năng:
     + PID tốc độ cho DC, được chạy trong quá trình SetHome.
     + PID tốc độ cho BLDC, được chạy sau quá trình SetHome.
     + PID vị trí cho DC lồng với PID vận tốc, được chạy sau quá trình SetHome - quá trình vận hành bình thường của cụm bánh.
-
+    Tham khảo [CAN_FuncHandle](README_Module/PID_Swerve.md)
 + __BoardParameter__
 
     Chứa và quản lý tất cả các đối tượng, thông số cần thiết để điều khiển cụm bánh bao gồm các đối tượng sau:
@@ -64,7 +64,7 @@ Mô hình tổ chức các module chức năng:
     + Đối tượng Encoder DC (include từ Encoder.h).
     + Đối tượng Encoder BLDC (include từ Encoder.h).
     + Đối tượng PID tốc độ BLDC, tốc độ DC, vị trí DC (include từ PID.h trong STM32_FirmwareLibrary).
-
+    Tham khảo [CAN_FuncHandle](README_Module/BoardParamter.md)
     __*Lưu ý*__: 
     
     - Các thông số trong BoardParameter không được truy xuất trực tiếp tới member từ các file bên ngoài (private biến) ngoại trừ chính BoardParameter.c

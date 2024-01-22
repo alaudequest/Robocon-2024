@@ -207,7 +207,6 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 		default:
 			break;
 	}
-
 }
 /*=============================== UART ===============================*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
@@ -1184,7 +1183,7 @@ void InverseKinematic(void const * argument)
 	for (;;) {
 
 
-		osDelay(20);
+    osDelay(20);
 	}
   /* USER CODE END InverseKinematic */
 }
