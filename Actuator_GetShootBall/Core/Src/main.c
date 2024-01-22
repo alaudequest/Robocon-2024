@@ -50,7 +50,6 @@ TIM_HandleTypeDef htim3;
 osThreadId defaultTaskHandle;
 osThreadId PIDTaskHandle;
 osThreadId CANTaskHandle;
-osMessageQId qPIDHandle;
 /* USER CODE BEGIN PV */
 int count1 = 0, count2 = 0, count3 = 0;
 uint16_t pwm = 0;
@@ -78,6 +77,14 @@ void StartCANTask(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+//	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+////	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+//	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+////	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+//	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+////	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+//}
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == ECD3A_Pin){
 		if(HAL_GPIO_ReadPin(ECD3B_GPIO_Port, ECD3B_Pin)){
@@ -148,11 +155,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
-
-  /* Create the queue(s) */
-  /* definition and creation of qPID */
-  osMessageQDef(qPID, 8, uint8_t);
-  qPIDHandle = osMessageCreate(osMessageQ(qPID), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -543,7 +545,7 @@ void StartDefaultTask(void const * argument)
 	while (!sethome_IsComplete()) {
 		sethome_Procedure();
 		float speed = sethome_GetSpeed();
-		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
 		osDelay(1);
 	}
 	brd_SetHomeCompleteCallback();
@@ -605,6 +607,7 @@ void StartCANTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  __NOP();
     osDelay(1);
   }
   /* USER CODE END StartCANTask */

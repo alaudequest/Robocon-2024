@@ -59,17 +59,17 @@ void sethome_Procedure(void (*pSetHomeCompleteCallback)())
 {
 	switch (homeEvent) {
 		case SET_HOME_BEGIN:
-			homeBeginHandle();
+//			homeBeginHandle();
 		break;
 		case SET_HOME_TUNE_COARSE:
-			tuneCoarseHandle();
+//			tuneCoarseHandle();
 		break;
 		case SET_HOME_TUNE_COARSE_SENSOR_DETECT:
 //			brd_ResetState();
 			homeEvent = SET_HOME_TUNE_FINE;
 		break;
 		case SET_HOME_TUNE_FINE:
-			tuneFineHandle();
+//			tuneFineHandle();
 		break;
 		case SET_HOME_TUNE_FINE_SENSOR_DETECT:
 //			brd_ResetState();
