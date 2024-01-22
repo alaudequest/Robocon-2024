@@ -576,8 +576,8 @@ void StartPIDTask(void const * argument)
 		  goto SET_HOME_PID_TASK;
 	  }
 	  if(IsFirePhoenix){
-		  PID_Rotary_CalPos(TargetValue);
-		  PID_Gun_CalSpeed(TargetValue);
+		  PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
+		  PID_Gun_CalSpeed(brd_GetSpeedGun());
 	  }
 	  osDelay(1);
   }

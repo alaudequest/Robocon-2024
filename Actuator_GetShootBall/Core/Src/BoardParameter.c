@@ -143,8 +143,16 @@ void brd_SetObjMotor(Motor motor, Motor_Type type){
 	}
 }
 
+float brd_GetTargetRotaryAngle(){return brdParam.targetAngleDC;}
+void brd_SetTargetRotaryAngle(float angle){brdParam.targetAngleDC = angle;}
 
+float brd_GetSpeedGun(){return brdParam.targetSpeedDC;}
+void brd_SetSpeedGun(float speed){brdParam.targetSpeedDC = speed;}
 
-
-
-
+float brd_GetDeltaT(){return brdParam.pidGun1.deltaT;}
+void brd_SetDeltaT(float deltaT){
+	brdParam.pidGun1.deltaT = deltaT;
+	brdParam.pidGun2.deltaT = deltaT;
+	brdParam.pidRotaryAngle.deltaT = deltaT;
+	brdParam.pidRotarySpeed.deltaT = deltaT;
+}

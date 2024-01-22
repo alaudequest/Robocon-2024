@@ -84,4 +84,13 @@ PID_Param brd_GetPID(PID_type type);
 
 Motor brd_GetObjMotor(Motor_Type type);
 void brd_SetObjMotor(Motor motor, Motor_Type type);
+
+float brd_GetTargetRotaryAngle();
+void brd_SetTargetRotaryAngle(float angle);
+
+float brd_GetSpeedGun();
+void brd_SetSpeedGun(float speed);
+
+float brd_GetDeltaT();
+void brd_SetDeltaT(float deltaT);
 #endif /* INC_BOARDPARAMETER_H_ */
