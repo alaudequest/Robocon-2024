@@ -266,8 +266,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -333,7 +332,7 @@ int main(void)
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
   /* definition and creation of TaskOdometer */
-  osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityHigh, 0, 128);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -1116,22 +1115,37 @@ void Purepursuilt(SwerveOdoHandle *od){
 	}
 }
 
+typedef struct Trajecparam{
+	float t;
+	float a0,a1,a2,a3;
+	float xTrajec,xdottraject;
+}Trajecparam;
+
+Trajecparam Xtrajec,Ytrajec,ThetaTrajec;
 float t;
 float a0,a1,a2,a3;
-float xTrajec;
+float xTrajec,xdottraject;
 
-float P0,Pf,tf,v0,vf;
-void TrajecPlanning(float P0,float Pf,float tf,float v0,float vf){
-	a0 = P0;
-	a1 = v0;
-	a2 = (3/(tf*tf))*(Pf - P0) - (2/tf)*v0 - (1/tf)*vf;
-	a3 = (-2/(tf*tf*tf))*(Pf - P0) + (1/(tf*tf))*(vf + v0);
+float P0x,Pfx,tfx,v0x,vfx;
+float P0y,Pfy,tfy,v0y,vfy;
+float P0theta,Pftheta,tftheta,v0theta,vftheta;
+void TrajecPlanning(Trajecparam *trajec,float P0,float Pf,float tf,float v0,float vf){
+	trajec->a0 = P0;
+	trajec->a1 = v0;
+	trajec->a2 = (3/(tf*tf))*(Pf - P0) - (2/tf)*v0 - (1/tf)*vf;
+	trajec->a3 = (-2/(tf*tf*tf))*(Pf - P0) + (1/(tf*tf))*(vf + v0);
 
-	if (t > tf) t = tf;
+	if (trajec->t > tf) trajec->t = tf;
 
-	xTrajec = a0 + a1*t + a2*t*t + a3*t*t*t;
+	trajec->xTrajec = trajec->a0 + trajec->a1*trajec->t + trajec->a2*trajec->t*trajec->t + trajec->a3*trajec->t*trajec->t*trajec->t;
+	trajec->xdottraject = trajec->a1 + 2*trajec->a2*trajec->t + 3* trajec->a3*trajec->t*trajec->t;
 
 }
+
+uint8_t Run,resetParam,breakProtect;
+float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
+int testSpeed,testPos;
+float uControlX,uControlY,uControlTheta;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1142,8 +1156,6 @@ void TrajecPlanning(float P0,float Pf,float tf,float v0,float vf){
  */
 
 /* USER CODE END Header_StartDefaultTask */
-int testSpeed,testPos;
-float uControlX,uControlY,uControlTheta;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -1257,7 +1269,6 @@ void Actuator(void const * argument)
   /* USER CODE END Actuator */
 }
 
-
 /* USER CODE BEGIN Header_OdometerHandle */
 /**
  * @brief Function implementing the TaskOdometer thread.
@@ -1265,24 +1276,23 @@ void Actuator(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
-uint8_t Run,resetParam,breakProtect;
-
-float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
+uint8_t stateRun,steadycheck;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 
-	PD_setParam(&pDX, kpX, kdX, alphaCtrol);
-	PD_setParam(&pDY, kpY, kdY, alphaCtrol);
-	PD_setParam(&pDTheta, kpTheta, kdTheta, alphaCtrol);
+	PD_setParam(&pDX, 1, 0, 0.8);
+	PD_setParam(&pDY, 1, 0, 0.8);
+	PD_setParam(&pDTheta, 1.2, kdTheta, alphaCtrol);
 
 	PD_setLimit(&pDX, 1, -1);
 	PD_setLimit(&pDY, 1, -1);
 	PD_setLimit(&pDTheta, 1, -1);
 
 	len = sizeof(path) / sizeof(path[0]);
-	tf = 5;
-	Pf = 1.5;
+	tfx = 5;
+	tfy = 5;
+	tftheta = 3;
 	/* Infinite loop */
 	for (;;) {
 		RTR_SpeedAngle();
@@ -1319,14 +1329,57 @@ void OdometerHandle(void const * argument)
 
 //		Purepursuilt(&Odo);
 
-		PD_Controller(&pDX, xTrajec, Odo.poseX);
-		PD_Controller(&pDY, 0, Odo.poseY);
-		PD_Controller(&pDTheta, TargetTheta*M_PI/180, Odo.poseTheta);
+		PD_Controller(&pDX, Xtrajec.xTrajec, Odo.poseX);
+		PD_Controller(&pDY, Ytrajec.xTrajec, Odo.poseY);
+		PD_Controller(&pDTheta, ThetaTrajec.xTrajec, Odo.poseTheta);
+
+		if((stateRun == 1)||(stateRun == 4))
+		{
+			Xtrajec.t += DeltaT;
+			Ytrajec.t += DeltaT;
+			ThetaTrajec.t += DeltaT;
+			TrajecPlanning(&Xtrajec,P0x, Pfx, tfx, v0x, vfx);
+			TrajecPlanning(&Ytrajec,P0y, Pfy, tfy, v0y, vfy);
+			TrajecPlanning(&ThetaTrajec,P0theta, Pftheta, tftheta, v0theta, vftheta);
+
+			if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
+				pDX.u = 0;
+				pDY.u = 0;
+				steadycheck ++;
+			}else{
+				steadycheck = 0;
+			}
+
+			if(steadycheck > 5)
+			{
+				stateRun += 1;
+			}
+		}
+
+		if(stateRun == 2)
+		{
+			breakProtect = 1;
+			stateRun = 3;
+		}
+
+		if(stateRun == 3){
+			Xtrajec.t = 0;
+			Ytrajec.t = 0;
+			ThetaTrajec.t = 0;
+			Pfx = 0;
+			P0x = 1;
+			Pfy = 0;
+			P0y = -0.5;
+			Pftheta = 0;
+			P0theta = -90*M_PI/180;
+			stateRun = 4;
+		}
+
 
 		if(Run == 1)
 		{
-			t += DeltaT;
-			TrajecPlanning(P0, Pf, tf, v0, vf);
+//			t += DeltaT;
+//			TrajecPlanning(P0, Pf, tf, v0, vf);
 
 			if (Isteady(pDX.e,0.01)){
 				pDX.u = 0;
@@ -1341,9 +1394,30 @@ void OdometerHandle(void const * argument)
 				pDTheta.u = 0;
 			}
 
-			u = pDX.u;
-			v = pDY.u;
-			r = pDTheta.u;
+			u = pDX.u + Xtrajec.xdottraject;
+			v = pDY.u + Ytrajec.xdottraject;
+			r = pDTheta.u + ThetaTrajec.xdottraject;
+
+			if(stateRun == 0){
+				breakProtect = 1;
+				resetParam = 1;
+				stateRun = 1;
+
+
+
+				Xtrajec.t = 0;
+				Ytrajec.t = 0;
+				ThetaTrajec.t = 0;
+				Pfx = 1;
+				P0x = 0;
+				Pfy = -0.5;
+				P0y = 0;
+
+
+
+				Pftheta = -90*M_PI/180;
+				P0theta = 0;
+			}
 		}
 			uControlX = u*cos(-Odo.poseTheta) - v*sin(-Odo.poseTheta);
 			uControlY = u*sin(-Odo.poseTheta) + v*cos(-Odo.poseTheta);
