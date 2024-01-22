@@ -78,6 +78,8 @@ typedef enum Motor_Type{
 	MOTOR_ROTARY,
 }Motor_Type;
 
+void brd_SetHomeCompleteCallback();
+
 void brd_Init();
 void brd_SetPID(PID_Param pid,PID_type type);
 PID_Param brd_GetPID(PID_type type);

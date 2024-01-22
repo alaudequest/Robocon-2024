@@ -67,6 +67,10 @@ void brd_Init()
 	brdParam.pidGun1.kB = 1/PIDDeltaT;
 }
 
+void brd_SetHomeCompleteCallback(){
+	encoder_ResetCount(&brdParam.encRotary);
+}
+
 void brd_SetPID(PID_Param pid,PID_type type){
 	switch(type){
 	case PID_GUN1:

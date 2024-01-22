@@ -58,7 +58,7 @@ uint8_t state = 0;
 uint8_t fire = 0;
 bool IsSetHome = false;
 bool IsFirePhoenix = false;
-QueueHandle_t qPID;
+QueueHandle_t qPID, qHome;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -131,6 +131,7 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  qHome = xQueueCreate(1, sizeof(bool));
   qPID = xQueueCreate(2, sizeof(float));
   brd_Init();
 
@@ -519,7 +520,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void SethomeHandle() {
+	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+		brd_SetTargetRotaryAngle(0);
+		brd_SetSpeedGun(0);
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -540,10 +546,12 @@ void StartDefaultTask(void const * argument)
 		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
 		osDelay(1);
 	}
+	brd_SetHomeCompleteCallback();
 	IsSetHome = 0;
   /* Infinite loop */
   for(;;)
   {
+	  SethomeHandle();
 	  if(IsSetHome){
 		  osDelay(1);
 		  goto SET_HOME_DEFAULT_TASK;
