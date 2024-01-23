@@ -30,9 +30,9 @@
 /*-----------------------------End:Gun2 Macro---------------------------------*/
 
 /*-----------------------------Begin:Rotary Macro-----------------------------*/
-#define RotaryDeltaT 						  0.001
 #define RotaryEncoderPerRound 				  1000
 #define RotaryGearRatio 					  3.535
+#define RotaryDeltaT 						  0.001
 /*-----------------------------End:Rotary Macro-------------------------------*/
 
 #define DC_SUM_ABOVE_LIMIT 						1000

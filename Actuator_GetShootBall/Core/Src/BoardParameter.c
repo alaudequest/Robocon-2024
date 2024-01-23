@@ -28,7 +28,9 @@ void brd_Init()
 	Motor_Init(&brdParam.ball1, MOTOR_LL, RuloBall1_GPIO_Port, RuloBall1_Pin, NULL, 0, 0);
 	Motor_Init(&brdParam.ball2, MOTOR_LL, RuloBall2_GPIO_Port, RuloBall2_Pin, NULL, 0, 0);
 
-//	encoder_Init(&brdParam.encGun2, &htim3, 200,0.005, GPIOA, GPIO_PIN_6, GPIOA, GPIO_PIN_7);
+	encoder_Init_InterruptMode(&brdParam.encGun1, _Gun1EncoderPerRound*_Gun1GearRatio, _Gun1DeltaT);
+	encoder_Init_InterruptMode(&brdParam.encGun2, _Gun2EncoderPerRound*_Gun2GearRatio, _Gun2DeltaT);
+	encoder_Init_EncoderMode(&brdParam.encRotary, &htim3, RotaryEncoderPerRound*RotaryGearRatio, RotaryDeltaT);
 
 	brdParam.pidRotaryAngle.kP = 0.1;
 	brdParam.pidRotaryAngle.kI = 5;
