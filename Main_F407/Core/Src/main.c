@@ -41,6 +41,11 @@ typedef enum MainEvent
 {
 	MEVT_GET_NODE_SPEED_ANGLE,
 }MainEvent;
+
+typedef union FloatByteConvert {
+	float f;
+	uint8_t b[4];
+}FloatByteConvert;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -61,6 +66,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim10;
 
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
 
 osThreadId defaultTaskHandle;
@@ -90,6 +96,10 @@ PID_type pidType = PID_BLDC_SPEED;
 
 uint8_t UARTRX3_Buffer[9];
 uint8_t DataTayGame[9];
+char uart1Buffer[1] = {0};
+char uart1RxData[10] = {0};
+
+
 
 float Xleft, Yleft;
 float Xright;
@@ -98,6 +108,7 @@ _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
 float u, v, r;
 
+float yaw = 0;
 float DeltaYR, DeltaYL, DeltaX;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
@@ -139,6 +150,7 @@ static void MX_TIM3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
+static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -209,7 +221,29 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 
 }
 /*=============================== UART ===============================*/
+
+float getYawFromMPU(uint8_t* dataArray){
+	FloatByteConvert temp;
+	memcpy(temp.b,dataArray,sizeof(float));
+	return temp.f;
+
+}
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == USART1) {
+		static uint8_t i = 0;
+		if(uart1Buffer[0] == '\n'){
+			i = 0;
+			uart1Buffer[0] = 0;
+			yaw = getYawFromMPU((uint8_t*)uart1RxData);
+			memset(uart1RxData,0,sizeof(uart1RxData));
+		} else {
+			i++;
+			strcat(uart1RxData,uart1Buffer);
+		}
+		HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+	}
 	if (huart->Instance == USART3) {
 		gamepadRxIsBusy = 1;
 		int ViTriData = -1;
@@ -248,7 +282,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	__HAL_UART_CLEAR_OREFLAG(huart);
 	memset(UARTRX3_Buffer, 0, sizeof(UARTRX3_Buffer));
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	__HAL_UART_DISABLE(huart);
+	HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+	if(huart->Instance == USART3){
+		__HAL_UART_DISABLE(huart);
+	}
 }
 /* USER CODE END 0 */
 
@@ -265,7 +302,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -286,9 +323,11 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM1_Init();
   MX_TIM10_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+	HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
 
 	pid.kP = -0.12;
 	pid.kI = 5.32;
@@ -612,6 +651,39 @@ static void MX_TIM10_Init(void)
   /* USER CODE BEGIN TIM10_Init 2 */
 
   /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -1168,6 +1240,11 @@ float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.8,kdTheta,alphaCtrol = 0.2;
 int testSpeed,testPos;
 float uControlX,uControlY,uControlTheta;
 uint8_t stateRun,steadycheck;
+uint8_t stateChange,ssCheck;
+char tx_buffer[] = "rst\n";
+void ResetIMU(){
+	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer, strlen(tx_buffer), 100);
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1281,12 +1358,16 @@ void CAN_Bus(void const * argument)
  * @retval None
  */
 /* USER CODE END Header_Actuator */
-uint8_t ssCheck,stateChange;
+uint8_t rst;
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
 	/* Infinite loop */
 	for (;;) {
+		if(rst == 1){
+			ResetIMU();
+			rst = 0;
+		}
 		if((stateRun == 4)||(stateRun == 15)){
 			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin)&&HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin)){
 				ssCheck ++;
@@ -1329,6 +1410,7 @@ void Actuator(void const * argument)
 				stateRun += 1;
 			}
 		osDelay(1);
+	}
   /* USER CODE END Actuator */
 }
 
