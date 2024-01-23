@@ -85,20 +85,22 @@ void StartCANTask(void const * argument);
 //	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 ////	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
 //}
+
+extern BoardParameter_t brdParam;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == ECD3A_Pin){
 		if(HAL_GPIO_ReadPin(ECD3B_GPIO_Port, ECD3B_Pin)){
-			count1++;
+			brdParam.encGun1.count_X1++;
 		}
 		else
-			count1--;
+			brdParam.encGun1.count_X1--;
 	}
 	if(GPIO_Pin == ECD1A_Pin){
 		if(HAL_GPIO_ReadPin(ECD1B_GPIO_Port, ECD1B_Pin)){
-			count2++;
+			brdParam.encGun2.count_X1++;
 		}
 		else
-			count2--;
+			brdParam.encGun2.count_X1--;
 	}
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
@@ -545,7 +547,7 @@ void StartDefaultTask(void const * argument)
 	while (!sethome_IsComplete()) {
 		sethome_Procedure();
 		float speed = sethome_GetSpeed();
-//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
 		osDelay(1);
 	}
 	brd_SetHomeCompleteCallback();
