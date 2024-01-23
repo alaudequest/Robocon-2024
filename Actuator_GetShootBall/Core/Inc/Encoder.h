@@ -10,10 +10,7 @@
 
 #include "main.h"
 #include "stdbool.h"
-typedef enum EncoderTypeMode{
-	 INTERRUPT,
-	 TIMER,
-}EncoderTypeMode;
+
 typedef enum EncoderCountMode{
 	 MODE_X1,
 	 MODE_X4,
@@ -21,12 +18,6 @@ typedef enum EncoderCountMode{
 }EncoderCountMode;
 
 typedef struct Encoder_t{
-	EncoderTypeMode mode;
-//------------------------Pins & Ports---------------//
-	GPIO_TypeDef *portA;
-	uint16_t pinA;
-	GPIO_TypeDef *portB;
-	uint16_t pinB;
 //------------------------Timer & Count--------------//
 	TIM_HandleTypeDef *htim;
 	int32_t count_X4;
@@ -42,12 +33,10 @@ typedef struct Encoder_t{
 	float deltaT;
 }Encoder_t;
 
-void encoder_Init(Encoder_t *enc,EncoderTypeMode mode,
-					TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT,
-					GPIO_TypeDef *portA, uint16_t pinA,
-					GPIO_TypeDef *portB, uint16_t pinB);
+void encoder_Init_InterruptMode(Encoder_t *enc, uint16_t pulPerRev, float deltaT);
+void encoder_Init_EncoderMode(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT);
 float encoder_GetSpeed(Encoder_t *enc);
-float encoder_GetPulse(Encoder_t *enc, EncoderCountMode count_Mode);
+float encoder_GetPulse(Encoder_t *enc);
 void encoder_ResetCount(Encoder_t *enc);
 float encoder_GetFilterSpeedVal(Encoder_t *enc);
 
