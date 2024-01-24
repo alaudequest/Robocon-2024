@@ -36,7 +36,7 @@ typedef struct Encoder_t{
 void encoder_Init_InterruptMode(Encoder_t *enc, uint16_t pulPerRev, float deltaT);
 void encoder_Init_EncoderMode(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT);
 float encoder_GetSpeed(Encoder_t *enc);
-float encoder_GetPulse(Encoder_t *enc);
+float encoder_GetAngle(Encoder_t *enc);
 void encoder_ResetCount(Encoder_t *enc);
 float encoder_GetFilterSpeedVal(Encoder_t *enc);
 

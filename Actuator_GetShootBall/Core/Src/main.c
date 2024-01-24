@@ -527,7 +527,8 @@ static void MX_GPIO_Init(void)
 void SethomeHandle() {
 	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 		brd_SetTargetRotaryAngle(0);
-		brd_SetSpeedGun(0);
+		brd_SetSpeedGun(0, MOTOR_GUN1);
+		brd_SetSpeedGun(0, MOTOR_GUN2);
 	}
 }
 /* USER CODE END 4 */
@@ -589,9 +590,10 @@ void StartPIDTask(void const * argument)
 	  }
 	  if(IsFirePhoenix){
 		  PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
-		  PID_Gun_CalSpeed(brd_GetSpeedGun());
+		  PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
+		  PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
 	  }
-	  osDelay(1);
+	  osDelay(5);
   }
   /* USER CODE END StartPIDTask */
 }
@@ -609,6 +611,7 @@ void StartCANTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  count3 = __HAL_TIM_GET_COUNTER(&htim3);
 	  __NOP();
     osDelay(1);
   }
