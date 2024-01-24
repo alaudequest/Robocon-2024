@@ -8,6 +8,7 @@
 #ifndef _FLAG_H_
 #define _FLAG_H_
 #include "main.h"
+#define CONFIG_USE_FLAG
 #ifdef CONFIG_USE_FLAG
 
 #define CHECKFLAG(FlagGroup,FlagBit) ((((FlagGroup) & (1UL << FlagBit)) == (1UL << FlagBit)) ? 1 : 0)

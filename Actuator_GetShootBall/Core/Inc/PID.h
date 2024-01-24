@@ -1,6 +1,7 @@
 #ifndef _PID_H_
 #define _PID_H_
 #include "main.h"
+#define CONFIG_USE_PID
 #ifdef CONFIG_USE_PID
 #include "math.h"
 #include <stdlib.h>
