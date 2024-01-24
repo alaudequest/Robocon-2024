@@ -9,7 +9,6 @@
 #define INC_BOARDPARAMETER_H_
 
 #include "main.h"
-#include "LibraryConfig.h"
 #include "PID.h"
 #include "Flag.h"
 #include "Motor.h"
@@ -51,7 +50,8 @@ typedef enum PID_type{
 
 typedef struct BoardParameter_t {
 	float targetAngleDC;
-	float targetSpeedDC;
+	float targetSpeedGun1;
+	float targetSpeedGun2;
 	int16_t countTimer;
 
 	Motor gun1;
@@ -81,18 +81,28 @@ typedef enum Motor_Type{
 void brd_SetHomeCompleteCallback();
 
 void brd_Init();
+
 void brd_SetPID(PID_Param pid,PID_type type);
 PID_Param brd_GetPID(PID_type type);
 
 Motor brd_GetObjMotor(Motor_Type type);
 void brd_SetObjMotor(Motor motor, Motor_Type type);
 
+void brd_SetObjEncGun(Encoder_t encGun, Motor_Type gun);
+Encoder_t brd_GetObjEncGun(Motor_Type gun);
+
 float brd_GetTargetRotaryAngle();
 void brd_SetTargetRotaryAngle(float angle);
 
-float brd_GetSpeedGun();
-void brd_SetSpeedGun(float speed);
+float brd_GetSpeedGun(Motor_Type type);
+void brd_SetSpeedGun(float speed, Motor_Type type);
 
 float brd_GetDeltaT();
 void brd_SetDeltaT(float deltaT);
+
+void brd_SetObjEncRotary(Encoder_t encBLDC);
+Encoder_t brd_GetObjEncRotary();
+
+void brd_ResetState();
+
 #endif /* INC_BOARDPARAMETER_H_ */

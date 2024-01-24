@@ -15,7 +15,7 @@ extern TIM_HandleTypeDef htim3;
 
 void brd_Init()
 {
-	HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
@@ -108,6 +108,19 @@ PID_Param brd_GetPID(PID_type type){
 	return brdParam.pidRotarySpeed;
 }
 
+void brd_SetObjEncRotary(Encoder_t encRotary){brdParam.encRotary = encRotary;}
+Encoder_t brd_GetObjEncRotary(){return brdParam.encRotary;}
+
+void brd_SetObjEncGun(Encoder_t encGun, Motor_Type gun){
+	if(gun == MOTOR_GUN1)	brdParam.encGun1 = encGun;
+	else					brdParam.encGun2 = encGun;
+
+}
+Encoder_t brd_GetObjEncGun(Motor_Type gun){
+	if(gun == MOTOR_GUN1)	return brdParam.encGun1;
+	else					return brdParam.encGun2;
+}
+
 Motor brd_GetObjMotor(Motor_Type type){
 	switch(type){
 	case MOTOR_GUN1:
@@ -152,8 +165,14 @@ void brd_SetObjMotor(Motor motor, Motor_Type type){
 float brd_GetTargetRotaryAngle(){return brdParam.targetAngleDC;}
 void brd_SetTargetRotaryAngle(float angle){brdParam.targetAngleDC = angle;}
 
-float brd_GetSpeedGun(){return brdParam.targetSpeedDC;}
-void brd_SetSpeedGun(float speed){brdParam.targetSpeedDC = speed;}
+float brd_GetSpeedGun(Motor_Type type){
+	if(type == MOTOR_GUN1)	return brdParam.targetSpeedGun1;
+	else 					return brdParam.targetSpeedGun2;
+}
+void brd_SetSpeedGun(float speed, Motor_Type type){
+	if(type == MOTOR_GUN1)	brdParam.targetSpeedGun1 = speed;
+	else					brdParam.targetSpeedGun2 = speed;
+}
 
 float brd_GetDeltaT(){return brdParam.pidGun1.deltaT;}
 void brd_SetDeltaT(float deltaT){
@@ -161,4 +180,10 @@ void brd_SetDeltaT(float deltaT){
 	brdParam.pidGun2.deltaT = deltaT;
 	brdParam.pidRotaryAngle.deltaT = deltaT;
 	brdParam.pidRotarySpeed.deltaT = deltaT;
+}
+
+void brd_ResetState(){
+	brd_SetTargetRotaryAngle(0);
+	encoder_ResetCount(&brdParam.encGun1);
+	encoder_ResetCount(&brdParam.encGun2);
 }
