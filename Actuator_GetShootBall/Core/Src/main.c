@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "PID_GunModule.h"
+#include "CAN_Control.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,7 +34,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define FLASH_ADDR_BASE 0x08000000
+#define FLASH_ADDR_TARGET_PAGE 64
+#define FLASH_ADDR_TARGET (FLASH_ADDR_BASE + 1024*FLASH_ADDR_TARGET_PAGE)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -72,19 +76,41 @@ void StartPIDTask(void const * argument);
 void StartCANTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+////////////////////////////////////////////////////////
+//****************************************************//
+//*                     _oo0oo_                      *//
+//*                    o8888888o                     *//
+//*                    88` . '88                     *//
+//*                    (| -_- |)                     *//
+//*                     0\ = /0                      *//
+//*                  ___/`---'\___                   *//
+//*                  .' \\| |// '.                   *//
+//*                / \\||| : |||// \                 *//
+//*              / _||||| -:- |||||_ \               *//
+//*                | | \\\ - /// | |                 *//
+//*             |  \_| ''\---/'' |_/ |               *//
+//*               \ .-\__ '-' ___/-. /               *//
+//*            ___'. .' /--.--\ `. .'___             *//
+//*         ."" '< `.___\_<|>_/___.' >' "".          *//
+//*        | | : `- \`.;`\ _ /`;.`/ - ` : | |        *//
+//*          \ \ `_. \_ __\ /__ _/ .-` / /           *//
+//*   =====`-.____`.___ \_____/___.-`___.-'=====     *//
+//*                     `=---='                      *//
+//****************************************************//
+////////////////////////////////////////////////////////
+//---------------------ANTI BUG-----------------------//
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-//	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-////	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
-//	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-////	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
-//	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
-////	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
-//}
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+//	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+//	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+//	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+}
 
 extern BoardParameter_t brdParam;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
@@ -104,6 +130,34 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+}
+
+void CAN_Init() {
+	HAL_CAN_Start(&hcan);
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING
+			| CAN_IT_RX_FIFO1_MSG_PENDING
+			| CAN_IT_RX_FIFO0_FULL);
+	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_LED_BLUE,
+			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			deviceID | CANCTRL_MODE_TEST,
+			0, CAN_RX_FIFO0);
+	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
+			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
+			deviceID | CANCTRL_MODE_PID_DC_SPEED,
+			deviceID | CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
+			1, CAN_RX_FIFO0);
+	canctrl_Filter_Mask16(&hcan,
+			1 << CAN_RTR_REMOTE,
+			0,
+			1 << CAN_RTR_REMOTE,
+			0,
+			2,
+			CAN_RX_FIFO0);
+
 }
 /* USER CODE END 0 */
 
@@ -143,7 +197,16 @@ int main(void)
   qHome = xQueueCreate(1, sizeof(bool));
   qPID = xQueueCreate(2, sizeof(float));
   brd_Init();
-
+  CAN_Init();
+//  HAL_FLASH_Unlock();
+//  FLASH_EraseInitTypeDef er;
+//  er.TypeErase = FLASH_TYPEERASE_PAGES;
+//  er.PageAddress = FLASH_ADDR_TARGET;
+//  er.NbPages = 1;
+//  uint32_t pe = 0;
+//  HAL_FLASHEx_Erase(&er, &pe);
+//  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, CANCTRL_DEVICE_ACTUATOR_1);
+//  HAL_FLASH_Lock();
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -611,7 +674,6 @@ void StartCANTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  count3 = __HAL_TIM_GET_COUNTER(&htim3);
 	  __NOP();
     osDelay(1);
   }
