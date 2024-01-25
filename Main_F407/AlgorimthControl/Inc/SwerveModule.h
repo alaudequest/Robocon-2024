@@ -11,9 +11,9 @@
 #include "PID.h"
 #include "math.h"
 
-#define MAX_MODULE 					5
-#define ROBOT_WIDTH_METER 			0.25
-#define ROBOT_LENGHT_METER			0.25
+#define MAX_MODULE 					4
+//#define ROBOT_WIDTH_METER 			0.25
+//#define ROBOT_LENGHT_METER			0.25
 #define ROBOT_WHEEL_RADIUS_METER 	0.045
 
 typedef enum ModuleID{

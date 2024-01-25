@@ -23,7 +23,7 @@ void invkine_CalOptAngle(ModuleID ID){
 	swer_SetOptAngle(ID, angopt);
 
 	//------------------------------------------------------------------
-	float rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180/M_PI;
+	float rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
 	angopt_Cal(ID, rawAngle);
 	//------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 	WheelVector vect = swer_GetWheelVector(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
 	angopt_QuadRantCheckOutput(ID,angopt.currentAngle*M_PI/180);
-	temp = (float)angopt.direct * (1/(float)ROBOT_WHEEL_RADIUS_METER) * (sqrt(pow(vect.wheelVelX,2) + pow(vect.wheelVelY,2))) / 0.1047198;
+	temp = (float)angopt.direct * (60.0/(ROBOT_WHEEL_RADIUS_METER*2.0*M_PI)) * (sqrt(pow(vect.wheelVelX,2) + pow(vect.wheelVelY,2))) ;
 	return temp;
 }
 
@@ -44,8 +44,11 @@ HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r
 //	HAL_TIM_Base_Start(&htim10);
 //	__HAL_TIM_SET_COUNTER(&htim10,0);
 	static float velocity = 0;
+
 	invkine_CalWheelVector(ID, u, v, r);
-	invkine_CalOptAngle(ID);
+	if(u == 0&&v==0&&r==0)__NOP();
+	else invkine_CalOptAngle(ID);
+
 	velocity = invkine_CalSpeedVectorControl(ID);
 	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
 	if(u == 0&&v==0&&r==0)angopt.currentAngle= angopt.PreCurrAngle;

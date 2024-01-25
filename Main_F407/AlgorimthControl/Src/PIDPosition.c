@@ -107,7 +107,8 @@ lowPassParam PID_CalPos_Getfil(PID_POS_type type)
 float PID_CalPos_x(float Target_set)
 {
 	PID_Param pid = PID_CalPos_GetPID(PID_POS_X);
-	float result = PID_Cal(&pid, Target_set, Odo_GetPulseX()*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4));
+	float result = 0;
+//			PID_Cal(&pid, Target_set, Odo_GetPulseX()*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4));
 	PID_CalPos_SetPID(pid, PID_POS_X);
 	return result;
 }
@@ -115,7 +116,8 @@ float PID_CalPos_x(float Target_set)
 float PID_CalPos_y(float Target_set)
 {
 	PID_Param pid = PID_CalPos_GetPID(PID_POS_Y);
-	float result = PID_Cal(&pid, Target_set, Odo_GetPulseYR()*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4));
+	float result = 0;
+//			PID_Cal(&pid, Target_set, Odo_GetPulseYR()*M_PI*ODO_WHEEL_RADIUS*1/(ODO_PULSE_PER_ROUND*4));
 	PID_CalPos_SetPID(pid, PID_POS_Y);
 	return result;
 }
@@ -123,7 +125,8 @@ float PID_CalPos_y(float Target_set)
 float PID_CalPos_theta(float Target_set)
 {
 	PID_Param pid = PID_CalPos_GetPID(PID_POS_THETA);
-	float result = PID_Cal(&pid, Target_set, Odo_GetPOS_Theta());
+	float result = 0;
+//			PID_Cal(&pid, Target_set, Odo_GetPOS_Theta());
 	PID_CalPos_SetPID(pid, PID_POS_THETA);
 	return result;
 }
