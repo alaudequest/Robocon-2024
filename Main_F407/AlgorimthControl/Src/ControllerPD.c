@@ -69,6 +69,7 @@ float PD_GetError(PD_CONTROL_TYPE pdType) {
 
 void PD_Cal(PD_CONTROL_TYPE pdType, float Target, float Current, float SampleTime)
 {
+	if (!isEnable) return;
 	PDParam pd = PD_GetType(pdType);
 	pd.e = Target - Current;
 	pd.uP = pd.kP * pd.e;

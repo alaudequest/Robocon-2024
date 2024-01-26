@@ -33,6 +33,7 @@
 #include "Gamepad.h"
 #include "PIDPosition.h"
 #include "ActuatorValve.h"
+#include "ControllerPD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -1323,13 +1324,13 @@ void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 
-	PD_setParam(&pDX, 0.8, 0, 0.8);
-	PD_setParam(&pDY, 0.8, 0, 0.8);
-	PD_setParam(&pDTheta, 0.8, kdTheta, alphaCtrol);
+	PD_setParam(PD_X, 0.8, 0, 0.8);
+	PD_setParam(PD_Y, 0.8, 0, 0.8);
+	PD_setParam(PD_THETA, 0.8, kdTheta, alphaCtrol);
 
-	PD_setLimit(&pDX, 0.8, -0.8);
-	PD_setLimit(&pDY, 0.8, -0.8);
-	PD_setLimit(&pDTheta, 0.5, -0.5);
+	PD_setLimit(PD_X, 0.8, -0.8);
+	PD_setLimit(PD_Y, 0.8, -0.8);
+	PD_setLimit(PD_THETA, 0.5, -0.5);
 
 	len = sizeof(path) / sizeof(path[0]);
 	tfx = 2;
@@ -1377,9 +1378,11 @@ void OdometerHandle(void const * argument)
 if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 	if((stateRun!= 12)&&(stateRun!=22))
 	{
-		PD_Controller(&pDX, Xtrajec.xTrajec, Odo.poseX);
-		PD_Controller(&pDY, Ytrajec.xTrajec, Odo.poseY);
-		PD_Controller(&pDTheta, ThetaTrajec.xTrajec, Odo.poseTheta);
+				PD_Off();
+				PD_Cal(PD_X, Xtrajec.xTrajec, Odo.poseX, DeltaT);
+				PD_Cal(PD_Y, Ytrajec.xTrajec, Odo.poseY, DeltaT);
+				PD_Cal(PD_THETA, ThetaTrajec.xTrajec, Odo.poseTheta, DeltaT);
+				PD_On();
 	}
 }
 
@@ -1529,9 +1532,9 @@ if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 //--------------------------------------State 11 ---------------------------------------------------//
 		if (stateRun == 11){
 			if ((absFloat(Odo.poseX-Pfx)<SteadyX)&&(absFloat(Odo.poseY-Pfy)<SteadyY)&&(absFloat(Odo.poseTheta-Pftheta)<SteadyTheta)){
-				pDX.u = 0;
-				pDY.u = 0;
-				pDTheta.u = 0;
+				PD_ResetOutput(PD_X);
+				PD_ResetOutput(PD_Y);
+				PD_ResetOutput(PD_THETA);
 				steadycheck ++;
 			}else{
 				steadycheck = 0;
@@ -1664,9 +1667,9 @@ if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 //--------------------------------------State 21 ---------------------------------------------------//
 		if (stateRun == 21){
 			if ((absFloat(Odo.poseX-Pfx)<SteadyX)&&(absFloat(Odo.poseY-Pfy)<SteadyY)&&(absFloat(Odo.poseTheta-Pftheta)<SteadyTheta)){
-				pDX.u = 0;
-				pDY.u = 0;
-				pDTheta.u = 0;
+				PD_ResetOutput(PD_X);
+				PD_ResetOutput(PD_Y);
+				PD_ResetOutput(PD_THETA);
 				steadycheck ++;
 			}else{
 				steadycheck = 0;
@@ -1698,20 +1701,20 @@ if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 //			t += DeltaT;
 //			TrajecPlanning(P0, Pf, tf, v0, vf);
 
-			if (Isteady(pDX.e,SteadyX)){
-				pDX.u = 0;
+			if (Isteady(PD_GetError(PD_X), SteadyX)) {
+				PD_ResetOutput(PD_X);
 			}
 
-			if(Isteady(pDY.e,SteadyY)){
-				pDY.u = 0;
+			if (Isteady(PD_GetError(PD_Y), SteadyY)) {
+				PD_ResetOutput(PD_Y);
 			}
 
 			if((stateRun== 11)||(stateRun == 21)||(stateRun > 22)){
-				if((Isteady(pDX.e,SteadyX))&&(Isteady(pDY.e,SteadyY)))
+				if ((Isteady(PD_GetError(PD_X), SteadyX)) && (Isteady(PD_GetError(PD_Y), SteadyY)))
 				{
-					if(Isteady(pDTheta.e,0.025))
+					if (Isteady(PD_GetError(PD_THETA), 0.025))
 					{
-						pDTheta.u = 0;
+						PD_ResetOutput(PD_THETA);
 					}
 				}
 			}
@@ -1720,9 +1723,11 @@ if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 	if((stateRun!= 12)&&(stateRun!=22))
 	{
-		u = pDX.u + Xtrajec.xdottraject;
-		v = pDY.u + Ytrajec.xdottraject;
-		r = pDTheta.u + ThetaTrajec.xdottraject;
+					PD_Off();
+					u = PD_GetOutput(PD_X) + Xtrajec.xdottraject;
+					v = PD_GetOutput(PD_Y) + Ytrajec.xdottraject;
+					r = PD_GetOutput(PD_THETA) + ThetaTrajec.xdottraject;
+					PD_On();
 	}
 }
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
