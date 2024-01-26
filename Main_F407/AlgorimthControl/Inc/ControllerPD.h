@@ -7,6 +7,7 @@
 
 #ifndef INC_CONTROLLERPD_H_
 #define INC_CONTROLLERPD_H_
+#include "stdbool.h"
 
 typedef enum PD_CONTROL_TYPE {
 	PD_X,
@@ -34,6 +35,8 @@ typedef struct PDParam {
 
 //void PD_SetType(PDParam pd, PD_CONTROL_TYPE pdType);
 //PDParam PD_GetType(PD_CONTROL_TYPE pdType);
+void PD_On();
+void PD_Off();
 void PD_ResetOutput(PD_CONTROL_TYPE pdType);
 float PD_GetOutput(PD_CONTROL_TYPE pdType);
 float PD_GetError(PD_CONTROL_TYPE pdType);

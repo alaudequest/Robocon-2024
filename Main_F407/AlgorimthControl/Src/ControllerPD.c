@@ -10,6 +10,14 @@
 PDParam pDX;
 PDParam pDY;
 PDParam pDTheta;
+bool isEnable = false;
+void PD_On() {
+	isEnable = true;
+}
+
+void PD_Off() {
+	isEnable = false;
+}
 
 void PD_SetType(PDParam pd, PD_CONTROL_TYPE pdType) {
 	switch (pdType) {
