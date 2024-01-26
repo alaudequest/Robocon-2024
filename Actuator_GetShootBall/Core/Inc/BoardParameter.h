@@ -45,7 +45,10 @@ typedef enum PID_type{
 	PID_GUN1 = 1,
 	PID_GUN2,
 	PID_ROTARY_ANGLE,
-	PID_ROTARY_SPEED
+	PID_ROTARY_SPEED,
+	PID_BLDC_SPEED,
+	PID_DC_ANGLE,
+	PID_DC_SPEED
 }PID_type;
 
 typedef struct BoardParameter_t {

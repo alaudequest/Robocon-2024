@@ -87,6 +87,8 @@ void brd_SetPID(PID_Param pid,PID_type type){
 	case PID_ROTARY_SPEED:
 		brdParam.pidRotarySpeed = pid;
 		break;
+	default:
+		break;
 	}
 }
 
@@ -103,6 +105,8 @@ PID_Param brd_GetPID(PID_type type){
 		break;
 	case PID_ROTARY_SPEED:
 		return brdParam.pidRotarySpeed;
+		break;
+	default:
 		break;
 	}
 	return brdParam.pidRotarySpeed;

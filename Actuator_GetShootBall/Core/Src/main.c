@@ -24,7 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "PID_GunModule.h"
 #include "CAN_Control.h"
-
+#include "CAN_FuncHandle.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,11 +105,18 @@ void StartCANTask(void const * argument);
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
-//	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
+	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-//	xTaskNotifyFromISR(TaskHandleCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	xTaskNotifyFromISR(CANTaskHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
-//	HAL_GPIO_TogglePin(UserLED_GPIO_Port, UserLED_Pin);
+}
+
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
+	xTaskNotifyFromISR(CANTaskHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
 extern BoardParameter_t brdParam;
@@ -197,7 +204,6 @@ int main(void)
   qHome = xQueueCreate(1, sizeof(bool));
   qPID = xQueueCreate(2, sizeof(float));
   brd_Init();
-  CAN_Init();
 //  HAL_FLASH_Unlock();
 //  FLASH_EraseInitTypeDef er;
 //  er.TypeErase = FLASH_TYPEERASE_PAGES;
@@ -671,11 +677,24 @@ void StartPIDTask(void const * argument)
 void StartCANTask(void const * argument)
 {
   /* USER CODE BEGIN StartCANTask */
+  CAN_Init();
+  uint32_t modeID;
   /* Infinite loop */
   for(;;)
   {
-	  __NOP();
-    osDelay(1);
+	  if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)){
+		  CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
+		  if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
+			if (rxHeader.RTR == CAN_RTR_REMOTE){
+//				handle_CAN_RTR_Response(&hcan, modeID);
+			}
+			if (rxHeader.RTR == CAN_RTR_DATA){
+//				handleFunctionCAN((CAN_MODE_ID) modeID);
+			}
+		  }
+		  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	  }
+	  osDelay(1);
   }
   /* USER CODE END StartCANTask */
 }
