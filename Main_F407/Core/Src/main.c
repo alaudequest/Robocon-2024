@@ -949,6 +949,7 @@ typedef struct SwerveOdoHandle{
 	float poseY;
 	float poseTheta;
 
+	float TempTheta;
 	float S;
 	float C;
 
@@ -1278,9 +1279,11 @@ void StartDefaultTask(void const * argument)
 //		u = GamePad.YLeftCtr;
 //		v = GamePad.XLeftCtr;
 //		r = - GamePad.XRightCtr;
-		invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-		invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-		invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		if(YawHandle){
+			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		}
 //		InvCpltCallback(MODULE_ID_2, testSpeed, testPos) ;
 //		if(nodeSwerveSetHomeComplete == 30)
 //		{
@@ -1475,6 +1478,9 @@ void Actuator(void const * argument)
 //uint8_t Gamepad;
 /* USER CODE END Header_OdometerHandle */
 uint8_t Gamepad,First;
+float RBFilangle;
+float PreRBAngle;
+#define RBAlpha 0.8
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1517,9 +1523,12 @@ void OdometerHandle(void const * argument)
 //		HAL_TIM_Base_Start(&htim10);
 //		__HAL_TIM_SET_COUNTER(&htim10,0);
 		ReadIMU();
+		RBFilangle = PreRBAngle*(1-RBAlpha) + robotAngle*RBAlpha;
+		PreRBAngle = RBFilangle;
 //		count = __HAL_TIM_GET_COUNTER(&htim10);
 //		HAL_TIM_Base_Stop(&htim10);
-//		Odo.poseTheta += Fkine.thetaOut*DeltaT;
+		Odo.TempTheta += Fkine.thetaOut*DeltaT;
+
 		Odo.poseTheta = robotAngle;
 		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
 		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
@@ -1572,7 +1581,7 @@ if((stateRun<4)||((stateRun>7)&&(stateRun<15))||(stateRun>18)){
 			Ytrajec.t = 0;
 			ThetaTrajec.t = 0;
 
-			Pfx = -0.22;
+			Pfx = -0.24;
 			P0x = Odo.poseX;
 			Pfy = -0.95;
 			P0y = Odo.poseY;

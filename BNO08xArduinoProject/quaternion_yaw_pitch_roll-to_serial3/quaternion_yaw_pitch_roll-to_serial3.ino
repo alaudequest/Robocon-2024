@@ -7,7 +7,8 @@
 // For SPI mode, we need a CS pin
 #define BNO08X_CS 10
 #define BNO08X_INT 9
-#define ALPHA 0.2
+#define ALPHA 1
+
 
 // #define FAST_MODE
 
