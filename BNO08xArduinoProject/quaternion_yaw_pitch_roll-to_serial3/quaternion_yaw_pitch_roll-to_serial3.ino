@@ -3,11 +3,11 @@
 // quartenion and euler (yaw, pitch roll) angles.  Toggle the FAST_MODE define to see other report.  
 // Note sensorValue.status gives calibration accuracy (which improves over time)
 #include <Adafruit_BNO08x.h>
-
+#include <math.h>
 // For SPI mode, we need a CS pin
 #define BNO08X_CS 10
 #define BNO08X_INT 9
-
+#define ALPHA 0.2
 
 // #define FAST_MODE
 
@@ -18,8 +18,14 @@
 
 struct euler_t {
   float yaw;
+  float yawCal;
+  float yawPre;
+  float yawK;
   float pitch;
   float roll;
+
+  float yawFil;
+  float yawFilpre;
 } ypr;
 
 typedef union FloatToByte {
@@ -67,6 +73,7 @@ void setup(void) {
   setReports(reportType, reportIntervalUs);
 
   Serial.println("Reading events");
+  
   delay(100);
 }
 
@@ -81,11 +88,11 @@ void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, boo
     ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
     ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
 
-    if (degrees) {
-      ypr->yaw *= RAD_TO_DEG;
-      ypr->pitch *= RAD_TO_DEG;
-      ypr->roll *= RAD_TO_DEG;
-    }
+    // if (degrees) {
+    //   ypr->yaw *= RAD_TO_DEG;
+    //   ypr->pitch *= RAD_TO_DEG;
+    //   ypr->roll *= RAD_TO_DEG;
+    // }
 }
 
 void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* ypr, bool degrees = false) {
@@ -120,15 +127,35 @@ void loop() {
     // Serial.print(sensorValue.status);     Serial.print("\t");  // This is accuracy in the range of 0 to 3
     if(Serial3.available()){
       if(Serial3.readStringUntil('\n')){
-        Serial.println("Reset OK");
+        // Serial.println("Reset OK");
+        FloatToByte temp;
+        temp.a = ypr.yawFil;
+        for(uint8_t i=0;i<4;i++){
+          Serial3.write(temp.b[i]);
+        }
+        Serial3.print('\n');
       }
     }
-    FloatToByte temp;
-    temp.a = ypr.yaw;
-    for(uint8_t i=0;i<4;i++){
-      Serial3.write(temp.b[i]);
+    
+    if((ypr.yaw > 100*M_PI/180)||(ypr.yaw< -100*M_PI/180)){
+      if(ypr.yaw * ypr.yawPre < 0)
+      {
+        if (ypr.yaw>0){
+          ypr.yawK -= 1;
+        }else{
+          ypr.yawK += 1;
+        }
+      }
     }
-    Serial3.print('\n');
+    ypr.yawCal = ypr.yaw + ypr.yawK*2*M_PI;
+    ypr.yawFil = ypr.yawFilpre*(1-ALPHA)+ypr.yawCal*ALPHA;
+    ypr.yawFilpre = ypr.yawFil;
+    ypr.yawPre = ypr.yaw;
+    Serial.println(ypr.yawCal);
+    // for(uint8_t i=0;i<4;i++){
+    //   Serial3.write(temp.b[i]);
+    // }
+    // Serial3.print('\n');
   }
-  delay(1);
+  // delay(1);
 }
