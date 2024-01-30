@@ -152,7 +152,10 @@ void loop() {
     ypr.yawFil = ypr.yawFilpre*(1-ALPHA)+ypr.yawCal*ALPHA;
     ypr.yawFilpre = ypr.yawFil;
     ypr.yawPre = ypr.yaw;
-    Serial.println(ypr.yawCal);
+    // Serial.println(ypr.yawCal);
+
+    // FloatToByte temp;
+    // temp.a = ypr.yawFil;
     // for(uint8_t i=0;i<4;i++){
     //   Serial3.write(temp.b[i]);
     // }

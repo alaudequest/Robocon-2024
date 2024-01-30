@@ -68,6 +68,7 @@ TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
@@ -144,6 +145,7 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
@@ -230,23 +232,51 @@ float getYawFromMPU(uint8_t* dataArray){
 }
 
 uint8_t YawHandle;
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart->Instance == USART1) {
-		static uint8_t i = 0;
-		if(uart1Buffer[0] == '\n'){
-			i = 0;
-			uart1Buffer[0] = 0;
+uint8_t AngleData[5];
+float CurrAngle;
 
-			yaw = getYawFromMPU((uint8_t*)uart1RxData);
-			YawHandle = 1;
-			memset(uart1RxData,0,sizeof(uart1RxData));
+char ds[12];
+uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
 
-		} else {
-			i++;
-			strcat(uart1RxData,uart1Buffer);
-		}
-		HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+void Receive(uint8_t *DataArray){
+      uint8_t *pInt = NULL;
+      if(DataArray[4] == '\n'){
+           pInt = &CurrAngle;
+           for(uint8_t i = 0; i < 4; i++) {
+               *(pInt + i) = DataArray[i];
+            }
+      }
+      	  memset(DataArray,0,5);
+      	YawHandle = 1;
+ }
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	if(huart -> Instance == USART1)
+	{
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+			Receive(uart2_ds);
+		  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+//	if (huart->Instance == USART1) {
+//		static uint8_t i = 0;
+//		if(uart1Buffer[0] == '\n'){
+//			i = 0;
+//			uart1Buffer[0] = 0;
+//
+//			yaw = getYawFromMPU((uint8_t*)uart1RxData);
+//			YawHandle = 1;
+//			memset(uart1RxData,0,sizeof(uart1RxData));
+//
+//		} else {
+//			i++;
+//			strcat(uart1RxData,uart1Buffer);
+//		}
+//		HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+//	}
 	if (huart->Instance == USART3) {
 		gamepadRxIsBusy = 1;
 		int ViTriData = -1;
@@ -320,6 +350,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_CAN1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
@@ -330,7 +361,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+//	HAL_UART_Receive_IT(&huart1, (uint8_t*) uart1Buffer, 1);
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
 	pid.kP = -0.12;
 	pid.kI = 5.32;
@@ -720,6 +753,22 @@ static void MX_USART3_UART_Init(void)
   /* USER CODE BEGIN USART3_Init 2 */
 
   /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 
@@ -1370,6 +1419,7 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
+
 uint8_t ssCheck,stateChange,rst;
 float robotAngle,OffsetYaw;
 
@@ -1378,6 +1428,7 @@ void ReadIMU(){
 	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer, strlen(tx_buffer), 100);
 //	while(!YawHandle);
 	osDelay(6);
+	yaw = CurrAngle;
 	robotAngle = -(yaw - OffsetYaw);
 }
 void ResetIMU(){
@@ -1390,6 +1441,7 @@ void ResetIMU(){
 #define PFyState10 -0.7
 #define PFxState20 -0.91
 #define PFyState20 0.1
+/* USER CODE END Header_Actuator */
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
@@ -1476,11 +1528,13 @@ void Actuator(void const * argument)
  * @retval None
  */
 //uint8_t Gamepad;
-/* USER CODE END Header_OdometerHandle */
+
 uint8_t Gamepad,First;
 float RBFilangle;
 float PreRBAngle;
 #define RBAlpha 0.8
+
+/* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
