@@ -1284,6 +1284,7 @@ void ResetIMU(){
 	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer1, strlen(tx_buffer1), 100);
 	osDelay(6);
 	yaw = CurrAngle*M_PI/180;
+	Odo.poseTheta = 0;
 }
 /* USER CODE END 4 */
 
@@ -1486,7 +1487,7 @@ void OdometerHandle(void const * argument)
 
 	PD_setParam(&pDX, 0.8, 0, 0.8);
 	PD_setParam(&pDY, 0.8, 0, 0.8);
-	PD_setParam(&pDTheta, 1.5, kdTheta, alphaCtrol);
+	PD_setParam(&pDTheta, 1.2, 0, 0.2);
 
 	PD_setLimit(&pDX, 1, -1);
 	PD_setLimit(&pDY, 1, -1);
@@ -1517,8 +1518,9 @@ void OdometerHandle(void const * argument)
 
 
 		ReadIMU();
-//		Odo.poseTheta += Fkine.thetaOut*DeltaT;
-		Odo.poseTheta = yaw;
+		Odo.poseTheta += Fkine.thetaOut*DeltaT;
+//		Odo.poseTheta = yaw;
+		Odo.dTheta += Fkine.thetaOut*DeltaT;
 		Odo.PoseXR = Fkine.uOut*DeltaT;
 		Odo.PoseYR = Fkine.vOut*DeltaT;
 
@@ -1531,8 +1533,8 @@ void OdometerHandle(void const * argument)
 			Odo.S = sinf(Odo.poseTheta)/Odo.poseTheta;
 			Odo.C = (1-cosf(Odo.poseTheta))/Odo.poseTheta;
 		}
-		Odo.poseX += Odo.S*Odo.PoseXR - Odo.C*Odo.PoseYR;
-		Odo.poseY += Odo.C*Odo.PoseXR - Odo.S*Odo.PoseYR;
+		Odo.poseX +=( Odo.S*Odo.PoseXR - Odo.C*Odo.PoseYR );
+		Odo.poseY +=( Odo.C*Odo.PoseXR + Odo.S*Odo.PoseYR );
 
 		if (breakProtect == 1)
 		{
@@ -1546,7 +1548,7 @@ void OdometerHandle(void const * argument)
 			resetParam = 0;
 		}
 
-		Odo.dTheta = Odo.poseTheta*180/M_PI;
+
 
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
@@ -1576,9 +1578,10 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 		if((stateRun == 1))
 		{
 
-			if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
-				stateRun += 1;
-			}
+				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
+					stateRun += 1;
+				}
+
 
 		}
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
