@@ -948,6 +948,10 @@ typedef struct SwerveOdoHandle{
 	float poseY;
 	float poseTheta;
 
+	float PoseXR;
+	float PoseYR;
+	float PoseThetaR;
+
 	float S;
 	float C;
 
@@ -1320,7 +1324,7 @@ void StartDefaultTask(void const * argument)
 			 InvCpltCallback(MODULE_ID_2, 0, 0);
 		}
 
-		if((GamePad.Square == 1)&&(GamePad.Square == 1))
+		if((GamePad.Square == 1)&&(GamePad.Circle == 1))
 		{
 			xaDay = 1;
 		}
@@ -1515,8 +1519,20 @@ void OdometerHandle(void const * argument)
 		ReadIMU();
 //		Odo.poseTheta += Fkine.thetaOut*DeltaT;
 		Odo.poseTheta = yaw;
-		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
-		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
+		Odo.PoseXR = Fkine.uOut*DeltaT;
+		Odo.PoseYR = Fkine.vOut*DeltaT;
+
+//		Odo.poseX = (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
+//		Odo.poseY = (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
+		if(equalCompare(Odo.poseTheta, 0)==1){
+			Odo.S = 1 - Odo.poseTheta*Odo.poseTheta/6;
+			Odo.C = Odo.poseTheta/2;
+		}else{
+			Odo.S = sinf(Odo.poseTheta)/Odo.poseTheta;
+			Odo.C = (1-cosf(Odo.poseTheta))/Odo.poseTheta;
+		}
+		Odo.poseX += Odo.S*Odo.PoseXR - Odo.C*Odo.PoseYR;
+		Odo.poseY += Odo.C*Odo.PoseXR - Odo.S*Odo.PoseYR;
 
 		if (breakProtect == 1)
 		{
