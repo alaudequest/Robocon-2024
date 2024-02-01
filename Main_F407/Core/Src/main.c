@@ -1482,7 +1482,7 @@ void OdometerHandle(void const * argument)
 
 	PD_setParam(&pDX, 0.8, 0, 0.8);
 	PD_setParam(&pDY, 0.8, 0, 0.8);
-	PD_setParam(&pDTheta, 1.5, kdTheta, alphaCtrol);
+	PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
 
 	PD_setLimit(&pDX, 1, -1);
 	PD_setLimit(&pDY, 1, -1);
