@@ -113,11 +113,7 @@ void loop() {
         quaternionToEulerGI(&sensorValue.un.gyroIntegratedRV, &ypr, true);
         break;
     }
-    // static long last = 0;
-    // long now = micros();
-    // Serial.print(now - last);             Serial.print("\t");
-    // last = now;
-    // Serial.print(sensorValue.status);     Serial.print("\t");  // This is accuracy in the range of 0 to 3
+
     if(Serial3.available()){
       if(Serial3.readStringUntil('\n')){
         Serial.println("Reset OK");

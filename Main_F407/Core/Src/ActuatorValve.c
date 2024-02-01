@@ -52,13 +52,17 @@ void valve_BothCatch()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
-
-void valve_BothRelease()
-{
+void valve_BothHold(){
 	HC595_SetBitOutput(1); // hạ cánh tay trái
 	HC595_SetBitOutput(3); // hạ cánh tay phải
 	HC595_ShiftOut(NULL, 1, 1);
-	osDelay(500);
+}
+void valve_BothRelease()
+{
+//	HC595_SetBitOutput(1); // hạ cánh tay trái
+//	HC595_SetBitOutput(3); // hạ cánh tay phải
+//	HC595_ShiftOut(NULL, 1, 1);
+//	osDelay(500);
 	HC595_ClearBitOutput(0); // mở tay gắp trái
 	HC595_ClearBitOutput(2); // mở tay gắp phải
 	HC595_ShiftOut(NULL, 1, 1);
