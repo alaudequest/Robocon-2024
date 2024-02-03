@@ -106,6 +106,10 @@ void brd_SetDeltaT(float deltaT);
 void brd_SetObjEncRotary(Encoder_t encBLDC);
 Encoder_t brd_GetObjEncRotary();
 
+float brd_GetCurrentAngle();
+int brd_GetCurrentSpeedGun1();
+int brd_GetCurrentSpeedGun2();
+
 void brd_ResetState();
 
 #endif /* INC_BOARDPARAMETER_H_ */

@@ -13,6 +13,10 @@ extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 
+float brd_GetCurrentAngle(){return encoder_GetAngle(&brdParam.encRotary);}
+int brd_GetCurrentSpeedGun1(){return (int)encoder_GetPulse(&brdParam.encGun1);}
+int brd_GetCurrentSpeedGun2(){return (int)encoder_GetPulse(&brdParam.encGun2);}
+
 void brd_Init()
 {
 	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);

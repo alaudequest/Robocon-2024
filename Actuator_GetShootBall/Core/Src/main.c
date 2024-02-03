@@ -146,16 +146,16 @@ void CAN_Init() {
 			| CAN_IT_RX_FIFO0_FULL);
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
-			deviceID | CANCTRL_MODE_LED_BLUE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
-			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			deviceID | CANCTRL_MODE_SHOOT,
+			deviceID | CANCTRL_MODE_MOTOR_GUN_SPEED,
+			deviceID | CANCTRL_MODE_MOTOR_GUN_ANGLE,
 			deviceID | CANCTRL_MODE_TEST,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
-			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
-			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
-			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-			deviceID | CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
+			deviceID | CANCTRL_MODE_PID_GUN2_SPEED,
+			deviceID | CANCTRL_MODE_PID_GUN1_SPEED,
+			deviceID | CANCTRL_MODE_PID_GUN_ANGLE,
+			deviceID | CANCTRL_MODE_PID_ROTARY_SPEED,
 			1, CAN_RX_FIFO0);
 	canctrl_Filter_Mask16(&hcan,
 			1 << CAN_RTR_REMOTE,
@@ -165,6 +165,106 @@ void CAN_Init() {
 			2,
 			CAN_RX_FIFO0);
 
+}
+
+void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
+	PID_Param pid = brd_GetPID(type);
+	canfunc_Convert_CAN_PID_to_PID_Param(canPID, &pid);
+	brd_SetPID(pid, type);
+}
+uint8_t TestMode = 0;
+void handleFunctionCAN(CAN_MODE_ID mode) {
+	CAN_SpeedGun_Angle nodeSpeedAngle;
+	CAN_SpeedGun_Angle speedAngle;
+	switch (mode) {
+		case CANCTRL_MODE_SHOOT:
+			break;
+		case CANCTRL_MODE_SET_HOME_GUN:
+			break;
+		case CANCTRL_MODE_NODE_REQ_GUN_SPEED:
+			nodeSpeedAngle.CAN_SpeedGun.gun1Speed = brd_GetCurrentSpeedGun1();
+			nodeSpeedAngle.CAN_SpeedGun.gun1Speed = brd_GetCurrentSpeedGun2();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_GUN_SPEED);
+			canctrl_PutMessage((void*)&nodeSpeedAngle.CAN_SpeedGun, sizeof(nodeSpeedAngle.CAN_SpeedGun));
+			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
+			break;
+		case CANCTRL_MODE_NODE_REQ_GUN_ANGLE:
+			nodeSpeedAngle.gunAngle = brd_GetCurrentAngle();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_GUN_ANGLE);
+			canctrl_PutMessage((void*)&nodeSpeedAngle.gunAngle, sizeof(nodeSpeedAngle.gunAngle));
+			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
+			break;
+		case CANCTRL_MODE_TEST:
+			TestMode = canfunc_GetBoolValue();
+			break;
+		case CANCTRL_MODE_MOTOR_GUN_ANGLE:
+			speedAngle= canfunc_GunGetSpeedAndAngle();
+			brd_SetTargetRotaryAngle(speedAngle.gunAngle);
+			break;
+		case CANCTRL_MODE_MOTOR_GUN_SPEED:
+			speedAngle= canfunc_GunGetSpeedAndAngle();
+			brd_SetSpeedGun(speedAngle.CAN_SpeedGun.gun1Speed, MOTOR_GUN1);
+			brd_SetSpeedGun(speedAngle.CAN_SpeedGun.gun2Speed, MOTOR_GUN2);
+			break;
+		case CANCTRL_MODE_PID_GUN_ANGLE:
+			case CANCTRL_MODE_PID_GUN2_SPEED:
+			case CANCTRL_MODE_PID_GUN1_SPEED:
+			canfunc_GetPID(&can_GetPID_CompleteCallback);
+		break;
+		case CANCTRL_MODE_START:
+		break;
+		case CANCTRL_MODE_END:
+		break;
+		default:
+		break;
+	}
+}
+
+//void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
+//	PID_Param pid;
+//	switch (modeID) {
+//		case CANCTRL_MODE_SET_HOME:
+//			bool setHomeValue = 1;
+//			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
+//		break;
+//		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+//			CAN_RTR_Encx4BLDC_AngleDC rtrData;
+//			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
+//			rtrData.dcAngle = brd_GetCurrentAngleDC();
+//			canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
+//		break;
+//		case CANCTRL_MODE_PID_BLDC_SPEED:
+//			pid = brd_GetPID(PID_BLDC_SPEED);
+//			canfunc_RTR_PID(can, pid, PID_BLDC_SPEED);
+//		break;
+//		case CANCTRL_MODE_PID_DC_ANGLE:
+//			pid = brd_GetPID(PID_DC_ANGLE);
+//			canfunc_RTR_PID(can, pid, PID_DC_ANGLE);
+//		break;
+//		case CANCTRL_MODE_PID_DC_SPEED:
+//			pid = brd_GetPID(PID_DC_SPEED);
+//			canfunc_RTR_PID(can, pid, PID_DC_SPEED);
+//		break;
+//		default:
+//			break;
+//	}
+//}
+//
+//void SetHomeCompleteCallback() {
+//	Encoder_t encDC = brd_GetObjEncDC();
+//	encoder_ResetCount(&encDC);
+//	brd_SetObjEncDC(encDC);
+//	canfunc_SetBoolValue(1, CANCTRL_MODE_SET_HOME);
+//	canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
+//}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	while (1);
+}
+
+void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
+	__NOP();
+//	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 /* USER CODE END 0 */
 
