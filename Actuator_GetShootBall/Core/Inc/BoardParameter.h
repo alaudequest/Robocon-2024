@@ -19,25 +19,25 @@
 /*-----------------------------Begin:Gun1 Macro-------------------------------*/
 #define _Gun1EncoderPerRound 				  200
 #define _Gun1GearRatio 						  2.56
-#define _Gun1DeltaT							  0.001
+#define _Gun1DeltaT							  0.005
 /*-----------------------------End:Gun1 Macro---------------------------------*/
 
 /*-----------------------------Begin:Gun2 Macro-------------------------------*/
 #define _Gun2EncoderPerRound 				  200
 #define _Gun2GearRatio 						  2.56
-#define _Gun2DeltaT							  0.001
+#define _Gun2DeltaT							  0.005
 /*-----------------------------End:Gun2 Macro---------------------------------*/
 
 /*-----------------------------Begin:Rotary Macro-----------------------------*/
 #define RotaryEncoderPerRound 				  1000
 #define RotaryGearRatio 					  3.535
-#define RotaryDeltaT 						  0.001
+#define RotaryDeltaT 						  0.005
 /*-----------------------------End:Rotary Macro-------------------------------*/
 
-#define DC_SUM_ABOVE_LIMIT 						1000
-#define DC_SUM_BELOW_LIMIT 						-1000
+#define DC_SUM_ABOVE_LIMIT 						500
+#define DC_SUM_BELOW_LIMIT 						-500
 
-#define PIDDeltaT							0.001
+#define PIDDeltaT							0.005
 
 
 
@@ -94,6 +94,9 @@ void brd_SetObjMotor(Motor motor, Motor_Type type);
 void brd_SetObjEncGun(Encoder_t encGun, Motor_Type gun);
 Encoder_t brd_GetObjEncGun(Motor_Type gun);
 
+void brd_SetObjEncRotary(Encoder_t encBLDC);
+Encoder_t brd_GetObjEncRotary();
+
 float brd_GetTargetRotaryAngle();
 void brd_SetTargetRotaryAngle(float angle);
 
@@ -103,8 +106,6 @@ void brd_SetSpeedGun(float speed, Motor_Type type);
 float brd_GetDeltaT();
 void brd_SetDeltaT(float deltaT);
 
-void brd_SetObjEncRotary(Encoder_t encBLDC);
-Encoder_t brd_GetObjEncRotary();
 
 float brd_GetCurrentAngle();
 int brd_GetCurrentSpeedGun1();

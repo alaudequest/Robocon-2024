@@ -14,8 +14,8 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 
 float brd_GetCurrentAngle(){return encoder_GetAngle(&brdParam.encRotary);}
-int brd_GetCurrentSpeedGun1(){return (int)encoder_GetPulse(&brdParam.encGun1);}
-int brd_GetCurrentSpeedGun2(){return (int)encoder_GetPulse(&brdParam.encGun2);}
+int brd_GetCurrentSpeedGun1(){return (int)encoder_GetSpeed(&brdParam.encGun1);}
+int brd_GetCurrentSpeedGun2(){return (int)encoder_GetSpeed(&brdParam.encGun2);}
 
 void brd_Init()
 {
@@ -36,17 +36,17 @@ void brd_Init()
 	encoder_Init_InterruptMode(&brdParam.encGun2, _Gun2EncoderPerRound*_Gun2GearRatio, _Gun2DeltaT);
 	encoder_Init_EncoderMode(&brdParam.encRotary, &htim3, RotaryEncoderPerRound*RotaryGearRatio, RotaryDeltaT);
 
-	brdParam.pidRotaryAngle.kP = 0.1;
-	brdParam.pidRotaryAngle.kI = 5;
+	brdParam.pidRotaryAngle.kP = 3;
+	brdParam.pidRotaryAngle.kI = 0;
 	brdParam.pidRotaryAngle.kD = 0;
 	brdParam.pidRotaryAngle.alpha = 0;
 	brdParam.pidRotaryAngle.deltaT = PIDDeltaT;
-	brdParam.pidRotaryAngle.u_AboveLimit = 1000;
-	brdParam.pidRotaryAngle.u_BelowLimit = -1000;
+	brdParam.pidRotaryAngle.u_AboveLimit = 300;
+	brdParam.pidRotaryAngle.u_BelowLimit = -300;
 	brdParam.pidRotaryAngle.kB = 1/PIDDeltaT;
 
-	brdParam.pidRotarySpeed.kP = 0.1;
-	brdParam.pidRotarySpeed.kI = 5;
+	brdParam.pidRotarySpeed.kP = 10;
+	brdParam.pidRotarySpeed.kI = 300;
 	brdParam.pidRotarySpeed.kD = 0;
 	brdParam.pidRotarySpeed.alpha = 0;
 	brdParam.pidRotarySpeed.deltaT = PIDDeltaT;
@@ -54,17 +54,17 @@ void brd_Init()
 	brdParam.pidRotarySpeed.u_BelowLimit = -1000;
 	brdParam.pidRotarySpeed.kB = 1/PIDDeltaT;
 
-	brdParam.pidGun2.kP = 5;
-	brdParam.pidGun2.kI = 0;
-	brdParam.pidGun2.kD = 0.04;
-	brdParam.pidGun2.alpha = 0.8;
+	brdParam.pidGun2.kP = 0.8;
+	brdParam.pidGun2.kI = 10;
+	brdParam.pidGun2.kD = 0;
+	brdParam.pidGun2.alpha = 0;
 	brdParam.pidGun2.deltaT = PIDDeltaT;
 	brdParam.pidGun2.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
 	brdParam.pidGun2.u_BelowLimit = DC_SUM_BELOW_LIMIT;
 	brdParam.pidGun2.kB = 1/PIDDeltaT;
 
-	brdParam.pidGun1.kP = 1;
-	brdParam.pidGun1.kI = 200;
+	brdParam.pidGun1.kP = 0.5;
+	brdParam.pidGun1.kI = 10;
 	brdParam.pidGun1.kD = 0;
 	brdParam.pidGun1.alpha = 0;
 	brdParam.pidGun1.deltaT = PIDDeltaT;
