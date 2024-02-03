@@ -60,6 +60,7 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 	&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
 	&& modeID != CANCTRL_MODE_SET_HOME
 	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+	&& modeID != CANCTRL_MODE_SET_HOME_GUN
 	) return;
 	canctrl_SetID(modeID);
 	uint8_t temp = (uint8_t)bVal + 1;
@@ -83,6 +84,18 @@ CAN_SpeedBLDC_AngleDC canfunc_MotorGetSpeedAndAngle()
 {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	if(canctrl_GetMessage(&speedAngle, sizeof(CAN_SpeedBLDC_AngleDC)) != HAL_OK) while(1);
+	return speedAngle;
+}
+
+void canfunc_GunPutSpeedAndAngle(CAN_SpeedGun_Angle speedAngle)
+{
+	canctrl_SetID(CANCTRL_MODE_MOTOR_SPEED_ANGLE);
+	canctrl_PutMessage((void*)&speedAngle, sizeof(CAN_SpeedGun_Angle));
+}
+CAN_SpeedGun_Angle canfunc_GunGetSpeedAndAngle()
+{
+	CAN_SpeedGun_Angle speedAngle;
+	if(canctrl_GetMessage(&speedAngle, sizeof(CAN_SpeedGun_Angle)) != HAL_OK) while(1);
 	return speedAngle;
 }
 
