@@ -698,8 +698,13 @@ void SethomeHandle() {
 void ShootHandle(){
 	if (xQueueReceive(qHome, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
 		PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
+		PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
 		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
 		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
+		PID_Motor_Stop_All();
 	}
 }
 /* USER CODE END 4 */
