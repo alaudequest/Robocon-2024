@@ -16,5 +16,6 @@
 void PID_Rotary_CalSpeed(float Target_set);
 void PID_Rotary_CalPos(float Target_set);
 void PID_Gun_CalSpeed(float Target_set, Motor_Type gun);
-
+void PID_RuloBall_CalSpeed(float Target_set, Motor_Type rulo);
+void PID_Motor_Stop_All();
 #endif /* INC_PID_GUNMODULE_H_ */
