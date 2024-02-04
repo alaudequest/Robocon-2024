@@ -720,23 +720,23 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	SET_HOME_DEFAULT_TASK:
-	sethome_Begin();
-	while (!sethome_IsComplete()) {
-		sethome_Procedure();
-		float speed = sethome_GetSpeed();
-		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-		osDelay(1);
-	}
-	brd_SetHomeCompleteCallback();
-	IsSetHome = 0;
+//	sethome_Begin();
+//	while (!sethome_IsComplete()) {
+//		sethome_Procedure();
+//		float speed = sethome_GetSpeed();
+//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+//		osDelay(1);
+//	}
+//	brd_SetHomeCompleteCallback();
+//	IsSetHome = 0;
   /* Infinite loop */
   for(;;)
   {
-	  SethomeHandle();
-	  if(IsSetHome){
-		  osDelay(1);
-		  goto SET_HOME_DEFAULT_TASK;
-	  }
+//	  SethomeHandle();
+//	  if(IsSetHome){
+//		  osDelay(1);
+//		  goto SET_HOME_DEFAULT_TASK;
+//	  }
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -752,19 +752,19 @@ void StartDefaultTask(void const * argument)
 void StartPIDTask(void const * argument)
 {
   /* USER CODE BEGIN StartPIDTask */
-  SET_HOME_PID_TASK:
-  float TargetValue = 0;
-  while (!sethome_IsComplete()) {
-	  xQueueReceive(qPID, &TargetValue, 0);
-	  PID_Rotary_CalSpeed((float) TargetValue);
-	  osDelay(5);
-  }
+//  SET_HOME_PID_TASK:
+//  float TargetValue = 0;
+//  while (!sethome_IsComplete()) {
+//	  xQueueReceive(qPID, &TargetValue, 0);
+//	  PID_Rotary_CalSpeed((float) TargetValue);
+//	  osDelay(5);
+//  }
   /* Infinite loop */
   for(;;)
   {
-	  if(IsSetHome) {
-		  goto SET_HOME_PID_TASK;
-	  }
+//	  if(IsSetHome) {
+//		  goto SET_HOME_PID_TASK;
+//	  }
 	  ShootHandle();
 	  osDelay(5);
   }
