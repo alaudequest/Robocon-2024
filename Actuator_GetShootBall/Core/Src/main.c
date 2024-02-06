@@ -55,10 +55,6 @@ osThreadId defaultTaskHandle;
 osThreadId PIDTaskHandle;
 osThreadId CANTaskHandle;
 /* USER CODE BEGIN PV */
-int count1 = 0, count2 = 0, count3 = 0;
-uint16_t pwm = 0;
-uint8_t state = 0;
-uint8_t fire = 0;
 bool IsSetHome = false;
 bool IsFirePhoenix = false;
 QueueHandle_t qPID, qHome, qShoot;
@@ -306,6 +302,9 @@ int main(void)
   qShoot = xQueueCreate(1, sizeof(bool));
   qPID   = xQueueCreate(2, sizeof(float));
   brd_Init();
+
+
+
 //  HAL_FLASH_Unlock();
 //  FLASH_EraseInitTypeDef er;
 //  er.TypeErase = FLASH_TYPEERASE_PAGES;
@@ -315,6 +314,9 @@ int main(void)
 //  HAL_FLASHEx_Erase(&er, &pe);
 //  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, CANCTRL_DEVICE_ACTUATOR_1);
 //  HAL_FLASH_Lock();
+
+
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -704,13 +706,17 @@ void SethomeHandle() {
 }
 void ShootHandle(){
 	if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
-		PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
+//		PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
+
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 		PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
 		PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
 		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
 		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
+
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
+
 		PID_Motor_Stop_All();
 	}
 }

@@ -779,6 +779,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
+
 void canShoot(float speedgun1, float speedgun2){
 	SpeedGun speed;
 	speed.gun1Speed = speedgun1;
@@ -787,6 +788,7 @@ void canShoot(float speedgun1, float speedgun2){
 	canctrl_SetID(CANCTRL_MODE_SHOOT);
 	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
 }
+
 uint8_t enableTestMode;
 CAN_SpeedBLDC_AngleDC Gun_Actuator;
 void setTestModeActuator(){
