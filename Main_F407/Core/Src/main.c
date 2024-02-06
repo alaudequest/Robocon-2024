@@ -781,7 +781,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 }
 void canShoot(){
 	canctrl_SetID(CANCTRL_MODE_SHOOT);
-	canctrl_PutMessage((void*)1, 1);
 	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
 }
 uint8_t enableTestMode;
@@ -2089,7 +2088,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 
 				Pfx = Odo.poseX;
 				P0x = Odo.poseX;
-				Pfy = Odo.poseY+0.2;
+				Pfy = Odo.poseY;
 				P0y = Odo.poseY;
 				v0x = Fkine.uOut;
 				v0y = Fkine.vOut;
@@ -2100,60 +2099,58 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 //				StopUseXY = 1;
 //				StopUsetheta = 1;
 				StopUsePIDX = 0;
-				StopUsePIDY = 0;
+				StopUsePIDY = 1;
 				stateChange = 0;
 				stateRun ++;
 			}
 		}
 		if(stateRun == 30){
-
-			if(stateChange == 0)
-			{
-				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
-					steadycheck ++ ;
-					StopUsetheta = 1;
-					StopUseXY = 1;
-				}
-				else{
-					steadycheck = 0;
-					StopUseXY = 0;
-				}
-
-				if(steadycheck>5){
-					stateChange ++;
-					steadycheck = 0;
-					StopUsetheta = 0;
-				}
-			}
-			if(stateChange == 1)
-			{
+			v = -0.2;
+			stateChange++;
+			if(stateChange>20){
 				StopUseXY = 1;
-				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
-					steadycheck ++ ;
-				}else{
-					StopUsetheta = 0;
-					steadycheck = 0;
-				}
-
-			}
-
-			if(steadycheck > 10)
-			{
-				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
-//				valve_BothRelease();
-				Odo.poseTheta = yaw;
+				StopUsetheta = 1;
 				stateChange = 0;
-				u = 0;
-				v = 0;
-				r = 0;
-				v0x = 0;
-				v0y = 0;
-//				stateRun += 1;
-				steadycheck = 0;
-//				StopUseXY = 0;
-//				StopUsetheta = 0;
+				shoot = 1;
+				stateRun++;
 			}
+//			if(stateChange == 0)
+//			{
+//				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
+//					shoot = 1;
+//					stateChange ++;
+//					StopUseXY = 1;
+//				}
+//			}
+//			if(stateChange == 1)
+//			{
+//				StopUseXY = 1;
+//				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
+//				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
+//					steadycheck ++ ;
+//				}else{
+//					StopUsetheta = 0;
+//					steadycheck = 0;
+//				}
+//
+//			}
+//
+//			if(steadycheck > 10)
+//			{
+//				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
+////				valve_BothRelease();
+//				Odo.poseTheta = yaw;
+//				stateChange = 0;
+//				u = 0;
+//				v = 0;
+//				r = 0;
+//				v0x = 0;
+//				v0y = 0;
+////				stateRun += 1;
+//				steadycheck = 0;
+////				StopUseXY = 0;
+////				StopUsetheta = 0;
+//			}
 		}
 //		if (stateRun == 27){
 //			vfx = 0;
