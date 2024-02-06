@@ -779,7 +779,11 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
-void canShoot(){
+void canShoot(float speedgun1, float speedgun2){
+	SpeedGun speed;
+	speed.gun1Speed = speedgun1;
+	speed.gun2Speed = speedgun2;
+	canctrl_PutMessage(&speed, sizeof(SpeedGun));
 	canctrl_SetID(CANCTRL_MODE_SHOOT);
 	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
 }
@@ -1423,7 +1427,7 @@ void Actuator(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		if(shoot == 1){
-			canShoot();
+			canShoot(1000, 1000);
 			shoot = 0;
 		}
 		BallSS = HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin);

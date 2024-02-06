@@ -26,11 +26,18 @@ void canfunc_HandleRxEvent(void(*pCallback)(CAN_MODE_ID ID))
 }
 
 
-void canfunc_RTR_SpeedAngle(CAN_HandleTypeDef *can, CAN_SpeedBLDC_AngleDC speedAngle)
+void canfunc_RTR_SetEncoderX4CountBLDC_Angle(CAN_HandleTypeDef *can, CAN_RTR_Encx4BLDC_AngleDC rtrData)
 {
 	uint16_t deviceID = *(__IO uint32_t*)(0x08000000 + 64*1024);
-	canfunc_MotorPutSpeedAndAngle(speedAngle);
+	canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+	canctrl_PutMessage((void*)&rtrData, sizeof(CAN_RTR_Encx4BLDC_AngleDC));
 	canctrl_Send(can, deviceID);
+}
+
+CAN_RTR_Encx4BLDC_AngleDC canfunc_RTR_GetEncoderX4CountBLDC_Angle(){
+	CAN_RTR_Encx4BLDC_AngleDC rtrData;
+	if(canctrl_GetMessage(&rtrData, sizeof(CAN_RTR_Encx4BLDC_AngleDC)) != HAL_OK) while(1);
+	return rtrData;
 }
 
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type)
@@ -53,6 +60,7 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 	&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
 	&& modeID != CANCTRL_MODE_SET_HOME
 	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+	&& modeID != CANCTRL_MODE_SET_HOME_GUN
 	) return;
 	canctrl_SetID(modeID);
 	uint8_t temp = (uint8_t)bVal + 1;
@@ -76,6 +84,18 @@ CAN_SpeedBLDC_AngleDC canfunc_MotorGetSpeedAndAngle()
 {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	if(canctrl_GetMessage(&speedAngle, sizeof(CAN_SpeedBLDC_AngleDC)) != HAL_OK) while(1);
+	return speedAngle;
+}
+
+void canfunc_GunPutSpeedAndAngle(CAN_SpeedGun_Angle speedAngle)
+{
+	canctrl_SetID(CANCTRL_MODE_MOTOR_SPEED_ANGLE);
+	canctrl_PutMessage((void*)&speedAngle, sizeof(CAN_SpeedGun_Angle));
+}
+CAN_SpeedGun_Angle canfunc_GunGetSpeedAndAngle()
+{
+	CAN_SpeedGun_Angle speedAngle;
+	if(canctrl_GetMessage(&speedAngle, sizeof(CAN_SpeedGun_Angle)) != HAL_OK) while(1);
 	return speedAngle;
 }
 
@@ -137,4 +157,3 @@ void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type))
 	}
 
 }
-

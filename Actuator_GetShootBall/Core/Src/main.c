@@ -177,6 +177,13 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 	CAN_SpeedGun_Angle nodeSpeedAngle;
 	CAN_SpeedGun_Angle speedAngle;
 	switch (mode) {
+		case CANCTRL_MODE_SHOOT:
+			speedAngle= canfunc_GunGetSpeedAndAngle();
+			brd_SetSpeedGun(speedAngle.gunSpeed.gun1Speed, MOTOR_GUN1);
+			brd_SetSpeedGun(speedAngle.gunSpeed.gun2Speed, MOTOR_GUN2);
+			bool shootValue = 1;
+			xQueueSend(qShoot, (void*)&shootValue, 1/portTICK_PERIOD_MS);
+			break;
 		case CANCTRL_MODE_NODE_REQ_GUN_SPEED:
 			nodeSpeedAngle.gunSpeed.gun1Speed = brd_GetCurrentSpeedGun1();
 			nodeSpeedAngle.gunSpeed.gun1Speed = brd_GetCurrentSpeedGun2();
@@ -696,7 +703,7 @@ void SethomeHandle() {
 	}
 }
 void ShootHandle(){
-	if (xQueueReceive(qHome, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
+	if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
 		PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
@@ -719,7 +726,7 @@ void ShootHandle(){
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-	SET_HOME_DEFAULT_TASK:
+//	SET_HOME_DEFAULT_TASK:
 //	sethome_Begin();
 //	while (!sethome_IsComplete()) {
 //		sethome_Procedure();
