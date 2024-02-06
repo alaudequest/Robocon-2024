@@ -137,3 +137,4 @@ void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type))
 	}
 
 }
+
