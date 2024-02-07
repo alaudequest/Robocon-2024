@@ -5,3 +5,5 @@ PID_BLDC_test
 TestTayGame
 UartTest
 MainSwerveTurbo
+.vscode
+.setting
