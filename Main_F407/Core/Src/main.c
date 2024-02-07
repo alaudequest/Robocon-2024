@@ -771,7 +771,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+uint8_t shootFlag;
 void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	speedAngle.bldcSpeed = speed;
@@ -780,8 +780,12 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 void canShoot(){
+	shootFlag = 1;
 	canctrl_SetID(CANCTRL_MODE_SHOOT);
 	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
+	while (canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1) != HAL_OK);
+	osDelay(10000);
+	shootFlag = 0;
 }
 uint8_t enableTestMode;
 CAN_SpeedBLDC_AngleDC Gun_Actuator;
@@ -1267,7 +1271,7 @@ uint8_t Run,resetParam,breakProtect;
 float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.6,kdTheta,alphaCtrol = 0.2;
 int testSpeed,testPos;
 float uControlX,uControlY,uControlTheta;
-uint8_t stateRun ,steadycheck;
+uint8_t stateRun = 0 ,steadycheck;
 
 uint8_t xaDay;
 
@@ -1305,7 +1309,7 @@ void ResetIMU(){
  * @param  argument: Not used
  * @retval None
  */
-
+uint8_t useEuler;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1327,6 +1331,14 @@ void StartDefaultTask(void const * argument)
 		}
 		if(xaDay == 0)
 		{
+//			if(stateRun == 31){
+//				stateChange++;
+//				if(stateChange>100){
+//					stateChange = 0;
+//					stateRun ++;
+//					canShoot();
+//				}
+//			}
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
@@ -1483,24 +1495,13 @@ void Actuator(void const * argument)
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 12 ---------------------------------------------------//
 			if(stateRun == 12){
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				osDelay(20);
-//				valve_BothHold();
-//				osDelay(500);
+
 				StopUseXY = 0;
 				stateRun += 1;
 			}
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 22 ---------------------------------------------------//
 			if(stateRun == 22){
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				osDelay(20);
-//				valve_BothHold();
-//				osDelay(500);
 				StopUseXY = 0;
 				stateRun += 1;
 			}
@@ -1539,7 +1540,9 @@ void OdometerHandle(void const * argument)
 	ResetIMU();
 	/* Infinite loop */
 	for (;;) {
-		RTR_SpeedAngle();
+		if(!shootFlag){
+			RTR_SpeedAngle();
+		}
 		for (int i = 0;i<3;i++)
 		{
 			SpeedRead2(&Module[i], nodeSpeedAngle[i].bldcSpeed);
@@ -1593,7 +1596,11 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 
 		if(StopUsetheta == 0){
 			if(!StopUsePIDr){
-				PD_Controller(&pDTheta, ThetaTrajec.xTrajec, yaw);
+				if(!useEuler){
+					PD_Controller(&pDTheta, ThetaTrajec.xTrajec, yaw);
+				}else{
+					PD_Controller(&pDTheta, ThetaTrajec.xTrajec, Odo.poseTheta);
+				}
 			}
 		}else{
 			pDTheta.u = 0;
@@ -1774,7 +1781,9 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 					StopUseXY = 0;
 				}
 
-				if(steadycheck>10){
+				if(steadycheck>5){
+					Odo.poseTheta = yaw;
+					useEuler = 1;
 					stateChange ++;
 					steadycheck = 0;
 					StopUsetheta = 0;
@@ -1784,7 +1793,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 			{
 				StopUseXY = 1;
 				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
+				if ((absFloat(Odo.poseTheta-Pftheta)<=1*M_PI/180)){
 					steadycheck ++ ;
 				}else{
 					StopUsetheta = 0;
@@ -1793,8 +1802,9 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 
 			}
 
-			if(steadycheck > 20)
+			if(steadycheck > 10)
 			{
+				useEuler = 0;
 				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
 				valve_BothRelease();
 				Odo.poseTheta = yaw;
@@ -1954,7 +1964,9 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 						StopUseXY = 0;
 					}
 
-					if(steadycheck>10){
+					if(steadycheck>5){
+						Odo.poseTheta = yaw;
+						useEuler = 1;
 						stateChange ++;
 						steadycheck = 0;
 						StopUsetheta = 0;
@@ -1964,7 +1976,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 				{
 					StopUseXY = 1;
 					PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-					if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
+					if ((absFloat(Odo.poseTheta-Pftheta)<=1*M_PI/180)){
 						steadycheck ++ ;
 					}else{
 						StopUsetheta = 0;
@@ -1973,8 +1985,9 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 
 				}
 
-				if(steadycheck > 20)
+				if(steadycheck > 15)
 				{
+					useEuler = 0;
 					PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
 					valve_BothRelease();
 					Odo.poseTheta = yaw;
@@ -2028,6 +2041,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 		}
 
 		if (stateRun == 24){
+			Odo.poseTheta = yaw;
 			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
 			stateRun += 1;
 			}
@@ -2073,7 +2087,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 		if(stateRun == 29){
 			u = -0.2;
 			stateChange ++;
-			if(stateChange > 20){
+			if(stateChange > 25){
 				vfx = 0;
 				vfy = 0;
 				vftheta = 0;
@@ -2105,15 +2119,19 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 			}
 		}
 		if(stateRun == 30){
-			v = -0.2;
+			v = 0.2;
 			stateChange++;
 			if(stateChange>20){
+				u = 0;
+				v = 0;
+				r = 0;
 				StopUseXY = 1;
 				StopUsetheta = 1;
 				stateChange = 0;
-				shoot = 1;
 				stateRun++;
 			}
+		}
+
 //			if(stateChange == 0)
 //			{
 //				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
@@ -2151,7 +2169,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 ////				StopUseXY = 0;
 ////				StopUsetheta = 0;
 //			}
-		}
+
 //		if (stateRun == 27){
 //			vfx = 0;
 //			vfy = 0;
