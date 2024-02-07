@@ -29,4 +29,11 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>CAN</name>
+			<type>2</type>
+			<location>/home/namdhay/Documents/Robocon-2024/Main_F407/CAN</location>
+		</link>
+	</linkedResources>
 </projectDescription>

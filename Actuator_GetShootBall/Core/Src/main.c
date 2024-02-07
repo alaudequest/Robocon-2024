@@ -143,16 +143,10 @@ void CAN_Init() {
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_SHOOT,
-			deviceID | CANCTRL_MODE_MOTOR_GUN_SPEED,
+			deviceID | CANCTRL_MODE_SET_HOME_GUN,
 			deviceID | CANCTRL_MODE_MOTOR_GUN_ANGLE,
 			deviceID | CANCTRL_MODE_TEST,
 			0, CAN_RX_FIFO0);
-	canctrl_Filter_List16(&hcan,
-			deviceID | CANCTRL_MODE_PID_GUN2_SPEED,
-			deviceID | CANCTRL_MODE_PID_GUN1_SPEED,
-			deviceID | CANCTRL_MODE_PID_GUN_ANGLE,
-			deviceID | CANCTRL_MODE_PID_ROTARY_SPEED,
-			1, CAN_RX_FIFO0);
 	canctrl_Filter_Mask16(&hcan,
 			1 << CAN_RTR_REMOTE,
 			0,
@@ -170,7 +164,6 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 }
 uint8_t TestMode = 0;
 void handleFunctionCAN(CAN_MODE_ID mode) {
-	CAN_SpeedGun_Angle nodeSpeedAngle;
 	CAN_SpeedGun_Angle speedAngle;
 	switch (mode) {
 		case CANCTRL_MODE_SHOOT:
@@ -180,19 +173,6 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			bool shootValue = 1;
 			xQueueSend(qShoot, (void*)&shootValue, 1/portTICK_PERIOD_MS);
 			break;
-		case CANCTRL_MODE_NODE_REQ_GUN_SPEED:
-			nodeSpeedAngle.gunSpeed.gun1Speed = brd_GetCurrentSpeedGun1();
-			nodeSpeedAngle.gunSpeed.gun1Speed = brd_GetCurrentSpeedGun2();
-			canctrl_SetID(CANCTRL_MODE_NODE_REQ_GUN_SPEED);
-			canctrl_PutMessage((void*)&nodeSpeedAngle.gunSpeed, sizeof(nodeSpeedAngle.gunSpeed));
-			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
-			break;
-		case CANCTRL_MODE_NODE_REQ_GUN_ANGLE:
-			nodeSpeedAngle.gunAngle = brd_GetCurrentAngle();
-			canctrl_SetID(CANCTRL_MODE_NODE_REQ_GUN_ANGLE);
-			canctrl_PutMessage((void*)&nodeSpeedAngle.gunAngle, sizeof(nodeSpeedAngle.gunAngle));
-			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
-			break;
 		case CANCTRL_MODE_TEST:
 			TestMode = canfunc_GetBoolValue();
 			break;
@@ -200,15 +180,6 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			speedAngle= canfunc_GunGetSpeedAndAngle();
 			brd_SetTargetRotaryAngle(speedAngle.gunAngle);
 			break;
-		case CANCTRL_MODE_MOTOR_GUN_SPEED:
-			speedAngle= canfunc_GunGetSpeedAndAngle();
-			brd_SetSpeedGun(speedAngle.gunSpeed.gun1Speed, MOTOR_GUN1);
-			brd_SetSpeedGun(speedAngle.gunSpeed.gun2Speed, MOTOR_GUN2);
-			break;
-		case CANCTRL_MODE_PID_GUN_ANGLE:
-			case CANCTRL_MODE_PID_GUN2_SPEED:
-			case CANCTRL_MODE_PID_GUN1_SPEED:
-			canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
 		default:
 		break;
@@ -216,7 +187,6 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 }
 
 void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
-	PID_Param pid;
 	switch (modeID) {
 		case CANCTRL_MODE_SHOOT:
 			bool shootValue = 1;
@@ -226,21 +196,8 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 		break;
-		case CANCTRL_MODE_PID_GUN2_SPEED:
-			pid = brd_GetPID(PID_GUN2);
-			canfunc_RTR_PID(can, pid, PID_GUN2);
-		break;
-		case CANCTRL_MODE_PID_GUN1_SPEED:
-			pid = brd_GetPID(PID_GUN1);
-			canfunc_RTR_PID(can, pid, PID_GUN1);
-		break;
-		case CANCTRL_MODE_PID_GUN_ANGLE:
-			pid = brd_GetPID(PID_ROTARY_ANGLE);
-			canfunc_RTR_PID(can, pid, PID_ROTARY_ANGLE);
-		break;
-		case CANCTRL_MODE_PID_ROTARY_SPEED:
-			pid = brd_GetPID(PID_ROTARY_SPEED);
-			canfunc_RTR_PID(can, pid, PID_ROTARY_SPEED);
+		case CANCTRL_MODE_MOTOR_GUN_ANGLE:
+
 		break;
 		default:
 		break;
