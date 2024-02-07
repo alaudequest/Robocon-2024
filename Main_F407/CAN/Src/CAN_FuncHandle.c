@@ -50,16 +50,16 @@ bool canfunc_GetBoolValue()
 {
 	uint8_t temp;
 	if(canctrl_GetMessage(&temp, sizeof(uint8_t)) != HAL_OK) while(1);
-	bool bVal = temp - 1;
-	return bVal;
+	return (bool) --temp;
 }
 
 void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 {
 	if(modeID != CANCTRL_MODE_TEST
-	&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
-	&& modeID != CANCTRL_MODE_SET_HOME
-	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+			&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
+			&& modeID != CANCTRL_MODE_SET_HOME
+			&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+			&& modeID != CANCTRL_MODE_ENABLE_ENCODER
 	) return;
 	canctrl_SetID(modeID);
 	uint8_t temp = (uint8_t)bVal + 1;

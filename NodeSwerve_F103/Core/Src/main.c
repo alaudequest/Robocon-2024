@@ -111,7 +111,7 @@ void CAN_Init() {
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_ENABLE_ENCODER,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
@@ -146,10 +146,6 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 
 void handleFunctionCAN(CAN_MODE_ID mode) {
 	switch (mode) {
-		case CANCTRL_MODE_SHOOT:
-			break;
-		case CANCTRL_MODE_SET_HOME:
-			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 			bool brake = canfunc_GetBoolValue();
 			MotorBLDC mbldc = brd_GetObjMotorBLDC();
@@ -158,6 +154,16 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 			uint8_t Break = canfunc_GetBoolValue();
 			PID_BLDC_BreakProtection(Break);
+		case CANCTRL_MODE_ENABLE_ENCODER:
+			if(canfunc_GetBoolValue()) {
+				HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
+			}
+			else {
+				HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+			}
+			break;
 		case CANCTRL_MODE_TEST:
 			TestMode = canfunc_GetBoolValue();
 		break;
@@ -174,8 +180,7 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			case CANCTRL_MODE_PID_BLDC_SPEED:
 			canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
-		case CANCTRL_MODE_START:
-			case CANCTRL_MODE_END:
+		default:
 			break;
 	}
 }

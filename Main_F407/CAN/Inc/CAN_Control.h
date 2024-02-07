@@ -9,7 +9,7 @@
 #define INC_CAN_CONTROL_H_
 #include "main.h"
 #include "stdbool.h"
-//#include "Flag.h"
+#include "Flag.h"
 
 #define CAN_DEVICE_POS 8
 typedef enum CAN_MODE_ID{
@@ -24,7 +24,7 @@ typedef enum CAN_MODE_ID{
 	CANCTRL_MODE_PID_DC_ANGLE,
 	CANCTRL_MODE_PID_BLDC_SPEED,
 	CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
-
+	CANCTRL_MODE_ENABLE_ENCODER,
 	//---------------- Gun Module----------------//
 	CANCTRL_MODE_SET_HOME_GUN,
 	CANCTRL_MODE_MOTOR_GUN_ANGLE,
