@@ -7,8 +7,10 @@
 #include "AppInterface.h"
 
 char tempBuffer[1] = {0};
-char uartRxData[10] = {0};
+char uartRxData[30] = {0};
 UART_HandleTypeDef *pAppUART;
+bool isReceivedFrameData = false;
+
 void appinf_Init(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(huart, (uint8_t*) tempBuffer, 1);
 	pAppUART = huart;
@@ -34,11 +36,16 @@ void appinf_HandleReceive(UART_HandleTypeDef *huart) {
 		memcpy(temp.b, uartRxData, sizeof(float));
 		i = 0;
 		memset(uartRxData, 0, sizeof(uartRxData));
-		appintf_SendFloat(temp.f);
+		isReceivedFrameData = true;
 	} else {
 		memcpy(uartRxData + i, tempBuffer, 1);
 		i++;
 	}
 	HAL_UART_Receive_IT(pAppUART, (uint8_t*) tempBuffer, 1);
+}
+
+void appinf_DecodeFrameData() {
+	if (!isReceivedFrameData) return;
+
 }
 

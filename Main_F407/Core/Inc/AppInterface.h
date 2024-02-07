@@ -43,12 +43,12 @@ typedef struct MainF407_ParamPID {
 	float offsetSteady;
 } MainF407_ParamPID;
 
-typedef struct AppProtocol {
+typedef struct FrameData {
 	uint8_t dataLen;
 	uint16_t crc16;
 	CommandList cmdList;
 	uint8_t *data;
-} AppProtocol;
+} FrameData;
 void appinf_Init(UART_HandleTypeDef *huart);
 char* appinf_GetBufferAddress();
 void appintf_SendFloat(float num);
