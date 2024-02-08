@@ -61,11 +61,16 @@ osStaticThreadDef_t TaskCalcPIDControlBlock;
 osThreadId TaskHandleCANHandle;
 uint32_t TaskHandleCANBuffer[ 128 ];
 osStaticThreadDef_t TaskHandleCANControlBlock;
+osThreadId TaskPIDSpeedHandle;
 osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 uint8_t TestMode = 0;
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
+
+
+
+uint32_t pageError = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,6 +83,7 @@ static void MX_TIM2_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTaskPID(void const * argument);
 void StartCANbus(void const * argument);
+void StartTaskPIDSpeed(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
@@ -109,9 +115,9 @@ void CAN_Init() {
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_LED_BLUE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
-			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
 			deviceID | CANCTRL_MODE_ENABLE_ENCODER,
+			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
+			deviceID | CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
@@ -146,6 +152,18 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 
 void handleFunctionCAN(CAN_MODE_ID mode) {
 	switch (mode) {
+		case CANCTRL_MODE_SHOOT:
+			break;
+		case CANCTRL_MODE_SET_HOME:
+			break;
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
+			nodeSpeedAngle.bldcSpeed = brd_GetCurrentCountBLDC();
+			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+			canctrl_PutMessage((void*)&nodeSpeedAngle, sizeof(nodeSpeedAngle));
+			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
+			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
 			bool brake = canfunc_GetBoolValue();
 			MotorBLDC mbldc = brd_GetObjMotorBLDC();
@@ -191,12 +209,6 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 		case CANCTRL_MODE_SET_HOME:
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
-		break;
-		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-			CAN_RTR_Encx4BLDC_AngleDC rtrData;
-			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
-			rtrData.dcAngle = brd_GetCurrentAngleDC();
-			canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
 		break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);
@@ -330,6 +342,10 @@ int main(void)
   osThreadStaticDef(TaskHandleCAN, StartCANbus, osPriorityAboveNormal, 0, 128, TaskHandleCANBuffer, &TaskHandleCANControlBlock);
   TaskHandleCANHandle = osThreadCreate(osThread(TaskHandleCAN), NULL);
 
+  /* definition and creation of TaskPIDSpeed */
+  osThreadDef(TaskPIDSpeed, StartTaskPIDSpeed, osPriorityHigh, 0, 128);
+  TaskPIDSpeedHandle = osThreadCreate(osThread(TaskPIDSpeed), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -437,6 +453,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -449,6 +466,15 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -644,9 +670,9 @@ void SethomeHandle() {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const *argument)
+void StartDefaultTask(void const * argument)
 {
-	/* USER CODE BEGIN 5 */
+  /* USER CODE BEGIN 5 */
 	SET_HOME_DEFAULT_TASK:
 	sethome_Begin();
 	while (!sethome_IsComplete()) {
@@ -676,7 +702,7 @@ void StartDefaultTask(void const *argument)
  * @param argument: Not used
  * @retval None
  */
-int TestTarget;
+float test1;
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const * argument)
 {
@@ -685,22 +711,18 @@ void StartTaskPID(void const * argument)
 	while (!sethome_IsComplete()) {
 		xQueueReceive(qPID, &TargetValue, 0);
 		PID_DC_CalSpeed((float) TargetValue);
-		osDelay(5);
+		osDelay(2);
 	}
 	/* Infinite loop */
 	for (;;) {
 		if (IsSetHome) {
-			PID_BLDC_BreakProtection(1);
-			osDelay(1000);
-			PID_BLDC_BreakProtection(0);
+			osDelay(1);
 			goto SET_HOME_PID_TASK;
 		}
-
+//		PID_DC_CalPos(test1);
 		PID_DC_CalPos(brd_GetTargetAngleDC());
-		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-//		PID_DC_CalPos(TestTarget);
 
-		osDelay(5);
+		osDelay(2);
 	}
   /* USER CODE END StartTaskPID */
 }
@@ -732,6 +754,38 @@ void StartCANbus(void const * argument)
 //    osDelay(1);
 	}
   /* USER CODE END StartCANbus */
+}
+
+/* USER CODE BEGIN Header_StartTaskPIDSpeed */
+/**
+* @brief Function implementing the TaskPIDSpeed thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskPIDSpeed */
+float test;
+void StartTaskPIDSpeed(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskPIDSpeed */
+	SET_HOME_PID_SPEED:
+	PID_BLDC_BreakProtection(1);
+	osDelay(1000);
+	PID_BLDC_BreakProtection(0);
+	while(!sethome_IsComplete()){
+		osDelay(1);
+	}
+
+  /* Infinite loop */
+  for(;;)
+  {
+	if (IsSetHome) {
+		goto SET_HOME_PID_SPEED;
+	}
+//	PID_BLDC_CalSpeed(test);
+	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
+    osDelay(2);
+  }
+  /* USER CODE END StartTaskPIDSpeed */
 }
 
 /**

@@ -1354,7 +1354,7 @@ void StartDefaultTask(void const * argument)
 				if(stateChange>1){
 					stateChange = 0;
 					stateRun ++;
-
+					CAN_SetEncoderState(0);
 					canShoot();
 				}
 			}
