@@ -130,6 +130,8 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 	CLEARFLAG(SETHOME_FLAG_GROUP, e);
 }
 
+
+uint8_t encEnb,encDis;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -813,6 +815,14 @@ void canShoot(){
 //	TestBreakProtection();
 }
 
+void StopEnc(bool brake){
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
+			canfunc_SetBoolValue(brake,CANCTRL_MODE_MOTOR_BLDC_BRAKE);
+			while (canctrl_Send(&hcan1, i) != HAL_OK);
+			osDelay(1);
+	}
+}
+
 bool stopFlag;
 void softEmergencyStop() {
 	CAN_SpeedBLDC_AngleDC speedAngle;
@@ -1288,7 +1298,7 @@ uint8_t xaDay;
 uint8_t ssCheck,stateChange,rst,Gamepad;
 #define PFxState10 -0.935
 #define PFyState10 -0.75
-#define PFxState20 -0.93
+#define PFxState20 -0.935
 #define PFyState20 0.05
 
 char tx_buffer1[] = "rst\n";
@@ -1341,15 +1351,6 @@ void StartDefaultTask(void const * argument)
 		}
 		if(xaDay == 0)
 		{
-			if(stateRun == 31){
-				stateChange++;
-				ReleaseAll=1;
-				if(stateChange>1){
-					stateChange = 0;
-					stateRun ++;
-					canShoot();
-				}
-			}
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
@@ -1453,6 +1454,15 @@ void Actuator(void const * argument)
 			canShoot();
 			shoot = 0;
 		}
+
+		if(encEnb == 1){
+			StopEnc(0);
+			encEnb = 0;
+		}
+		if(encDis == 1){
+			StopEnc(1);
+			encDis = 0;
+		}
 		BallSS = HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin);
 
 		if((stateRun == 4)||(stateRun == 15)){
@@ -1507,6 +1517,17 @@ void Actuator(void const * argument)
 						ssCheck = 0;
 				}
 			}
+			if(stateRun == 35){
+				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
+					ssCheck++;
+				}else{
+					ssCheck = 0;
+				}
+					if(ssCheck>15){
+						stateRun++;
+						ssCheck = 0;
+				}
+			}
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 12 ---------------------------------------------------//
 			if(stateRun == 12){
@@ -1537,8 +1558,8 @@ void OdometerHandle(void const * argument)
   /* USER CODE BEGIN OdometerHandle */
 	  /* USER CODE BEGIN OdometerHandle */
 
-		PD_setParam(&pDX, 0.8, 0, 0.8);
-		PD_setParam(&pDY, 0.8, 0, 0.8);
+		PD_setParam(&pDX, 1, 0, 0.8);
+		PD_setParam(&pDY, 1, 0, 0.8);
 		PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
 
 		PD_setLimit(&pDX, 1, -1);
@@ -1717,13 +1738,19 @@ void OdometerHandle(void const * argument)
 	//--------------------------------------State 8 ---------------------------------------------------//
 			if(stateRun == 8){
 				stateChange++;
-				u = 0.05;
+				StopUsePIDX = 1;
+				StopUsePIDY = 1;
+				StopUsePIDr = 1;
+				u = 0.1;
 				v = 0;
 				r = 0;
 				if(stateChange> 10){
 					ResetIMU();
+					StopUsePIDX = 0;
+					StopUsePIDY = 0;
+					StopUsePIDr = 0;
 					stateChange = 0;
-					tfx = 1.5;
+					tfx = 1.4;
 					tfy = 1;
 					tftheta = 1;
 
@@ -1768,7 +1795,7 @@ void OdometerHandle(void const * argument)
 				P0x = Odo.poseX;
 				Pfy = PFyState10;
 				P0y = Odo.poseY;
-				Pftheta = -88*M_PI/180;
+				Pftheta = -89*M_PI/180;
 				P0theta = 0;
 				stateRun += 1;
 			}
@@ -1782,8 +1809,11 @@ void OdometerHandle(void const * argument)
 						}
 				}
 				if(stateChange == 1){
-					if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
+					if ((absFloat(Odo.poseX-Pfx)<0.012)&&(absFloat(Odo.poseY-Pfy)<0.012)){
 						stateChange = 3;
+//						ReadIMU();
+//						Odo.poseTheta = yaw;
+//						useEuler = 1;
 						}
 				}
 				if(stateChange == 2)
@@ -1799,8 +1829,8 @@ void OdometerHandle(void const * argument)
 					}
 
 					if(steadycheck>5){
-						Odo.poseTheta = yaw;
-//						useEuler = 1;
+
+						useEuler = 1;
 						stateChange ++;
 						steadycheck = 0;
 						StopUsetheta = 0;
@@ -1809,8 +1839,8 @@ void OdometerHandle(void const * argument)
 				if(stateChange == 3)
 				{
 					StopUseXY = 1;
-					PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-					if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
+					PD_setParam(&pDTheta,1.8,0, alphaCtrol);
+					if ((absFloat(yaw-Pftheta)<=2*M_PI/180)){
 						steadycheck ++ ;
 					}else{
 						StopUsetheta = 0;
@@ -1819,7 +1849,7 @@ void OdometerHandle(void const * argument)
 
 				}
 
-				if(steadycheck > 10)
+				if(steadycheck > 15)
 				{
 					useEuler = 0;
 					PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
@@ -1901,13 +1931,19 @@ void OdometerHandle(void const * argument)
 	//--------------------------------------State 18 ---------------------------------------------------//
 			if(stateRun == 18){
 				stateChange++;
-				u = 0.08;
+				StopUsePIDX = 1;
+				StopUsePIDY = 1;
+				StopUsePIDr = 1;
+				u = 0.1;
 				v = 0;
 				r = 0;
-				if(stateChange > 20){
+				if(stateChange > 10){
+					StopUsePIDX = 0;
+					StopUsePIDY = 0;
+					StopUsePIDr = 0;
 					ResetIMU();
 					stateChange = 0;
-					tfx = 0.5;
+					tfx = 2;
 					tfy = 1;
 					tftheta = 1;
 
@@ -1915,8 +1951,8 @@ void OdometerHandle(void const * argument)
 					Ytrajec.t = 0;
 					ThetaTrajec.t = 0;
 
-					Pfx = -0.1;
-					P0x = 0;
+					Pfx = -0.5;
+					P0x = Odo.poseX;
 					Pfy = 0;
 					P0y = 0;
 					Pftheta = 0;
@@ -1931,7 +1967,7 @@ void OdometerHandle(void const * argument)
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 19 ---------------------------------------------------//
 			if (stateRun == 19){
-				if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
+				if ((absFloat(Odo.poseX-Pfx)<0.4)&&(absFloat(Odo.poseY-Pfy)<0.4)){
 				stateRun += 1;
 				}
 			}
@@ -1950,11 +1986,12 @@ void OdometerHandle(void const * argument)
 				ThetaTrajec.t = 0;
 				v0x = Fkine.uOut;
 				v0y = Fkine.vOut;
+				v0theta = Fkine.thetaOut;
 				Pfx = PFxState20;
 				P0x = Odo.poseX;
 				Pfy = PFyState20;
 				P0y = Odo.poseY;
-				Pftheta = -88*M_PI/180;
+				Pftheta = -89*M_PI/180;
 				P0theta = 0;
 				stateRun += 1;
 			}
@@ -1968,8 +2005,11 @@ void OdometerHandle(void const * argument)
 							}
 					}
 					if(stateChange == 1){
-						if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
+						if ((absFloat(Odo.poseX-Pfx)<0.012)&&(absFloat(Odo.poseY-Pfy)<0.012)){
 							stateChange = 3;
+//							ReadIMU();
+//							Odo.poseTheta = yaw;
+//							useEuler = 1;
 							}
 					}
 					if(stateChange == 2)
@@ -1995,8 +2035,8 @@ void OdometerHandle(void const * argument)
 					if(stateChange == 3)
 					{
 						StopUseXY = 1;
-						PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-						if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
+						PD_setParam(&pDTheta, 1.8, 0, alphaCtrol);
+						if ((absFloat(yaw-Pftheta)<=2*M_PI/180)){
 							steadycheck ++ ;
 						}else{
 							StopUsetheta = 0;
@@ -2083,7 +2123,7 @@ void OdometerHandle(void const * argument)
 
 				Pfx = Odo.poseX;
 				P0x = Odo.poseX;
-				Pfy = -2.17;
+				Pfy = -2.15;
 				P0y = Odo.poseY;
 				v0x = Fkine.uOut;
 				v0y = Fkine.vOut;
@@ -2139,7 +2179,7 @@ void OdometerHandle(void const * argument)
 			if(stateRun == 30){
 				v = 0.2;
 				stateChange++;
-				if(stateChange>22){
+				if(stateChange> 24){
 					u = 0;
 					v = 0;
 					r = 0;
@@ -2149,7 +2189,112 @@ void OdometerHandle(void const * argument)
 					stateRun++;
 				}
 			}
+			if(stateRun == 31){
+				stateChange++;
+				if(stateChange>1){
+					StopEnc(1);
+					stateChange = 0;
+					stateRun ++;
+					canShoot();
+					StopEnc(0);
+				}
+			}
+			if(stateRun == 32){
+				StopUseXY = 0;
+				StopUsetheta = 0;
+				StopUsePIDX = 0;
+				StopUsePIDY = 0;
+				stateChange = 0;
 
+				vfx = 0;
+				vfy = 0;
+				vftheta = 0;
+
+				tfx = 1;
+				tfy = 1;
+				tftheta = 1;
+
+				Xtrajec.t = 0;
+				Ytrajec.t = 0;
+				ThetaTrajec.t = 0;
+
+				Pfx = Odo.poseX;
+				P0x = Odo.poseX;
+				Pfy = -2.15;
+				P0y = Odo.poseY;
+				v0x = Fkine.uOut;
+				v0y = Fkine.vOut;
+				Pftheta = 0;
+				P0theta = yaw;
+				Odo.poseTheta = yaw;
+				stateRun += 1;
+			}
+			if (stateRun == 33){
+				Odo.poseTheta = yaw;
+				if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
+				stateRun += 1;
+				}
+			}
+			if(stateRun == 34){
+				u = -0.3;
+				StopUsePIDX = 1;
+				stateRun ++;
+			}
+			if(stateRun == 36){
+				u = -0.2;
+				stateChange ++;
+				if(stateChange > 20){
+					vfx = 0;
+					vfy = 0;
+					vftheta = 0;
+
+					tfx = 4;
+					tfy = 1;
+					tftheta = 1;
+
+					Xtrajec.t = 0;
+					Ytrajec.t = 0;
+					ThetaTrajec.t = 0;
+
+					Pfx = Odo.poseX;
+					P0x = Odo.poseX;
+					Pfy = Odo.poseY;
+					P0y = Odo.poseY;
+					v0x = Fkine.uOut;
+					v0y = Fkine.vOut;
+					Pftheta = 0;
+					P0theta = yaw;
+					Odo.poseTheta = yaw;
+
+					StopUsePIDX = 0;
+					StopUsePIDY = 1;
+					stateChange = 0;
+					stateRun ++;
+				}
+			}
+			if(stateRun == 37){
+				v = 0.2;
+				stateChange++;
+				if(stateChange> 24){
+					u = 0;
+					v = 0;
+					r = 0;
+					StopUseXY = 1;
+					StopUsetheta = 1;
+					stateChange = 0;
+					stateRun++;
+				}
+			}
+			if(stateRun == 38){
+				stateChange++;
+				if(stateChange>1){
+					StopEnc(1);
+					stateChange = 0;
+					stateRun ++;
+					canShoot();
+					StopEnc(0);
+				}
+			}
 	//			if(stateChange == 0)
 	//			{
 	//				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
@@ -2314,7 +2459,7 @@ void OdometerHandle(void const * argument)
 	//--------------------------------------State 0 ---------------------------------------------------//
 				if(stateRun == 0){
 					stateChange++;
-					u = 0.05;
+					u = 0.1;
 					v = 0;
 					r = 0;
 					Odo.poseX = 0;

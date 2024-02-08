@@ -166,9 +166,19 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
 			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-			bool brake = canfunc_GetBoolValue();
-			MotorBLDC mbldc = brd_GetObjMotorBLDC();
-			MotorBLDC_Brake(&mbldc, brake);
+//			bool brake = canfunc_GetBoolValue();
+//			MotorBLDC mbldc = brd_GetObjMotorBLDC();
+//			MotorBLDC_Brake(&mbldc, brake);
+			if(canfunc_GetBoolValue()) {
+				HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
+				PID_ALL_Enable(0);
+			}
+			else {
+				HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+				PID_ALL_Enable(1);
+			}
 		break;
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 			uint8_t Break = canfunc_GetBoolValue();
