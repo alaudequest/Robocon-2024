@@ -1,0 +1,12 @@
+../Core/Src/BoardParameter.c:16:6:brd_Init	1
+../Core/Src/BoardParameter.c:70:6:brd_SetHomeCompleteCallback	1
+../Core/Src/BoardParameter.c:74:6:brd_SetPID	5
+../Core/Src/BoardParameter.c:91:11:brd_GetPID	5
+../Core/Src/BoardParameter.c:109:7:brd_GetObjMotor	6
+../Core/Src/BoardParameter.c:130:6:brd_SetObjMotor	6
+../Core/Src/BoardParameter.c:150:7:brd_GetTargetRotaryAngle	1
+../Core/Src/BoardParameter.c:151:6:brd_SetTargetRotaryAngle	1
+../Core/Src/BoardParameter.c:153:7:brd_GetSpeedGun	1
+../Core/Src/BoardParameter.c:154:6:brd_SetSpeedGun	1
+../Core/Src/BoardParameter.c:156:7:brd_GetDeltaT	1
+../Core/Src/BoardParameter.c:157:6:brd_SetDeltaT	1

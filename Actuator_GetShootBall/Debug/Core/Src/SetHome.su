@@ -1,0 +1,7 @@
+../Core/Src/SetHome.c:16:6:homeBeginHandle	8	static
+../Core/Src/SetHome.c:28:6:tuneCoarseHandle	8	static
+../Core/Src/SetHome.c:43:6:tuneFineHandle	8	static
+../Core/Src/SetHome.c:58:6:sethome_Procedure	16	static
+../Core/Src/SetHome.c:87:6:sethome_Begin	4	static
+../Core/Src/SetHome.c:91:6:sethome_IsComplete	4	static
+../Core/Src/SetHome.c:97:7:sethome_GetSpeed	4	static

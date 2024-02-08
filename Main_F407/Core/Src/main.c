@@ -183,6 +183,13 @@ void CAN_Init() {
 			CAN_RX_FIFO0);
 }
 
+void CAN_SetEncoderState(bool isEnable) {
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
+		canfunc_SetBoolValue(isEnable, CANCTRL_MODE_ENABLE_ENCODER);
+		canctrl_Send(&hcan1, i);
+	}
+}
+
 void setHomeComplete()
 {
 
@@ -1343,11 +1350,13 @@ void StartDefaultTask(void const * argument)
 		{
 			if(stateRun == 31){
 				stateChange++;
-				ReleaseAll=1;
+//				ReleaseAll=1;
+				CAN_SetEncoderState(0);
 				if(stateChange>1){
 					stateChange = 0;
 					stateRun ++;
 					canShoot();
+					CAN_SetEncoderState(1);
 				}
 			}
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);

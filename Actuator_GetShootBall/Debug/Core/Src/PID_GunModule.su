@@ -1,0 +1,3 @@
+../Core/Src/PID_GunModule.c:10:6:PID_Rotary_CalSpeed	16	static
+../Core/Src/PID_GunModule.c:14:6:PID_Rotary_CalPos	16	static
+../Core/Src/PID_GunModule.c:18:6:PID_Gun_CalSpeed	16	static
