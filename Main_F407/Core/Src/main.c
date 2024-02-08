@@ -76,7 +76,7 @@ osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
-CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
+CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
 
@@ -1472,7 +1472,7 @@ void Actuator(void const * argument)
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 7 ---------------------------------------------------//
 			if(stateRun == 7){
-				ResetIMU();
+//				ResetIMU();
 				valve_BothCatch();
 				Odo.poseTheta = 0;
 				Odo.poseY = 0;
@@ -1485,7 +1485,7 @@ void Actuator(void const * argument)
 	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
 	//--------------------------------------State 17 ---------------------------------------------------//
 			if(stateRun == 17){
-				ResetIMU();
+//				ResetIMU();
 				valve_BothCatch();
 				Odo.poseTheta = 0;
 				Odo.poseY = 0;
@@ -1721,6 +1721,7 @@ void OdometerHandle(void const * argument)
 				v = 0;
 				r = 0;
 				if(stateChange> 10){
+					ResetIMU();
 					stateChange = 0;
 					tfx = 1.5;
 					tfy = 1;
@@ -1782,7 +1783,7 @@ void OdometerHandle(void const * argument)
 				}
 				if(stateChange == 1){
 					if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
-						stateChange++;
+						stateChange = 3;
 						}
 				}
 				if(stateChange == 2)
@@ -1857,7 +1858,7 @@ void OdometerHandle(void const * argument)
 				v0y = Fkine.vOut;
 				Pfx = -0.03;
 				P0x = Odo.poseX;
-				Pfy = 0;
+				Pfy = 0.03;
 				P0y = Odo.poseY;
 				Pftheta = 0;
 				P0theta = -90*M_PI/180;
@@ -1904,6 +1905,7 @@ void OdometerHandle(void const * argument)
 				v = 0;
 				r = 0;
 				if(stateChange > 20){
+					ResetIMU();
 					stateChange = 0;
 					tfx = 0.5;
 					tfy = 1;
@@ -1967,7 +1969,7 @@ void OdometerHandle(void const * argument)
 					}
 					if(stateChange == 1){
 						if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
-							stateChange++;
+							stateChange = 3;
 							}
 					}
 					if(stateChange == 2)
@@ -2081,7 +2083,7 @@ void OdometerHandle(void const * argument)
 
 				Pfx = Odo.poseX;
 				P0x = Odo.poseX;
-				Pfy = -2.15;
+				Pfy = -2.17;
 				P0y = Odo.poseY;
 				v0x = Fkine.uOut;
 				v0y = Fkine.vOut;
@@ -2101,13 +2103,11 @@ void OdometerHandle(void const * argument)
 				u = -0.3;
 				StopUsePIDX = 1;
 				stateRun ++;
-	//			v = 0;
-	//			r = 0;
 			}
 			if(stateRun == 29){
 				u = -0.2;
 				stateChange ++;
-				if(stateChange > 18){
+				if(stateChange > 20){
 					vfx = 0;
 					vfy = 0;
 					vftheta = 0;
@@ -2130,8 +2130,6 @@ void OdometerHandle(void const * argument)
 					P0theta = yaw;
 					Odo.poseTheta = yaw;
 
-	//				StopUseXY = 1;
-	//				StopUsetheta = 1;
 					StopUsePIDX = 0;
 					StopUsePIDY = 1;
 					stateChange = 0;
