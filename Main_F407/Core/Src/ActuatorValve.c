@@ -52,6 +52,7 @@ void valve_BothCatch()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
+
 void valve_BothHold(){
 	HC595_SetBitOutput(1); // hạ cánh tay trái
 	HC595_SetBitOutput(3); // hạ cánh tay phải

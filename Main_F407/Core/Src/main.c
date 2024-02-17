@@ -33,6 +33,7 @@
 #include "Gamepad.h"
 #include "PIDPosition.h"
 #include "ActuatorValve.h"
+#include "Odometry.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,7 +103,7 @@ float u, v, r;
 
 float DeltaYR, DeltaYL, DeltaX;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
-CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
+
 
 
 uint32_t flagMain = 0;
@@ -132,6 +133,7 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 
 
 uint8_t encEnb,encDis;
+CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

@@ -22,5 +22,6 @@ void valve_BothCatch();
 void valve_BothRelease();
 void valve_Init();
 void valve_BothHold();
+void valve_NhanLixi();
 
 #endif /* INC_ACTUATORVALVE_H_ */
