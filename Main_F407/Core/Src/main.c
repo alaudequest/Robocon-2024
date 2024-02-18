@@ -1060,7 +1060,6 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-uint8_t BallSS,shoot;
 /* USER CODE END Header_Actuator */
 void Actuator(void const * argument)
 {
