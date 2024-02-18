@@ -67,7 +67,7 @@ char tx_ReadBuff[]  = "red\n";
 #define V_STATE0	0
 #define R_STATE0	0
 //-------X POS-------//
-#define PF_STATE0_X -0.25
+#define PF_STATE0_X -0.20
 #define P0_STATE0_X 0
 #define TF_STATE0_X 1
 #define V0_STATE0_X 0
@@ -133,7 +133,7 @@ char tx_ReadBuff[]  = "red\n";
 
 //-----------------------------------State 10 ---------------------------------------//
 //-------X POS-------//
-#define PF_STATE10_X -0.93
+#define PF_STATE10_X -0.95
 #define TF_STATE10_X 3
 #define VF_STATE10_X 0
 //-------Y POS-------//
@@ -325,10 +325,11 @@ void process_RunChassis()
 			PD_Disable_Y();
 			PD_Disable_Theta();
 			process_SetSignal(U_STATE0,V_STATE0,R_STATE0);
-			odo_ResetPose();
 			process.stateChange ++;
 
 			if(process.stateChange>5){
+				process_SetSignal(0,V_STATE0,R_STATE0);
+				odo_ResetPose();
 				trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE0_X, TF_STATE0_X, odo_GetUout(), VF_STATE0_X);
 				trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE0_Y, TF_STATE0_Y, odo_GetVout(), VF_STATE0_Y);
 				trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE0_THETA, TF_STATE0_THETA, odo_GetRout(), VF_STATE0_THETA);
@@ -394,8 +395,10 @@ void process_RunChassis()
 			PD_Enable_Theta();
 
 			process_ChangeState();
+			break;
 		case 11:
 			process_TrajecStateCondition_EndPath(X_STEADY,Y_STEADY,THETA_STEADY);
+			break;
 		default:
 			break;
 	}
@@ -410,6 +413,8 @@ void process_RunSSAndActuator(void (*ptnBreakProtectionCallBack)())
 			break;
 		case 7 :
 			process_GetRicePlant(ptnBreakProtectionCallBack);
+			break;
+		case 12 :
 			break;
 		default:
 			break;

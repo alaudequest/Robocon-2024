@@ -1141,15 +1141,6 @@ void StartDefaultTask(void const * argument)
 
 	for (;;) {
 
-		if(rst == 1){
-			ResetIMU();
-			rst = 0;
-		}
-
-		if(red == 1){
-			ReadIMU();
-			red = 0;
-		}
 		if(xaDay == 0)
 		{
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
