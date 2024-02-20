@@ -31,8 +31,10 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
-#include "PIDPosition.h"
 #include "ActuatorValve.h"
+#include "Odometry.h"
+#include "PositionControl.h"
+#include "ProcessControl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -76,7 +78,7 @@ osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
-CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_4;
+CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
 
@@ -101,8 +103,14 @@ uint32_t gamepadRxIsBusy = 0;
 float u, v, r;
 
 float DeltaYR, DeltaYL, DeltaX;
+
+uint8_t Run,Gamepad;
+
+float uControlX,uControlY,uControlTheta;
+
+uint8_t xaDay;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
-CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
+
 
 
 uint32_t flagMain = 0;
@@ -130,6 +138,9 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 	CLEARFLAG(SETHOME_FLAG_GROUP, e);
 }
 
+
+uint8_t encEnb,encDis;
+CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -771,22 +782,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+uint8_t shootFlag;
 void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	speedAngle.bldcSpeed = speed;
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
-}
-
-void canShoot(float speedgun1, float speedgun2){
-	SpeedGun speed;
-	speed.gun1Speed = speedgun1;
-	speed.gun2Speed = speedgun2;
-	canctrl_PutMessage(&speed, sizeof(SpeedGun));
-	canctrl_SetID(CANCTRL_MODE_SHOOT);
-	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
 }
 
 uint8_t enableTestMode;
@@ -812,6 +814,23 @@ void TestBreakProtection() {
 		osDelay(1);
 	}
 }
+void canShoot(){
+	shootFlag = 1;
+	canctrl_SetID(CANCTRL_MODE_SHOOT);
+	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
+	while (canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1) != HAL_OK);
+	shootFlag = 0;
+	osDelay(4000);
+//	TestBreakProtection();
+}
+
+void StopEnc(bool brake){
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
+			canfunc_SetBoolValue(brake,CANCTRL_MODE_MOTOR_BLDC_BRAKE);
+			while (canctrl_Send(&hcan1, i) != HAL_OK);
+			osDelay(1);
+	}
+}
 
 bool stopFlag;
 void softEmergencyStop() {
@@ -823,6 +842,14 @@ void softEmergencyStop() {
 		while (canctrl_Send(&hcan1, i) != HAL_OK);
 	}
 	stopFlag = 1;
+}
+uint8_t ReleaseAll;
+void Release(){
+	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
+		canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
+		while (canctrl_Send(&hcan1, i) != HAL_OK);
+		osDelay(1);
+	}
 }
 // used for README example
 /*
@@ -925,384 +952,6 @@ void RTR_SpeedAngle(){
 //	count = __HAL_TIM_GET_COUNTER(&htim10);
 //	HAL_TIM_Base_Stop(&htim10);
 }
-
-#define DeltaT 0.05
-#define PulsePerRev 200*2.56
-
-#define dy1	0
-#define dx1	0.37545
-#define dy2 0.23373/2
-#define dx2 -0.07171
-#define dy3 -0.23373/2
-#define dx3	-0.07171
-//#define a 0.045
-typedef struct SpeedReadSlave{
-	float V;
-	float Vx;
-	float Vy;
-
-	float VxC;
-	float VyC;
-
-	float Offset;
-
-	float Vfilt;
-	float VfiltPre;
-	float filterAlpha;
-
-	int preCount;
-}SpeedReadSlave;
-
-typedef struct ForwardKine{
-	float uOut;
-	float vOut;
-	float thetaOut;
-}ForwardKine;
-
-typedef struct SwerveOdoHandle{
-	float dX;
-	float dY;
-	float dTheta;
-
-	float poseX;
-	float poseY;
-	float poseTheta;
-
-	float S;
-	float C;
-
-	float OffsetGyro;
-	float Suy;
-}SwerveOdoHandle;
-
-
-void SpeedRead2(SpeedReadSlave *sp, float count)
-{
-	sp->V = 0.045*2*M_PI*((count-sp->preCount)/DeltaT)/(PulsePerRev*4);
-	sp->Vfilt = (1-sp->filterAlpha)*sp->VfiltPre+sp->filterAlpha*sp->V;
-	sp->VfiltPre = sp->Vfilt;
-
-	sp->preCount = count;
-}
-
-void omegaToZeta(ForwardKine *kine, float* VxA, float* VyA)
-{
-	kine->uOut 		= - 0.2357*VxA[0] + 0.2357*VyA[0] - 0.2357*VxA[1] - 0.2357*VyA[1] + 0.3333*VxA[2] + 0.0000*VyA[2] ;
-	kine->vOut 		= - 0.2467*VxA[0] - 0.3262*VyA[0] + 0.2467*VxA[1] - 0.3262*VyA[1] - 0.0000*VxA[2] + 0.1898*VyA[2] ;
-	kine->thetaOut 	=   0.1417*VxA[0] + 1.1707*VyA[0] - 0.1417*VxA[1] + 1.1707*VyA[1] + 0.0000*VxA[2] + 1.8560*VyA[2] ;
-}
-
-SwerveOdoHandle Odo;
-ForwardKine	Fkine;
-SpeedReadSlave Module[4];
-float Vx[4],Vy[4];
-float Gyro;
-
-#define UABOVE_X 	0.3
-#define UBELOW_X	-0.3
-
-#define UABOVE_Y 	0.3
-#define UBELOW_Y	-0.3
-
-#define UABOVE_THETA 	5
-#define UBELOW_THETA	-5
-
-#define ROBOT_RADIUS	0.25;
-
-typedef struct PDParam{
-	float e;
-	float pre;
-
-	float kP;
-	float kD;
-
-	float uP;
-	float uD;
-	float uDf;
-	float uDfpre;
-	float Alpha;
-
-	float u;
-	float uAbove;
-	float uBelow;
-}PDParam;
-
-void PD_Controller(PDParam *pd,float Target,float Current)
-{
-	pd->e = Target - Current;
-	pd->uP = pd->kP*pd->e;
-	pd->uD = pd->kD*(pd->e - pd->pre)/DeltaT;
-	pd->uDf = (1-pd->Alpha)*pd->uDfpre+(pd->Alpha)*pd->uD;
-	pd->uDfpre = pd->uDf;
-	pd->pre = pd->e;
-
-	pd->u = pd->uP + pd->uD;
-	if(pd->u > pd->uAbove)pd->u = pd->uAbove;
-	else if (pd->u < pd->uBelow)pd->u = pd->uBelow;
-}
-
-void PD_setParam(PDParam *pd,float kP,float kD,float Alpha)
-{
-	pd->kP = kP;
-	pd->kD = kD;
-	pd->Alpha = Alpha;
-}
-
-void PD_setLimit(PDParam *pd,float uAbove,float uBelow)
-{
-	pd->uAbove = uAbove;
-	pd->uBelow = uBelow;
-}
-
-PDParam pDX;
-PDParam pDY;
-PDParam pDTheta;
-
-float TargetX;
-float TargetY;
-float TargetTheta;
-
-
-uint8_t Break;
-float absFloat(float num){
-	if (num<0.0){
-		return num*-1.0;
-	}
-	else
-	return num;
-}
-float min(float a,float b){
-	float min;
-	min = a;
-	if(b<=min){
-		min = b;
-	}
-	return min;
-}
-
-float max(float a,float b){
-	float max;
-	max = a;
-	if(b>=max){
-		max = b;
-	}
-	return max;
-}
-int Isteady(float e,float thresthold)
-{
-	if (absFloat(e)<thresthold){
-		return 1;
-	}
-
-	return 0;
-}
-float PointDistances(float* pt1,float* pt2)
-{
-	float Distance = 0.0;
-	Distance = sqrtf(powf((pt2[0]-pt1[0]),2.0)+powf((pt2[1]-pt1[1]),2.0));
-	return Distance;
-}
-int equalCompare(float a,float b)
-{
-	if(absFloat(a - b)<0.0001){
-		return 1;
-	}
-	return 0;
-}
-float path[7][2] = {
-		{0,0},
-		{0.35,-0.35},
-		{1,-0.35},
-		{2.5,-0.35},
-		{3,-0.1},
-		{3,0},
-		{0,0},
-};
-
-int sgn(float num){
-	if(num >=0)return 1;
-	else return -1;
-}
-
-float solPtn1[2] = {0,0};
-float solPtn2[2] = {0,0};
-float currPtn[2] = {0,0};
-float goalPtn[2] = {0,0};
-float lastgoalPtn[2] = {0,0};
-
-int lFindex = 0,stIndex = 0;
-float lookAheadDis = 0.45;
-float X1,Y1,X2,Y2;
-float dx,dy,dr,D;
-float discriminant;
-float minX,minY,maxX,maxY;
-float pathlen;
-int len;
-void Purepursuilt(SwerveOdoHandle *od){
-	currPtn[0] = od->poseX;
-	currPtn[1] = od->poseY;
-//	pathlen = sizeof(path) / sizeof(path[0]);
-	stIndex = lFindex;
-	for (int i = stIndex;i<len-1;i++)
-	{
-		X1 = path[i][0] - currPtn[0];
-		Y1 = path[i][1]	- currPtn[1];
-
-		X2 = path[i+1][0] - currPtn[0];
-		Y2 = path[i+1][1] - currPtn[1];
-
-		dx = X2 - X1;
-		dy = Y2	- Y1;
-
-		dr = sqrtf(dx*dx + dy*dy);
-		D  = X1*Y2 - X2*Y1;
-
-		discriminant = (lookAheadDis*lookAheadDis)*(dr*dr)-D*D;
-
-		if(discriminant >= 0){
-			solPtn1[0] = (D*dy+(float)sgn(dy)*dx*sqrtf(discriminant))/powf(dr,2);
-			solPtn2[0] = (D*dy-(float)sgn(dy)*dx*sqrtf(discriminant))/powf(dr,2);
-			solPtn1[1] = (-D*dx+absFloat(dy)*sqrtf(discriminant))/powf(dr,2);
-			solPtn2[1] = (-D*dx-absFloat(dy)*sqrtf(discriminant))/powf(dr,2);
-
-			solPtn1[0] += currPtn[0];
-			solPtn1[1] += currPtn[1];
-
-			solPtn2[0] += currPtn[0];
-			solPtn2[1] += currPtn[1];
-
-			minX = min(path[i][0], path[i+1][0]);
-			minY = min(path[i][1], path[i+1][1]);
-			maxX = max(path[i][0], path[i+1][0]);
-			maxY = max(path[i][1], path[i+1][1]);
-
-			if(
-			(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
-			||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
-
-			||
-
-			(((minX <= solPtn2[0] && solPtn2[0]<= maxX)&&(minY <= solPtn2[1] && solPtn2[1]<= maxY))
-			||((equalCompare(solPtn2[0], minX)==1)||(equalCompare(solPtn2[0], maxX)==1)||(equalCompare(solPtn2[1], minY)==1)||(equalCompare(solPtn2[1], maxY)==1)))
-			)
-			{
-				if(
-				(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
-				||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
-
-				&&
-
-				(((minX <= solPtn2[0] && solPtn2[0]<= maxX)&&(minY <= solPtn2[1] && solPtn2[1]<= maxY))
-				||((equalCompare(solPtn2[0], minX)==1)||(equalCompare(solPtn2[0], maxX)==1)||(equalCompare(solPtn2[1], minY)==1)||(equalCompare(solPtn2[1], maxY)==1)))
-				){
-						if (PointDistances(solPtn1, path[i+1])<PointDistances(solPtn2, path[i+1])){
-							goalPtn[0] = solPtn1[0];
-							goalPtn[1] = solPtn1[1];
-						}else{
-							goalPtn[0] = solPtn2[0];
-							goalPtn[1] = solPtn2[1];
-						}
-					}
-				else{
-					if
-					(((minX <= solPtn1[0] && solPtn1[0]<= maxX)&&(minY <= solPtn1[1] && solPtn1[1]<= maxY))
-					||((equalCompare(solPtn1[0], minX)==1)||(equalCompare(solPtn1[0], maxX)==1)||(equalCompare(solPtn1[1], minY)==1)||(equalCompare(solPtn1[1], maxY)==1)))
-					{
-						goalPtn[0] = solPtn1[0];
-						goalPtn[1] = solPtn1[1];
-					}
-					else{
-						goalPtn[0] = solPtn2[0];
-						goalPtn[1] = solPtn2[1];
-					}
-				}
-
-				if (PointDistances(goalPtn, path[i+1])<PointDistances(currPtn, path[i+1])){
-					lFindex = i;
-					break;
-				}else if(lFindex == (len-2)){
-					goalPtn[0] = path[len-1][0];
-					goalPtn[1] = path[len-1][1];
-					lFindex += 1;
-					break;
-				}else{
-
-					lFindex += 1;
-				}
-			}
-		}else{
-			goalPtn[0] = path[lFindex][0];
-			goalPtn[1] = path[lFindex][1];
-		}
-	}
-}
-
-typedef struct Trajecparam{
-	float t;
-	float a0,a1,a2,a3;
-	float xTrajec,xdottraject;
-}Trajecparam;
-
-Trajecparam Xtrajec,Ytrajec,ThetaTrajec;
-float t;
-float a0,a1,a2,a3;
-float xTrajec,xdottraject;
-
-float P0x,Pfx,tfx,v0x,vfx;
-float P0y,Pfy,tfy,v0y,vfy;
-float P0theta,Pftheta,tftheta,v0theta,vftheta;
-void TrajecPlanning(Trajecparam *trajec,float P0,float Pf,float tf,float v0,float vf){
-	trajec->a0 = P0;
-	trajec->a1 = v0;
-	trajec->a2 = (3/(tf*tf))*(Pf - P0) - (2/tf)*v0 - (1/tf)*vf;
-	trajec->a3 = (-2/(tf*tf*tf))*(Pf - P0) + (1/(tf*tf))*(vf + v0);
-
-	if (trajec->t > tf) trajec->t = tf;
-
-	trajec->xTrajec = trajec->a0 + trajec->a1*trajec->t + trajec->a2*trajec->t*trajec->t + trajec->a3*trajec->t*trajec->t*trajec->t;
-	trajec->xdottraject = trajec->a1 + 2*trajec->a2*trajec->t + 3* trajec->a3*trajec->t*trajec->t;
-
-	if(Pf == P0){
-		trajec->xTrajec = Pf;
-		trajec->xdottraject = 0;
-	}
-
-}
-
-uint8_t Run,resetParam,breakProtect;
-float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.6,kdTheta,alphaCtrol = 0.2;
-int testSpeed,testPos;
-float uControlX,uControlY,uControlTheta;
-uint8_t stateRun ,steadycheck;
-
-uint8_t xaDay;
-
-uint8_t ssCheck,stateChange,rst,Gamepad;
-#define PFxState10 -0.935
-#define PFyState10 -0.75
-#define PFxState20 -0.93
-#define PFyState20 0.05
-
-char tx_buffer1[] = "rst\n";
-char tx_buffer2[] = "red\n";
-
-float yaw;
-uint8_t red,rst;
-
-uint8_t StopUseXY,StopUsetheta;
-uint8_t StopUsePIDX,StopUsePIDY,StopUsePIDr;
-void ReadIMU(){
-	YawHandle = 0;
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer2, strlen(tx_buffer2), 100);
-//	while(!YawHandle);
-	osDelay(6);
-	yaw = CurrAngle*M_PI/180;
-}
-void ResetIMU(){
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer1, strlen(tx_buffer1), 100);
-	osDelay(6);
-	yaw = CurrAngle*M_PI/180;
-}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1311,7 +960,6 @@ void ResetIMU(){
  * @param  argument: Not used
  * @retval None
  */
-
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1322,15 +970,6 @@ void StartDefaultTask(void const * argument)
 
 	for (;;) {
 
-		if(rst == 1){
-			ResetIMU();
-			rst = 0;
-		}
-
-		if(red == 1){
-			ReadIMU();
-			red = 0;
-		}
 		if(xaDay == 0)
 		{
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
@@ -1342,7 +981,7 @@ void StartDefaultTask(void const * argument)
 			 InvCpltCallback(MODULE_ID_2, 0, 0);
 		}
 
-		if(((GamePad.Square == 1)&&(GamePad.Circle == 1))||stateRun == 50)
+		if((GamePad.Square == 1)&&(GamePad.Circle == 1))
 		{
 			xaDay = 1;
 		}
@@ -1421,95 +1060,13 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-uint8_t BallSS,shoot;
 /* USER CODE END Header_Actuator */
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
 	/* Infinite loop */
 	for (;;) {
-		if(shoot == 1){
-			canShoot(1000, 1000);
-			shoot = 0;
-		}
-		BallSS = HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin);
-
-		if((stateRun == 4)||(stateRun == 15)){
-			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin)&&HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin)){
-				ssCheck ++;
-			}else {
-				ssCheck = 0;
-			}
-
-
-			if(ssCheck > 5){
-				stateRun ++ ;
-				ssCheck = 0;
-			}
-		}
-
-	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-	//--------------------------------------State 7 ---------------------------------------------------//
-			if(stateRun == 7){
-				ResetIMU();
-				valve_BothCatch();
-				Odo.poseTheta = 0;
-				Odo.poseY = 0;
-				Odo.poseX = 0;
-				stateChange = 0;
-				TestBreakProtection();
-				osDelay(50);
-				stateRun += 1;
-			}
-	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-	//--------------------------------------State 17 ---------------------------------------------------//
-			if(stateRun == 17){
-				ResetIMU();
-				valve_BothCatch();
-				Odo.poseTheta = 0;
-				Odo.poseY = 0;
-				Odo.poseX = 0;
-				stateChange = 0;
-				TestBreakProtection();
-				osDelay(50);
-				stateRun += 1;
-			}
-
-			if(stateRun == 28){
-				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
-					ssCheck++;
-				}else{
-					ssCheck = 0;
-				}
-					if(ssCheck>15){
-						stateRun++;
-						ssCheck = 0;
-				}
-			}
-	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-	//--------------------------------------State 12 ---------------------------------------------------//
-			if(stateRun == 12){
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				osDelay(20);
-//				valve_BothHold();
-//				osDelay(500);
-				StopUseXY = 0;
-				stateRun += 1;
-			}
-	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-	//--------------------------------------State 22 ---------------------------------------------------//
-			if(stateRun == 22){
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				osDelay(20);
-//				valve_BothHold();
-//				osDelay(500);
-				StopUseXY = 0;
-				stateRun += 1;
-			}
+		process_RunSSAndActuator(&TestBreakProtection);
 		osDelay(1);
 	}
   /* USER CODE END Actuator */
@@ -1521,821 +1078,52 @@ void Actuator(void const * argument)
  * @param argument: Not used
  * @retval None
  */
+float testX,testY,testTheta;
+void odo_SpeedAngleUpdate(){
+	for (int i = 0;i<3;i++){
+		odo_SetObj_SpAg(i,nodeSpeedAngle[i]);
+	}
+}
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
+	  /* USER CODE BEGIN OdometerHandle */
 
-	PD_setParam(&pDX, 0.8, 0, 0.8);
-	PD_setParam(&pDY, 0.8, 0, 0.8);
-	PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
+		valve_Init();
+		osDelay(1000);
+		process_Init();
+		/* Infinite loop */
+		for (;;) {
+			if(!shootFlag){
+				RTR_SpeedAngle();
+			}
+			odo_SpeedAngleUpdate();
 
-	PD_setLimit(&pDX, 1, -1);
-	PD_setLimit(&pDY, 1, -1);
-	PD_setLimit(&pDTheta, 1, -1);
+			process_ReadIMU();
+			process_SetYaw(CurrAngle);
 
-	len = sizeof(path) / sizeof(path[0]);
-	tfx = 2;
-	tfy = 3;
-	tftheta = 1;
+			process_Run(Run);
 
-	valve_Init();
-	osDelay(1000);
-	ReadIMU();
-	ResetIMU();
-	/* Infinite loop */
-	for (;;) {
-		RTR_SpeedAngle();
-		for (int i = 0;i<3;i++)
-		{
-			SpeedRead2(&Module[i], nodeSpeedAngle[i].bldcSpeed);
-			Module[i].Vx = Module[i].V * cos(nodeSpeedAngle[i].dcAngle*M_PI/180);
-			Module[i].Vy = Module[i].V * sin(nodeSpeedAngle[i].dcAngle*M_PI/180);
-			Vx[i] = Module[i].Vx;
-			Vy[i] = Module[i].Vy;
-		}
-
-		omegaToZeta(&Fkine, Vx, Vy);
-
-
-		ReadIMU();
-		Odo.poseTheta += Fkine.thetaOut*DeltaT;
-//		Odo.poseTheta = yaw;
-		Odo.poseX += (Fkine.uOut*cos(Odo.poseTheta)-Fkine.vOut*sin(Odo.poseTheta))*DeltaT;
-		Odo.poseY += (Fkine.uOut*sin(Odo.poseTheta)+Fkine.vOut*cos(Odo.poseTheta))*DeltaT;
-
-		if (breakProtect == 1)
-		{
-			TestBreakProtection();
-			breakProtect = 0;
-		}
-		if(resetParam == 1){
-			Odo.poseX = 0;
-			Odo.poseY = 0;
-			Odo.poseTheta = 0;
-			resetParam = 0;
-		}
-
-		Odo.dTheta = Odo.poseTheta*180/M_PI;
-
-
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//------------------------------------State constrain----------------------------------------------//
-if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
-	if((stateRun != 12)&&(stateRun != 22)&&(stateRun !=7)&&(stateRun !=17)&&(stateRun != 23)){
-		if(StopUseXY == 0)
-		{
-			if(!StopUsePIDX){
-				PD_Controller(&pDX, Xtrajec.xTrajec, Odo.poseX);
+			if(GamePad.Touch == 1){
+				Run = 1;
+			}
+			if(GamePad.Triangle == 1){
+				Gamepad = 1;
+			}
+			if(Gamepad == 0){
+				uControlX = 	process_GetUControl();
+				uControlY = 	process_GetVControl();
+				uControlTheta = process_GetRControl();
+			}else {
+				uControlX = GamePad.YLeftCtr;
+				uControlY = GamePad.XLeftCtr;
+				uControlTheta = GamePad.XRightCtr;
 			}
 
-			if(!StopUsePIDY){
-				PD_Controller(&pDY, Ytrajec.xTrajec, Odo.poseY);
-			}
-		}else{
-			pDX.u = 0;
-			pDY.u = 0;
-		}
-
-		if(StopUsetheta == 0){
-			if(!StopUsePIDr){
-				PD_Controller(&pDTheta, ThetaTrajec.xTrajec, yaw);
-			}
-		}else{
-			pDTheta.u = 0;
-		}
-	}
-}
-
-
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 1 ---------------------------------------------------//
-		if((stateRun == 1))
-		{
-
-			if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
-				stateRun += 1;
-			}
+			osDelay(DELTA_T*1000 - IMU_Wait);
 
 		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 2 ---------------------------------------------------//
-		if(stateRun == 2)
-		{
-			tfx = 1.5;
-			tfy = 1.5;
-			tftheta = 2;
-
-			Xtrajec.t = 0;
-			Ytrajec.t = 0;
-			ThetaTrajec.t = 0;
-
-			v0x = Fkine.uOut;
-			v0y = Fkine.vOut;
-			v0theta = Fkine.thetaOut;
-
-			Pfx = -0.24;
-			P0x = Odo.poseX;
-			Pfy = -0.94;
-			P0y = Odo.poseY;
-			Pftheta = 0*M_PI/180;
-			P0theta = 0;
-
-			vfx = 0.01;
-			vfy = -0.12;
-			vftheta = 0;
-
-			stateRun += 1;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 3 ---------------------------------------------------//
-		if (stateRun == 3){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-				v0x = 0;
-				v0y = 0;
-				v0theta = 0;
-
-				vfx = 0;
-				vfy = 0;
-				vftheta = 0;
-
-				stateRun += 1;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 4 ---------------------------------------------------//
-		if (stateRun == 4){
-			u = 0.05;
-			v = -0.12;
-			r = 0;
-			Odo.poseTheta = 0;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 5 ---------------------------------------------------//
-		if (stateRun == 5){
-			u = 0.05;
-			v = -0.08;
-			r = 0.05;
-			Odo.poseTheta = 0;
-			stateChange++;
-			if(stateChange>3)
-			{
-				u = 0.05;
-				v = 0;
-				r = 0;
-				stateChange = 0;
-				stateRun++;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 6 ---------------------------------------------------//
-		if(stateRun == 6){
-			u = 0;
-			v = 0;
-			r = 0;
-			stateRun += 1 ;
-		}
-
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 8 ---------------------------------------------------//
-		if(stateRun == 8){
-			stateChange++;
-			u = 0.05;
-			v = 0;
-			r = 0;
-			if(stateChange> 10){
-				stateChange = 0;
-				tfx = 1.5;
-				tfy = 1;
-				tftheta = 1;
-
-				Xtrajec.t = 0;
-				Ytrajec.t = 0;
-				ThetaTrajec.t = 0;
-
-				Pfx = -0.7;
-				P0x = 0;
-				Pfy = 0;
-				P0y = 0;
-				Pftheta = 0;
-				P0theta = 0;
-
-				Odo.poseTheta = 0;
-				Odo.poseY = 0;
-				Odo.poseX = 0;
-
-				stateRun += 1;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 9 ---------------------------------------------------//
-		if (stateRun == 9){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-
-			stateRun += 1;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 10 ---------------------------------------------------//
-		if(stateRun == 10){
-			tfx = 3;
-			tfy = 3;
-			tftheta = 3;
-			Xtrajec.t = 0;
-			Ytrajec.t = 0;
-			ThetaTrajec.t = 0;
-			v0x = Fkine.uOut;
-			v0y = Fkine.vOut;
-			Pfx = PFxState10;
-			P0x = Odo.poseX;
-			Pfy = PFyState10;
-			P0y = Odo.poseY;
-			Pftheta = -88*M_PI/180;
-			P0theta = 0;
-			stateRun += 1;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 11 ---------------------------------------------------//
-		if (stateRun == 11){
-			if(stateChange == 0){
-				if ((absFloat(Odo.poseX-Pfx)<0.2)&&(absFloat(Odo.poseY-Pfy)<0.2)){
-					valve_BothHold();
-					stateChange++;
-					}
-			}
-			if(stateChange == 1){
-				if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
-					stateChange++;
-					}
-			}
-			if(stateChange == 2)
-			{
-				if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-					steadycheck ++ ;
-					StopUsetheta = 1;
-					StopUseXY = 1;
-				}
-				else{
-					steadycheck = 0;
-					StopUseXY = 0;
-				}
-
-				if(steadycheck>10){
-					stateChange ++;
-					steadycheck = 0;
-					StopUsetheta = 0;
-				}
-			}
-			if(stateChange == 3)
-			{
-				StopUseXY = 1;
-				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
-					steadycheck ++ ;
-				}else{
-					StopUsetheta = 0;
-					steadycheck = 0;
-				}
-
-			}
-
-			if(steadycheck > 20)
-			{
-				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
-				valve_BothRelease();
-				Odo.poseTheta = yaw;
-				stateChange = 0;
-				u = 0;
-				v = 0;
-				r = 0;
-				v0x = 0;
-				v0y = 0;
-				stateRun += 1;
-				steadycheck = 0;
-				StopUseXY = 0;
-				StopUsetheta = 0;
-			}
-		}
-
-
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 13 ---------------------------------------------------//
-		if(stateRun == 13){
-			vfx = 0;
-			vfy = 0;
-			vftheta = 0;
-
-			tfx = 3;
-			tfy = 3;
-			tftheta = 3;
-			Xtrajec.t = 0;
-			Ytrajec.t = 0;
-			ThetaTrajec.t = 0;
-			v0x = Fkine.uOut;
-			v0y = Fkine.vOut;
-			Pfx = -0.03;
-			P0x = Odo.poseX;
-			Pfy = 0;
-			P0y = Odo.poseY;
-			Pftheta = 0;
-			P0theta = -90*M_PI/180;
-//			valve_BothRelease();
-			stateRun += 1;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 14 ---------------------------------------------------//
-		if (stateRun == 14){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-				stateRun ++;
-				Odo.poseY = 0;
-				Odo.poseX = 0;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 15 ---------------------------------------------------//
-		if (stateRun == 15){
-			u = 0.05;
-			v = -0.12;
-			r = 0;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 16 ---------------------------------------------------//
-		if (stateRun == 16){
-			u = 0.05;
-			v = -0.08;
-			r = 0.05;
-			stateChange++;
-			if(stateChange>3)
-			{
-				u = 0;
-				v = 0;
-				r = 0;
-				stateChange = 0;
-				stateRun++;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 18 ---------------------------------------------------//
-		if(stateRun == 18){
-			stateChange++;
-			u = 0.08;
-			v = 0;
-			r = 0;
-			if(stateChange > 20){
-				stateChange = 0;
-				tfx = 0.5;
-				tfy = 1;
-				tftheta = 1;
-
-				Xtrajec.t = 0;
-				Ytrajec.t = 0;
-				ThetaTrajec.t = 0;
-
-				Pfx = -0.1;
-				P0x = 0;
-				Pfy = 0;
-				P0y = 0;
-				Pftheta = 0;
-				P0theta = 0;
-
-				Odo.poseY = 0;
-				Odo.poseX = 0;
-
-				stateRun += 1;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 19 ---------------------------------------------------//
-		if (stateRun == 19){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-			stateRun += 1;
-			}
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 20 ---------------------------------------------------//
-		if(stateRun == 20){
-			vfx = 0;
-			vfy = 0;
-			vftheta = 0;
-
-			tfx = 3;
-			tfy = 3;
-			tftheta = 3;
-			Xtrajec.t = 0;
-			Ytrajec.t = 0;
-			ThetaTrajec.t = 0;
-			v0x = Fkine.uOut;
-			v0y = Fkine.vOut;
-			Pfx = PFxState20;
-			P0x = Odo.poseX;
-			Pfy = PFyState20;
-			P0y = Odo.poseY;
-			Pftheta = -88*M_PI/180;
-			P0theta = 0;
-			stateRun += 1;
-		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 21 ---------------------------------------------------//
-		if (stateRun == 21){
-				if(stateChange == 0){
-					if ((absFloat(Odo.poseX-Pfx)<0.2)&&(absFloat(Odo.poseY-Pfy)<0.2)){
-						valve_BothHold();
-						stateChange++;
-						}
-				}
-				if(stateChange == 1){
-					if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
-						stateChange++;
-						}
-				}
-				if(stateChange == 2)
-				{
-					if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-						steadycheck ++ ;
-						StopUsetheta = 1;
-						StopUseXY = 1;
-					}
-					else{
-						steadycheck = 0;
-						StopUseXY = 0;
-					}
-
-					if(steadycheck>10){
-						stateChange ++;
-						steadycheck = 0;
-						StopUsetheta = 0;
-					}
-				}
-				if(stateChange == 3)
-				{
-					StopUseXY = 1;
-					PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-					if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
-						steadycheck ++ ;
-					}else{
-						StopUsetheta = 0;
-						steadycheck = 0;
-					}
-
-				}
-
-				if(steadycheck > 20)
-				{
-					PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
-					valve_BothRelease();
-					Odo.poseTheta = yaw;
-					stateChange = 0;
-					u = 0;
-					v = 0;
-					r = 0;
-					v0x = 0;
-					v0y = 0;
-					stateRun += 1;
-					steadycheck = 0;
-					StopUseXY = 0;
-					StopUsetheta = 0;
-				}
-			}
-
-////MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-////--------------------------------------State 23 ---------------------------------------------------//
-		if (stateRun == 23){
-
-			if(stateChange == 0){
-			valve_BothRelease();
-//			TestBreakProtection();
-			}
-			stateChange++;
-			if(stateChange >1){
-				stateChange = 0;
-				Odo.poseTheta = yaw;
-				vfx = 0;
-				vfy = 0;
-				vftheta = 0;
-
-				tfx = 2;
-				tfy = 2;
-				tftheta = 2;
-				Xtrajec.t = 0;
-				Ytrajec.t = 0;
-				ThetaTrajec.t = 0;
-
-				Pfx = -0.23;
-				P0x = Odo.poseX;
-				Pfy = 0.1;
-				P0y = Odo.poseY;
-				v0x = Fkine.uOut;
-				v0y = Fkine.vOut;
-				Pftheta = Odo.poseTheta;
-				P0theta = Odo.poseTheta;
-				stateRun += 1;
-			}
-
-		}
-
-		if (stateRun == 24){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-			stateRun += 1;
-			}
-		}
-		if (stateRun == 25){
-			vfx = 0;
-			vfy = 0;
-			vftheta = 0;
-
-			tfx = 4;
-			tfy = 4;
-			tftheta = 4;
-
-			Xtrajec.t = 0;
-			Ytrajec.t = 0;
-			ThetaTrajec.t = 0;
-
-			Pfx = Odo.poseX;
-			P0x = Odo.poseX;
-			Pfy = -2.15;
-			P0y = Odo.poseY;
-			v0x = Fkine.uOut;
-			v0y = Fkine.vOut;
-			Pftheta = 0;
-			P0theta = yaw;
-			Odo.poseTheta = yaw;
-			stateRun += 1;
-		}
-		if (stateRun == 26){
-			if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-			stateRun += 1;
-			Odo.poseTheta = yaw;
-			}
-		}
-
-		if(stateRun == 27){
-			u = -0.3;
-			StopUsePIDX = 1;
-			stateRun ++;
-//			v = 0;
-//			r = 0;
-		}
-		if(stateRun == 29){
-			u = -0.2;
-			stateChange ++;
-			if(stateChange > 20){
-				vfx = 0;
-				vfy = 0;
-				vftheta = 0;
-
-				tfx = 4;
-				tfy = 1;
-				tftheta = 1;
-
-				Xtrajec.t = 0;
-				Ytrajec.t = 0;
-				ThetaTrajec.t = 0;
-
-				Pfx = Odo.poseX;
-				P0x = Odo.poseX;
-				Pfy = Odo.poseY;
-				P0y = Odo.poseY;
-				v0x = Fkine.uOut;
-				v0y = Fkine.vOut;
-				Pftheta = 0;
-				P0theta = yaw;
-				Odo.poseTheta = yaw;
-
-//				StopUseXY = 1;
-//				StopUsetheta = 1;
-				StopUsePIDX = 0;
-				StopUsePIDY = 1;
-				stateChange = 0;
-				stateRun ++;
-			}
-		}
-		if(stateRun == 30){
-			v = -0.2;
-			stateChange++;
-			if(stateChange>20){
-				StopUseXY = 1;
-				StopUsetheta = 1;
-				stateChange = 0;
-				shoot = 1;
-				stateRun++;
-			}
-//			if(stateChange == 0)
-//			{
-//				if ((absFloat(Odo.poseX-Pfx)<0.02)&&(absFloat(Odo.poseY-Pfy)<0.02)){
-//					shoot = 1;
-//					stateChange ++;
-//					StopUseXY = 1;
-//				}
-//			}
-//			if(stateChange == 1)
-//			{
-//				StopUseXY = 1;
-//				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-//				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
-//					steadycheck ++ ;
-//				}else{
-//					StopUsetheta = 0;
-//					steadycheck = 0;
-//				}
-//
-//			}
-//
-//			if(steadycheck > 10)
-//			{
-//				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
-////				valve_BothRelease();
-//				Odo.poseTheta = yaw;
-//				stateChange = 0;
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				v0x = 0;
-//				v0y = 0;
-////				stateRun += 1;
-//				steadycheck = 0;
-////				StopUseXY = 0;
-////				StopUsetheta = 0;
-//			}
-		}
-//		if (stateRun == 27){
-//			vfx = 0;
-//			vfy = 0;
-//			vftheta = 0;
-//
-//			tfx = 2;
-//			tfy = 2;
-//			tftheta = 2;
-//			Xtrajec.t = 0;
-//			Ytrajec.t = 0;
-//			ThetaTrajec.t = 0;
-//
-//			Pfx = -0.7;
-//			P0x = Odo.poseX;
-//			Pfy = Odo.poseY;
-//			P0y = Odo.poseY;
-//			v0x = Fkine.uOut;
-//			v0y = Fkine.vOut;
-//			Pftheta = yaw;
-//			P0theta = yaw;
-//			Odo.poseTheta = yaw;
-//			stateRun += 1;
-//		}
-//////MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//////--------------------------------------State 24 ---------------------------------------------------//
-//		if (stateRun == 28){
-//			if(stateChange == 0){
-//				if ((absFloat(Odo.poseX-Pfx)<0.01)&&(absFloat(Odo.poseY-Pfy)<0.01)){
-//					stateChange++;
-//					}
-//			}
-//			if(stateChange == 1)
-//			{
-//				if ((absFloat(Odo.poseX-Pfx)<0.03)&&(absFloat(Odo.poseY-Pfy)<0.03)){
-//					steadycheck ++ ;
-//					StopUsetheta = 1;
-//					StopUseXY = 1;
-//				}
-//				else{
-//					steadycheck = 0;
-//					StopUseXY = 0;
-//				}
-//
-//				if(steadycheck>10){
-//					stateChange ++;
-//					StopUsetheta = 0;
-//					steadycheck = 0;
-//				}
-//			}
-//			if(stateChange == 2)
-//			{
-//				PD_setParam(&pDTheta, 2, 0, alphaCtrol);
-//				if ((absFloat(yaw-Pftheta)<=1*M_PI/180)){
-//					StopUseXY = 1;
-//					steadycheck ++ ;
-//				}else{
-//					StopUsetheta = 0;
-//					steadycheck = 0;
-//				}
-//
-//			}
-//
-//			if(steadycheck > 15)
-//			{
-//				PD_setParam(&pDTheta, 1.2, 0, alphaCtrol);
-//				Odo.poseTheta = yaw;
-//				stateChange = 0;
-//				u = 0;
-//				v = 0;
-//				r = 0;
-//				v0x = 0;
-//				v0y = 0;
-////				stateRun += 1;
-//				steadycheck = 0;
-////				StopUseXY = 0;
-////				StopUsetheta = 0;
-//			}
-
-//		}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------Main--- ---------------------------------------------------//
-		if(GamePad.Touch== 1){
-			Run = 1;
-		}
-		if(Run == 1)
-		{
-			Xtrajec.t += DeltaT;
-			Ytrajec.t += DeltaT;
-			ThetaTrajec.t += DeltaT;
-			TrajecPlanning(&Xtrajec,P0x, Pfx, tfx, v0x, vfx);
-			TrajecPlanning(&Ytrajec,P0y, Pfy, tfy, v0y, vfy);
-			TrajecPlanning(&ThetaTrajec,P0theta, Pftheta, tftheta, v0theta, vftheta);
-
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//------------------------------------State constrain----------------------------------------------//
-if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
-	if((stateRun != 12)&&(stateRun != 22)&&(stateRun !=7)&&(stateRun !=17)&&(stateRun != 23))
-	{
-		if(StopUseXY == 0)
-		{
-			if(!StopUsePIDX){
-				u = pDX.u + Xtrajec.xdottraject;
-			}
-			if(!StopUsePIDY){
-				v = pDY.u + Ytrajec.xdottraject;
-			}
-
-		}else{
-			u = 0;
-			v = 0;
-		}
-
-		if(StopUsetheta == 0)
-		{
-			if(!StopUsePIDr){
-				r = pDTheta.u + ThetaTrajec.xdottraject;
-			}
-		}else{
-			r = 0;
-		}
-	}
-}
-//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//--------------------------------------State 0 ---------------------------------------------------//
-			if(stateRun == 0){
-				stateChange++;
-				u = 0.05;
-				v = 0;
-				r = 0;
-				Odo.poseX = 0;
-				Odo.poseY = 0;
-				Odo.poseTheta = 0;
-				if(stateChange>5){
-
-					stateChange = 0;
-					breakProtect = 1;
-					resetParam = 1;
-
-					tfx = 0.5;
-					tfy = 0.5;
-					tftheta = 1;
-
-					Xtrajec.t = 0;
-					Ytrajec.t = 0;
-					ThetaTrajec.t = 0;
-
-					Pfx = -0.28;
-					P0x = Odo.poseX;
-					Pfy = -0.25;
-					P0y = Odo.poseY;
-					Pftheta = 0;
-					P0theta = 0;
-
-					vfx = 0;
-					vfy = 0;
-					vftheta = 0;
-
-					stateRun += 1;
-				}
-			}
-		}
-
-		if(GamePad.Triangle == 1){
-			Gamepad = 1;
-		}
-		if(Gamepad == 0){
-			uControlX = u*cos(-Odo.poseTheta) - v*sin(-Odo.poseTheta);
-			uControlY = u*sin(-Odo.poseTheta) + v*cos(-Odo.poseTheta);
-			uControlTheta = r;
-		}else {
-			uControlX = GamePad.YLeftCtr;
-			uControlY = GamePad.XLeftCtr;
-			uControlTheta = GamePad.XRightCtr;
-		}
-//		Purepursuilt(&Odo);
-		osDelay(DeltaT*1000 - 6);
-
-	}
   /* USER CODE END OdometerHandle */
 }
 
