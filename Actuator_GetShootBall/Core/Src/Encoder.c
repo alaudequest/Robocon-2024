@@ -28,13 +28,13 @@ float encoder_GetSpeed(Encoder_t *enc)
 	return enc->vel_Real;
 }
 
-float encoder_GetAngle(Encoder_t *enc)
-{
-	enc->count_X4 += (int16_t)__HAL_TIM_GET_COUNTER(enc->htim);
-	__HAL_TIM_SET_COUNTER(enc->htim,0);
-	enc->Degree = (float)((float)enc->count_X4*(float)360/((float)enc->count_PerRevol*(float)4));
-	return enc->Degree;
-}
+//float encoder_GetAngle(Encoder_t *enc)
+//{
+//	enc->count_X4 += (int16_t)__HAL_TIM_GET_COUNTER(enc->htim);
+//	__HAL_TIM_SET_COUNTER(enc->htim,0);
+//	enc->Degree = (float)((float)enc->count_X4*(float)360/((float)enc->count_PerRevol*(float)4));
+//	return enc->Degree;
+//}
 
 void encoder_ResetCount(Encoder_t *enc)
 {

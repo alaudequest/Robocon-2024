@@ -51,13 +51,12 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
-osThreadId defaultTaskHandle;
-osThreadId PIDTaskHandle;
+osThreadId ShootTaskHandle;
 osThreadId CANTaskHandle;
+osTimerId PIDTimerHandle;
 /* USER CODE BEGIN PV */
-bool IsSetHome = false;
-bool IsFirePhoenix = false;
-QueueHandle_t qPID, qHome, qShoot;
+extern BoardParameter_t brdParam;
+QueueHandle_t qPID, qShoot;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -67,9 +66,9 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM1_Init(void);
-void StartDefaultTask(void const * argument);
-void StartPIDTask(void const * argument);
+void StartShootTask(void const * argument);
 void StartCANTask(void const * argument);
+void PIDTimerCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 ////////////////////////////////////////////////////////
@@ -115,7 +114,6 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
-extern BoardParameter_t brdParam;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == ECD3A_Pin){
 		if(HAL_GPIO_ReadPin(ECD3B_GPIO_Port, ECD3B_Pin)){
@@ -142,10 +140,10 @@ void CAN_Init() {
 			| CAN_IT_RX_FIFO0_FULL);
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
+			deviceID | CANCTRL_MODE_START,
 			deviceID | CANCTRL_MODE_SHOOT,
-			deviceID | CANCTRL_MODE_SET_HOME_GUN,
-			deviceID | CANCTRL_MODE_MOTOR_GUN_ANGLE,
 			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_END,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_Mask16(&hcan,
 			1 << CAN_RTR_REMOTE,
@@ -157,59 +155,23 @@ void CAN_Init() {
 
 }
 
-void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
-	PID_Param pid = brd_GetPID(type);
-	canfunc_Convert_CAN_PID_to_PID_Param(canPID, &pid);
-	brd_SetPID(pid, type);
-}
 uint8_t TestMode = 0;
 void handleFunctionCAN(CAN_MODE_ID mode) {
-	CAN_SpeedGun_Angle speedAngle;
+	CAN_SpeedGun speed;
 	switch (mode) {
 		case CANCTRL_MODE_SHOOT:
-			speedAngle= canfunc_GunGetSpeedAndAngle();
-			brd_SetSpeedGun(speedAngle.gunSpeed.gun1Speed, MOTOR_GUN1);
-			brd_SetSpeedGun(speedAngle.gunSpeed.gun2Speed, MOTOR_GUN2);
+			speed= canfunc_GunGetSpeed();
+			brd_SetSpeedGun(speed.gun1Speed, MOTOR_GUN1);
+			brd_SetSpeedGun(speed.gun2Speed, MOTOR_GUN2);
 			bool shootValue = 1;
 			xQueueSend(qShoot, (void*)&shootValue, 1/portTICK_PERIOD_MS);
 			break;
 		case CANCTRL_MODE_TEST:
 			TestMode = canfunc_GetBoolValue();
 			break;
-		case CANCTRL_MODE_MOTOR_GUN_ANGLE:
-			speedAngle= canfunc_GunGetSpeedAndAngle();
-			brd_SetTargetRotaryAngle(speedAngle.gunAngle);
-			break;
-		break;
 		default:
 		break;
 	}
-}
-
-void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
-	switch (modeID) {
-		case CANCTRL_MODE_SHOOT:
-			bool shootValue = 1;
-			xQueueSend(qShoot, (void*)&shootValue, 1/portTICK_PERIOD_MS);
-		break;
-		case CANCTRL_MODE_SET_HOME:
-			bool setHomeValue = 1;
-			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
-		break;
-		case CANCTRL_MODE_MOTOR_GUN_ANGLE:
-
-		break;
-		default:
-		break;
-	}
-}
-
-void SetHomeCompleteCallback() {
-	Encoder_t enc = brd_GetObjEncRotary();
-	encoder_ResetCount(&enc);
-	brd_SetObjEncRotary(enc);
-	canfunc_SetBoolValue(1, CANCTRL_MODE_SET_HOME_GUN);
-	canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
@@ -219,6 +181,18 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
 	__NOP();
 //	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+void Flash_Assign() {
+	  HAL_FLASH_Unlock();
+	  FLASH_EraseInitTypeDef er;
+	  er.TypeErase = FLASH_TYPEERASE_PAGES;
+	  er.PageAddress = FLASH_ADDR_TARGET;
+	  er.NbPages = 1;
+	  uint32_t pe = 0;
+	  HAL_FLASHEx_Erase(&er, &pe);
+	  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, CANCTRL_DEVICE_ACTUATOR_1);
+	  HAL_FLASH_Lock();
 }
 /* USER CODE END 0 */
 
@@ -255,24 +229,9 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  qHome  = xQueueCreate(1, sizeof(bool));
   qShoot = xQueueCreate(1, sizeof(bool));
   qPID   = xQueueCreate(2, sizeof(float));
   brd_Init();
-
-
-
-//  HAL_FLASH_Unlock();
-//  FLASH_EraseInitTypeDef er;
-//  er.TypeErase = FLASH_TYPEERASE_PAGES;
-//  er.PageAddress = FLASH_ADDR_TARGET;
-//  er.NbPages = 1;
-//  uint32_t pe = 0;
-//  HAL_FLASHEx_Erase(&er, &pe);
-//  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, CANCTRL_DEVICE_ACTUATOR_1);
-//  HAL_FLASH_Lock();
-
-
 
   /* USER CODE END 2 */
 
@@ -284,6 +243,11 @@ int main(void)
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* definition and creation of PIDTimer */
+  osTimerDef(PIDTimer, PIDTimerCallback);
+  PIDTimerHandle = osTimerCreate(osTimer(PIDTimer), osTimerPeriodic, NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -293,13 +257,9 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-
-  /* definition and creation of PIDTask */
-  osThreadDef(PIDTask, StartPIDTask, osPriorityNormal, 0, 128);
-  PIDTaskHandle = osThreadCreate(osThread(PIDTask), NULL);
+  /* definition and creation of ShootTask */
+  osThreadDef(ShootTask, StartShootTask, osPriorityNormal, 0, 128);
+  ShootTaskHandle = osThreadCreate(osThread(ShootTask), NULL);
 
   /* definition and creation of CANTask */
   osThreadDef(CANTask, StartCANTask, osPriorityAboveNormal, 0, 128);
@@ -654,91 +614,33 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void SethomeHandle() {
-	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
-		brd_SetTargetRotaryAngle(0);
-		brd_SetSpeedGun(0, MOTOR_GUN1);
-		brd_SetSpeedGun(0, MOTOR_GUN2);
-	}
-}
-void ShootHandle(){
-	if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
-//		PID_Rotary_CalPos(brd_GetTargetRotaryAngle());
 
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-		PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
-		PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
-		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
-		PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
-
-		vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-		PID_Motor_Stop_All();
-	}
-}
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_StartShootTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the ShootTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
+/* USER CODE END Header_StartShootTask */
+void StartShootTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-//	SET_HOME_DEFAULT_TASK:
-//	sethome_Begin();
-//	while (!sethome_IsComplete()) {
-//		sethome_Procedure();
-//		float speed = sethome_GetSpeed();
-//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-//		osDelay(1);
-//	}
-//	brd_SetHomeCompleteCallback();
-//	IsSetHome = 0;
+	bool IsFirePhoenix = false;
   /* Infinite loop */
   for(;;)
   {
-//	  SethomeHandle();
-//	  if(IsSetHome){
-//		  osDelay(1);
-//		  goto SET_HOME_DEFAULT_TASK;
-//	  }
-    osDelay(1);
+	  if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
+		osTimerStart(PIDTimerHandle, 1);
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
+		osTimerStop(PIDTimerHandle);
+		PID_Motor_Stop_All();
+	  }
+
+	  osDelay(1);
   }
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_StartPIDTask */
-/**
-* @brief Function implementing the PIDTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartPIDTask */
-void StartPIDTask(void const * argument)
-{
-  /* USER CODE BEGIN StartPIDTask */
-//  SET_HOME_PID_TASK:
-//  float TargetValue = 0;
-//  while (!sethome_IsComplete()) {
-//	  xQueueReceive(qPID, &TargetValue, 0);
-//	  PID_Rotary_CalSpeed((float) TargetValue);
-//	  osDelay(5);
-//  }
-  /* Infinite loop */
-  for(;;)
-  {
-//	  if(IsSetHome) {
-//		  goto SET_HOME_PID_TASK;
-//	  }
-	  ShootHandle();
-	  osDelay(5);
-  }
-  /* USER CODE END StartPIDTask */
 }
 
 /* USER CODE BEGIN Header_StartCANTask */
@@ -759,8 +661,6 @@ void StartCANTask(void const * argument)
 	  if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 	  			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 	  			if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
-	  				if (rxHeader.RTR == CAN_RTR_REMOTE)
-	  					handle_CAN_RTR_Response(&hcan, modeID);
 	  				if (rxHeader.RTR == CAN_RTR_DATA)
 	  					handleFunctionCAN((CAN_MODE_ID) modeID);
 	  			}
@@ -769,6 +669,17 @@ void StartCANTask(void const * argument)
 //	  osDelay(1);
   }
   /* USER CODE END StartCANTask */
+}
+
+/* PIDTimerCallback function */
+void PIDTimerCallback(void const * argument)
+{
+  /* USER CODE BEGIN PIDTimerCallback */
+	PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
+	PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
+	PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
+	PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
+  /* USER CODE END PIDTimerCallback */
 }
 
 /**

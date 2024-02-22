@@ -17,6 +17,11 @@ typedef struct CAN_SpeedBLDC_AngleDC{
 	float dcAngle;
 }CAN_SpeedBLDC_AngleDC;
 
+typedef struct CAN_SpeedGun{
+	float gun1Speed;
+	float gun2Speed;
+}CAN_SpeedGun;
+
 typedef struct CAN_PID{
 	float kp;
 	float ki;
@@ -43,5 +48,7 @@ HAL_StatusTypeDef canfunc_PutAndSendParamPID(CAN_HandleTypeDef *can, CAN_DEVICE_
 void canfunc_RTR_SpeedAngle(CAN_HandleTypeDef *can, CAN_SpeedBLDC_AngleDC speedAngle);
 void canfunc_RTR_PID(CAN_HandleTypeDef *can, PID_Param pid, PID_type type);
 
+void canfunc_GunPutSpeed(float gun1speed, float gun2speed);
+CAN_SpeedGun canfunc_GunGetSpeed();
 
 #endif /* INC_CAN_FUNCHANDLE_H_ */

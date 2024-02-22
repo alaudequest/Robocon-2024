@@ -79,6 +79,19 @@ CAN_SpeedBLDC_AngleDC canfunc_MotorGetSpeedAndAngle()
 	return speedAngle;
 }
 
+void canfunc_GunPutSpeed(float gun1speed, float gun2speed){
+	CAN_SpeedGun speed;
+	speed.gun1Speed = gun1speed;
+	speed.gun2Speed = gun2speed;
+	canctrl_PutMessage((void*)&speed, sizeof(CAN_SpeedGun));
+}
+
+CAN_SpeedGun canfunc_GunGetSpeed(){
+	CAN_SpeedGun speed;
+	if(canctrl_GetMessage(&speed, sizeof(CAN_SpeedGun)) != HAL_OK) while(1);
+	return speed;
+}
+
 
 /**
  *
