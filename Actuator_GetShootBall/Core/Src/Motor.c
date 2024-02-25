@@ -11,7 +11,8 @@ void Motor_Init(Motor *motor, Control_Mode mode,
 				GPIO_TypeDef *port, uint16_t pin,
 				TIM_HandleTypeDef *tim, uint32_t channel1, uint32_t channel2)
 {
-	if(motor -> mode == MOTOR_LL)
+	motor -> mode = mode;
+	if(mode == MOTOR_LL)
 	{
 		motor -> port = port;
 		motor -> pin = pin;
