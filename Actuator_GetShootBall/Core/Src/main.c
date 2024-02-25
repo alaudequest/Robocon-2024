@@ -53,7 +53,6 @@ TIM_HandleTypeDef htim3;
 
 osThreadId ShootTaskHandle;
 osThreadId CANTaskHandle;
-osTimerId PIDTimerHandle;
 /* USER CODE BEGIN PV */
 extern BoardParameter_t brdParam;
 QueueHandle_t qPID, qShoot;
@@ -68,7 +67,6 @@ static void MX_CAN_Init(void);
 static void MX_TIM1_Init(void);
 void StartShootTask(void const * argument);
 void StartCANTask(void const * argument);
-void PIDTimerCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 ////////////////////////////////////////////////////////
@@ -242,11 +240,6 @@ int main(void)
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
-
-  /* Create the timer(s) */
-  /* definition and creation of PIDTimer */
-  osTimerDef(PIDTimer, PIDTimerCallback);
-  PIDTimerHandle = osTimerCreate(osTimer(PIDTimer), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -614,7 +607,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+bool TestTick = false;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartShootTask */
@@ -628,16 +621,31 @@ void StartShootTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	bool IsFirePhoenix = false;
+	TickType_t xStartTime = 0, xOccurredTime = 0;
   /* Infinite loop */
   for(;;)
   {
 	  if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE){
-		osTimerStart(PIDTimerHandle, 1);
-		vTaskDelay(3000 / portTICK_PERIOD_MS);
-		osTimerStop(PIDTimerHandle);
-		PID_Motor_Stop_All();
+		  xStartTime = xTaskGetTickCount();
 	  }
-
+//	  if(TestTick){
+//		  IsFirePhoenix = 1;
+//		  TestTick = 0;
+//		  xStartTime = xTaskGetTickCount();
+//	  }
+	  if(IsFirePhoenix){
+		  xOccurredTime = xTaskGetTickCount() - xStartTime;
+		  if(xOccurredTime > 3000/portTICK_PERIOD_MS){
+			  PID_Motor_Stop_All();
+			  IsFirePhoenix = 0;
+			  xOccurredTime = 0;
+		  }else{
+			  PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
+			  PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
+			  PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
+			  PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
+		  }
+	  }
 	  osDelay(1);
   }
   /* USER CODE END 5 */
@@ -659,27 +667,16 @@ void StartCANTask(void const * argument)
   for(;;)
   {
 	  if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
-	  			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-	  			if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
-	  				if (rxHeader.RTR == CAN_RTR_DATA)
-	  					handleFunctionCAN((CAN_MODE_ID) modeID);
-	  			}
-	  			HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-	  		}
+		CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
+		if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
+			if (rxHeader.RTR == CAN_RTR_DATA)
+				handleFunctionCAN((CAN_MODE_ID) modeID);
+		}
+		HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	  }
 //	  osDelay(1);
   }
   /* USER CODE END StartCANTask */
-}
-
-/* PIDTimerCallback function */
-void PIDTimerCallback(void const * argument)
-{
-  /* USER CODE BEGIN PIDTimerCallback */
-	PID_RuloBall_CalSpeed(1000, MOTOR_BALL1);
-	PID_RuloBall_CalSpeed(1000, MOTOR_BALL2);
-	PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN1), MOTOR_GUN1);
-	PID_Gun_CalSpeed(brd_GetSpeedGun(MOTOR_GUN2), MOTOR_GUN2);
-  /* USER CODE END PIDTimerCallback */
 }
 
 /**
