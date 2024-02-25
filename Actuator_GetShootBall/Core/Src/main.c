@@ -608,6 +608,16 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 bool TestTick = false;
+
+
+void canShoot(float speedgun1, float speedgun2){
+	canfunc_GunPutSpeed(speedgun1, speedgun2);
+	canctrl_SetID(CANCTRL_MODE_SHOOT);
+	canctrl_Send(&hcan, CANCTRL_DEVICE_ACTUATOR_1);
+	while (canctrl_Send(&hcan, CANCTRL_DEVICE_ACTUATOR_1) != HAL_OK);
+}
+
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartShootTask */

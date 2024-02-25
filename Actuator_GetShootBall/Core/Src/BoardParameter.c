@@ -8,7 +8,6 @@
 #include "BoardParameter.h"
 
 BoardParameter_t brdParam;
-extern CAN_HandleTypeDef hcan;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
