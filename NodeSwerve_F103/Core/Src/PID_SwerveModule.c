@@ -42,6 +42,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 	if(!bldcEnablePID){
 		MotorBLDC_Drive(&mbldc, 0);
 	}else{
+//		float result = Target_set;
 		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
 		MotorBLDC_Drive(&mbldc, (int32_t)result);
 		brd_SetObjEncBLDC(encBLDC);

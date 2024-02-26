@@ -19,6 +19,16 @@ typedef enum PD_Type{
 	PD_Theta,
 }PD_Type;
 
+typedef enum Signal_type{
+	U,
+	V,
+	R,
+	U_Control,
+	V_Control,
+	R_Control,
+}Signal_type;
+
+
 typedef struct process_Param{
 	pd_Param pdX,pdY,pdTheta;
 	trajec_Param trajecX,trajecY,trajecTheta;
@@ -39,17 +49,13 @@ float cal_absF(float num);
 pd_Param PD_GetObjParam(PD_Type ID);
 void PD_SetObjParam(PD_Type ID,pd_Param Param);
 
-void PD_Enable_X();
-void PD_Enable_Y();
-void PD_Enable_Theta();
-
-void PD_Disable_X();
-void PD_Disable_Y();
-void PD_Disable_Theta();
+void PD_Enable(PD_Type ID);
+void PD_Disable(PD_Type ID);
 
 void process_Init();
 void process_Run(uint8_t Run);
 
+float process_GetSignal();
 float process_GetUControl();
 void  process_SetUControl(float uControl);
 void  process_SetU(float u);

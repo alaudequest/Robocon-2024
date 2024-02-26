@@ -212,13 +212,39 @@ void  process_SetR(float r){process.r = r;}
 
 void process_ChangeState(){process.state+=1;}
 
-void PD_Enable_X(){process.stopUsePDX = 0;}
-void PD_Enable_Y(){process.stopUsePDY = 0;}
-void PD_Enable_Theta(){process.stopUsePDTheta = 0;}
+void PD_Enable(PD_Type ID){
+	switch (ID) {
+		case PD_X:
+			process.stopUsePDX = 0;
+			break;
+		case PD_Y:
+			process.stopUsePDY = 0;
+			break;
+		case PD_Theta:
+			process.stopUsePDTheta = 0;
+			break;
+		default:
+			break;
+	}
+}
 
-void PD_Disable_X(){process.stopUsePDX = 1;}
-void PD_Disable_Y(){process.stopUsePDY = 1;}
-void PD_Disable_Theta(){process.stopUsePDTheta = 1;}
+void PD_Disable(PD_Type ID){
+	switch (ID) {
+		case PD_X:
+			process.stopUsePDX = 1;
+			break;
+		case PD_Y:
+			process.stopUsePDY = 1;
+			break;
+		case PD_Theta:
+			process.stopUsePDTheta = 1;
+			break;
+		default:
+			break;
+	}
+}
+
+
 
 void process_RicePlantApproach()
 {
@@ -258,8 +284,8 @@ void process_TrajecStateCondition_EndPath(float xCondition,float yCondition,floa
 	}
 	if (process.stateChange == 1)
 	{
-		PD_Disable_X();
-		PD_Disable_Y();
+		PD_Disable(PD_X);
+		PD_Disable(PD_Y);
 		process_SetSignal(U_STEADY, V_STEADY, R_STEADY);
 		if((cal_absF(process.yaw - PF_STATE10_THETA)<=thetaCondition))
 		{
@@ -271,7 +297,7 @@ void process_TrajecStateCondition_EndPath(float xCondition,float yCondition,floa
 		if(process.steadyCheck>WAIT_STEADY)
 		{
 			process.stateChange = 0;
-			PD_Disable_Theta();
+			PD_Disable(PD_Theta);
 			process_ChangeState();
 		}
 	}
@@ -321,9 +347,9 @@ void process_RunChassis()
 {
 	switch (process.state) {
 		case 0:
-			PD_Disable_X();
-			PD_Disable_Y();
-			PD_Disable_Theta();
+			PD_Disable(PD_X);
+			PD_Disable(PD_Y);
+			PD_Disable(PD_Theta);
 			process_SetSignal(U_STATE0,V_STATE0,R_STATE0);
 			process.stateChange ++;
 
@@ -334,9 +360,9 @@ void process_RunChassis()
 				trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE0_Y, TF_STATE0_Y, odo_GetVout(), VF_STATE0_Y);
 				trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE0_THETA, TF_STATE0_THETA, odo_GetRout(), VF_STATE0_THETA);
 
-				PD_Enable_X();
-				PD_Enable_Y();
-				PD_Enable_Theta();
+				PD_Enable(PD_X);
+				PD_Enable(PD_Y);
+				PD_Enable(PD_Theta);
 
 				process.stateChange = 0;
 				process_ChangeState();
@@ -350,9 +376,9 @@ void process_RunChassis()
 			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE2_Y, TF_STATE2_Y, odo_GetVout(), VF_STATE2_Y);
 			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE2_THETA, TF_STATE2_THETA, odo_GetRout(), VF_STATE2_THETA);
 
-			PD_Enable_X();
-			PD_Enable_Y();
-			PD_Enable_Theta();
+			PD_Enable(PD_X);
+			PD_Enable(PD_Y);
+			PD_Enable(PD_Theta);
 
 			process_ChangeState();
 			break;
@@ -360,9 +386,9 @@ void process_RunChassis()
 			process_TrajecStateCondition_OnPath(CONDITION_STATE3_X,CONDITION_STATE3_Y);
 			break;
 		case 4:
-			PD_Disable_X();
-			PD_Disable_Y();
-			PD_Disable_Theta();
+			PD_Disable(PD_X);
+			PD_Disable(PD_Y);
+			PD_Disable(PD_Theta);
 
 			process_SetSignal(U_STATE4, V_STATE4, R_STATE4);
 			process_ChangeState();
@@ -376,9 +402,9 @@ void process_RunChassis()
 			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE8_Y, TF_STATE8_Y, odo_GetVout(), VF_STATE8_Y);
 			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE8_THETA, TF_STATE8_THETA, odo_GetRout(), VF_STATE8_THETA);
 
-			PD_Enable_X();
-			PD_Enable_Y();
-			PD_Enable_Theta();
+			PD_Enable(PD_X);
+			PD_Enable(PD_Y);
+			PD_Enable(PD_Theta);
 
 			process_ChangeState();
 			break;
@@ -390,9 +416,9 @@ void process_RunChassis()
 			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE10_Y, TF_STATE10_Y, odo_GetVout(), VF_STATE10_Y);
 			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE10_THETA, TF_STATE10_THETA, odo_GetRout(), VF_STATE10_THETA);
 
-			PD_Enable_X();
-			PD_Enable_Y();
-			PD_Enable_Theta();
+			PD_Enable(PD_X);
+			PD_Enable(PD_Y);
+			PD_Enable(PD_Theta);
 
 			process_ChangeState();
 			break;
