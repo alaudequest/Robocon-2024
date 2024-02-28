@@ -8,142 +8,11 @@
 #include "ProcessControl.h"
 #include "cmsis_os.h"
 
-process_Param process;
+processControl_Parameter process;
 extern UART_HandleTypeDef huart1;
 
 char tx_ResetBuff[] = "rst\n";
 char tx_ReadBuff[]  = "red\n";
-
-#define KP_INIT_X		1
-#define KP_INIT_Y		1
-#define KP_INIT_THETA	1.2
-
-#define KD_INIT_X		0
-#define KD_INIT_Y		0
-#define KD_INIT_THETA	0
-
-#define ALPHA_INIT_X	0
-#define ALPHA_INIT_Y	0
-#define ALPHA_INIT_THETA	0
-
-#define LIMIT_ABOVE_INIT_X 		1
-#define LIMIT_ABOVE_INIT_Y		1
-#define LIMIT_ABOVE_INIT_THETA	1
-
-#define LIMIT_BELOW_INIT_X 		-1
-#define LIMIT_BELOW_INIT_Y		-1
-#define LIMIT_BELOW_INIT_THETA	-1
-
-#define U_APPROACH_START		0.05
-#define V_APPROACH_START		-0.1
-#define R_APPROACH_START		0.05
-
-#define U_APPROACH_END		0.1
-#define V_APPROACH_END		0
-#define R_APPROACH_END		0
-
-#define WAIT_APPROACH			2
-
-#define WAIT_GETRICEPLANT		300
-
-#define WAIT_SSCHECK	10
-#define U_GETRICE		0
-#define V_GETRICE		0
-#define R_GETRICE		0
-
-#define U_STEADY		0
-#define V_STEADY		0
-#define R_STEADY		0
-
-#define THETA_STEADY	2*M_PI/180
-#define X_STEADY		0.03
-#define Y_STEADY		0.03
-
-#define WAIT_STEADY		15
-
-//-----------------------------------State 0 ---------------------------------------//
-//-------Control Signal-------//
-#define U_STATE0	0.1
-#define V_STATE0	0
-#define R_STATE0	0
-//-------X POS-------//
-#define PF_STATE0_X -0.20
-#define P0_STATE0_X 0
-#define TF_STATE0_X 1
-#define V0_STATE0_X 0
-#define VF_STATE0_X 0
-//-------Y POS-------//
-#define PF_STATE0_Y -0.25
-#define P0_STATE0_Y 0
-#define TF_STATE0_Y 1
-#define V0_STATE0_Y 0
-#define VF_STATE0_Y 0
-//-------Y POS-------//
-#define PF_STATE0_THETA 0
-#define P0_STATE0_THETA 0
-#define TF_STATE0_THETA 1
-#define V0_STATE0_THETA 0
-#define VF_STATE0_THETA 0
-
-//-----------------------------------State 1 ---------------------------------------//
-#define CONDITION_STATE1_X 0.03
-#define CONDITION_STATE1_Y 0.03
-
-//-----------------------------------State 2 ---------------------------------------//
-//-------X POS-------//
-#define PF_STATE2_X -0.25
-#define TF_STATE2_X 2
-#define VF_STATE2_X 0
-//-------Y POS-------//
-#define PF_STATE2_Y -0.90
-#define TF_STATE2_Y 2
-#define VF_STATE2_Y 0
-//-------Y POS-------//
-#define PF_STATE2_THETA 0
-#define TF_STATE2_THETA 1
-#define VF_STATE2_THETA 0
-
-//-----------------------------------State 3 ---------------------------------------//
-#define CONDITION_STATE3_X 0.03
-#define CONDITION_STATE3_Y 0.03
-
-//-----------------------------------State 4 ---------------------------------------//
-//-------Control Signal-------//
-#define U_STATE4	0.05
-#define V_STATE4	-0.12
-#define R_STATE4	0
-
-//-----------------------------------State 8 ---------------------------------------//
-//-------X POS-------//
-#define PF_STATE8_X -0.7
-#define TF_STATE8_X 1.5
-#define VF_STATE8_X 0
-//-------Y POS-------//
-#define PF_STATE8_Y 0
-#define TF_STATE8_Y 1
-#define VF_STATE8_Y 0
-//-------Y POS-------//
-#define PF_STATE8_THETA 0
-#define TF_STATE8_THETA 1
-#define VF_STATE8_THETA 0
-
-//-----------------------------------State 9 ---------------------------------------//
-#define CONDITION_STATE9_X 0.03
-#define CONDITION_STATE9_Y 0.03
-
-//-----------------------------------State 10 ---------------------------------------//
-//-------X POS-------//
-#define PF_STATE10_X -0.95
-#define TF_STATE10_X 3
-#define VF_STATE10_X 0
-//-------Y POS-------//
-#define PF_STATE10_Y -0.70
-#define TF_STATE10_Y 3
-#define VF_STATE10_Y 0
-//-------Y POS-------//
-#define PF_STATE10_THETA -89*M_PI/180
-#define TF_STATE10_THETA 3
-#define VF_STATE10_THETA 0
 
 
 float cal_absF(float num)
@@ -198,17 +67,52 @@ void process_Init(){
 	PD_SetSaturate(&process.pdTheta, LIMIT_ABOVE_INIT_THETA, LIMIT_BELOW_INIT_THETA);
 }
 
-float process_GetUControl(){return process.uControl;}
-void  process_SetUControl(float uControl){process.uControl = uControl;}
-void  process_SetU(float u){process.u = u;}
-
-float process_GetVControl(){return process.vControl;}
-void  process_SetVControl(float vControl){process.vControl = vControl;}
-void  process_SetV(float v){process.v = v;}
-
-float process_GetRControl(){return process.rControl;}
-void  process_SetRControl(float rControl){process.rControl = rControl;}
-void  process_SetR(float r){process.r = r;}
+float process_GetCtrSignal(Signal_type ID)
+{
+	switch (ID) {
+		case U:
+			return process.u;
+			break;
+		case V:
+			return process.v;
+			break;
+		case R:
+			return process.r;
+			break;
+		case U_Control:
+			return process.uControl;
+			break;
+		case V_Control:
+			return process.vControl;
+			break;
+		case R_Control:
+			return process.rControl;
+			break;
+		default:
+			break;
+	}
+	return 0;
+}
+void process_SetCtrSignal(Signal_type ID,float Sig)
+{
+	switch (ID) {
+		case U:
+			process.u = Sig;
+			break;
+		case V:
+			process.v = Sig;
+		case R:
+			process.r = Sig;
+		case U_Control:
+			process.uControl = Sig;
+		case V_Control:
+			process.vControl = Sig;
+		case R_Control:
+			process.rControl = Sig;
+		default:
+			break;
+	}
+}
 
 void process_ChangeState(){process.state+=1;}
 
@@ -398,15 +302,15 @@ void process_RunChassis()
 			break;
 		case 8:
 
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE8_X, TF_STATE8_X, odo_GetUout(), VF_STATE8_X);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE8_Y, TF_STATE8_Y, odo_GetVout(), VF_STATE8_Y);
-			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE8_THETA, TF_STATE8_THETA, odo_GetRout(), VF_STATE8_THETA);
-
-			PD_Enable(PD_X);
-			PD_Enable(PD_Y);
-			PD_Enable(PD_Theta);
-
-			process_ChangeState();
+//			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE8_X, TF_STATE8_X, odo_GetUout(), VF_STATE8_X);
+//			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE8_Y, TF_STATE8_Y, odo_GetVout(), VF_STATE8_Y);
+//			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE8_THETA, TF_STATE8_THETA, odo_GetRout(), VF_STATE8_THETA);
+//
+//			PD_Enable(PD_X);
+//			PD_Enable(PD_Y);
+//			PD_Enable(PD_Theta);
+//
+//			process_ChangeState();
 			break;
 		case 9:
 			process_TrajecStateCondition_OnPath(CONDITION_STATE9_X,CONDITION_STATE9_Y);

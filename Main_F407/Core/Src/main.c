@@ -2300,9 +2300,9 @@ void OdometerHandle(void const * argument)
 				Gamepad = 1;
 			}
 			if(Gamepad == 0){
-				uControlX = 	process_GetUControl();
-				uControlY = 	process_GetVControl();
-				uControlTheta = process_GetRControl();
+				uControlX = 	process_GetCtrSignal(U_Control);
+				uControlY = 	process_GetCtrSignal(V_Control);
+				uControlTheta = process_GetCtrSignal(R_Control);
 			}else {
 				uControlX = GamePad.YLeftCtr;
 				uControlY = GamePad.XLeftCtr;
