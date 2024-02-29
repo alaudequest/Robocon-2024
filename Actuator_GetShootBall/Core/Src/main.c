@@ -98,16 +98,8 @@ void StartCANTask(void const * argument);
 /* USER CODE BEGIN 0 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
-	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(CANTaskHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
-}
-
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
-	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
-	BaseType_t HigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(CANTaskHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
@@ -133,23 +125,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void CAN_Init() {
 	HAL_CAN_Start(&hcan);
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING
-			| CAN_IT_RX_FIFO1_MSG_PENDING
-			| CAN_IT_RX_FIFO0_FULL);
-	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
+
+	uint16_t deviceID = CANCTRL_DEVICE_ACTUATOR_1 << CAN_DEVICE_POS;
+
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_START,
 			deviceID | CANCTRL_MODE_SHOOT,
 			deviceID | CANCTRL_MODE_TEST,
 			deviceID | CANCTRL_MODE_END,
 			0, CAN_RX_FIFO0);
-	canctrl_Filter_Mask16(&hcan,
-			1 << CAN_RTR_REMOTE,
-			0,
-			1 << CAN_RTR_REMOTE,
-			0,
-			2,
-			CAN_RX_FIFO0);
+
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING
+			| CAN_IT_RX_FIFO0_FULL);
 
 }
 
@@ -189,7 +176,7 @@ void Flash_Assign() {
 	  er.NbPages = 1;
 	  uint32_t pe = 0;
 	  HAL_FLASHEx_Erase(&er, &pe);
-	  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, CANCTRL_DEVICE_ACTUATOR_1);
+	  HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x06);
 	  HAL_FLASH_Lock();
 }
 /* USER CODE END 0 */
@@ -230,7 +217,8 @@ int main(void)
   qShoot = xQueueCreate(1, sizeof(bool));
   qPID   = xQueueCreate(2, sizeof(float));
   brd_Init();
-
+//  Flash_Assign();
+//  uint32_t testf = *(__IO uint32_t*) FLASH_ADDR_TARGET;
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -610,12 +598,12 @@ static void MX_GPIO_Init(void)
 bool TestTick = false;
 
 
-void canShoot(float speedgun1, float speedgun2){
-	canfunc_GunPutSpeed(speedgun1, speedgun2);
-	canctrl_SetID(CANCTRL_MODE_SHOOT);
-	canctrl_Send(&hcan, CANCTRL_DEVICE_ACTUATOR_1);
-	while (canctrl_Send(&hcan, CANCTRL_DEVICE_ACTUATOR_1) != HAL_OK);
-}
+//void canShoot(float speedgun1, float speedgun2){
+//	canfunc_GunPutSpeed(speedgun1, speedgun2);
+//	canctrl_SetID(CANCTRL_MODE_SHOOT);
+//	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
+//	while (canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1) != HAL_OK);
+//}
 
 
 /* USER CODE END 4 */
