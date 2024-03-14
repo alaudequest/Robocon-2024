@@ -87,6 +87,8 @@
 #define CONDITION_STATE1_X 0.03
 #define CONDITION_STATE1_Y 0.03
 
+#define STATE_CHANGE_OFFSET_METER_X
+
 //-----------------------------------State 2 ---------------------------------------//
 //-------X POS-------//
 #define PF_STATE2_X -0.25
@@ -203,5 +205,10 @@ void process_GetRicePlant(void (*ptnBreakProtectionCallBack)());
 void process_ChangeState();
 void process_TrajecStateCondition_OnPath(float xCondition,float yCondition);
 void process_TrajecStateCondition_EndPath(float xCondition,float yCondition,float thetaCondition);
-
+void process_PD_TestX(float Target);
+void process_PD_TestY(float Target);
+void process_PD_TestTheta(float Target);
+void process_PD_RotationControlSignal();
+void process_RotationMatrix(float u, float v, float r);
+void process_TrajecStateCondition_EndPath_NoYaw(float xCondition, float yCondition, float thetaCondition);
 #endif /* INC_PROCESSCONTROL_H_ */

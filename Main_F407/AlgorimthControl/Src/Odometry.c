@@ -22,9 +22,9 @@ void odo_SetObj_SpAg(Slave_ID ID,CAN_SpeedBLDC_AngleDC spAg){odo.slave_SpAg[ID] 
 
 void odo_OmegaToZeta(zeta_Param *zeta, float* VxA, float* VyA)
 {
-	zeta->uOut 		= - 0.2357*VxA[0] + 0.2357*VyA[0] - 0.2357*VxA[1] - 0.2357*VyA[1] + 0.3333*VxA[2] + 0.0000*VyA[2] ;
-	zeta->vOut 		= - 0.2467*VxA[0] - 0.3262*VyA[0] + 0.2467*VxA[1] - 0.3262*VyA[1] - 0.0000*VxA[2] + 0.1898*VyA[2] ;
-	zeta->rOut 	    =   0.1417*VxA[0] + 1.1707*VyA[0] - 0.1417*VxA[1] + 1.1707*VyA[1] + 0.0000*VxA[2] + 1.8560*VyA[2] ;
+	zeta->uOut 		= - 0.3333*VxA[0] + 0.0000*VyA[0] + 0.0000*VxA[1] - 0.3333*VyA[1] - 0.3333*VxA[2] + 0.0000*VyA[2] ;
+	zeta->vOut 		= - 0.0000*VxA[0] - 0.3333*VyA[0] + 0.3333*VxA[1] + 0.0000*VyA[1] - 0.0000*VxA[2] - 0.3333*VyA[2] ;
+	zeta->rOut 	    = - 0.4419*VxA[0] + 1.3258*VyA[0] - 0.0000*VxA[1] + 0.8839*VyA[1] - 0.4419*VxA[2] - 1.3258*VyA[2] ;
 }
 
 float odo_GetUout(){return odo.zeta.uOut;}
@@ -37,9 +37,10 @@ float odo_GetPoseTheta(){return odo.pose.poseTheta;}
 
 void odo_EulerCal()
 {
-	odo.pose.poseTheta += odo.zeta.rOut*DELTA_T;
+	odo.pose.poseTheta +=  odo.zeta.rOut*DELTA_T;
 	odo.pose.poseX 	   += (odo.zeta.uOut*cos(odo.pose.poseTheta) - odo.zeta.vOut*sin(odo.pose.poseTheta))*DELTA_T;
 	odo.pose.poseY 	   += (odo.zeta.uOut*sin(odo.pose.poseTheta) + odo.zeta.vOut*cos(odo.pose.poseTheta))*DELTA_T;
+	odo.pose.poseTheta_Deg = odo.pose.poseTheta*180/M_PI;
 }
 
 void odo_PosCal(){

@@ -33,6 +33,7 @@ typedef struct odo_Pose{
 	float poseX;
 	float poseY;
 	float poseTheta;
+	float poseTheta_Deg;
 }odo_Pose;
 
 typedef struct odo_Param{

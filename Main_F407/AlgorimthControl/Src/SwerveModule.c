@@ -6,13 +6,13 @@
  */
 
 #include "SwerveModule.h"
-#define DX3	0.37545
-#define DX1 -0.07171
-#define DX2	-0.07171
+#define DX3	0.28284
+#define DX1 -0.28284
+#define DX2	0
 
-#define DY3	0.0000
-#define DY1	-0.23373/2
-#define DY2	0.23373/2
+#define DY3	-0.09428
+#define DY1	-0.09428
+#define DY2	0.18856
 
 SwerveModuleParam swerParam[MAX_MODULE];
 void swer0_CalVector(float u, float v, float r){
@@ -52,7 +52,7 @@ void swer0_CalVector(float u, float v, float r){
 //}
 void swer1_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 135*M_PI/180;
+	float alpha = 180*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY1*r) - sin(alpha)*(v + DX1*r);
 	vct.wheelVelY = sin(alpha)*(u - DY1*r) + cos(alpha)*(v + DX1*r);
 	swer_SetWheelVector(MODULE_ID_1, vct);
@@ -60,7 +60,7 @@ void swer1_CalVector(float u, float v, float r){
 
 void swer2_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 225*M_PI/180;
+	float alpha = -90*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY2*r) - sin(alpha)*(v + DX2*r);
 	vct.wheelVelY = sin(alpha)*(u - DY2*r) + cos(alpha)*(v + DX2*r);
 	swer_SetWheelVector(MODULE_ID_2, vct);
@@ -68,7 +68,7 @@ void swer2_CalVector(float u, float v, float r){
 
 void swer3_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 0*M_PI/180;
+	float alpha = 180*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY3*r) - sin(alpha)*(v + DX3*r);
 	vct.wheelVelY = sin(alpha)*(u - DY3*r) + cos(alpha)*(v + DX3*r);
 	swer_SetWheelVector(MODULE_ID_3, vct);
