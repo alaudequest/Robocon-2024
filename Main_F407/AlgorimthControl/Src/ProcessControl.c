@@ -16,7 +16,7 @@ char tx_ResetBuff[] = "rst\n";
 char tx_ReadBuff[]  = "red\n";
 
 
-float cal_absF(float num)
+static float cal_absF(float num)
 {
 	if (num<0.0){
 			return num*-1.0;

@@ -176,7 +176,6 @@ typedef struct processControl_Parameter{
 	float yaw;
 }processControl_Parameter;
 
-float cal_absF(float num);
 pd_Param PD_GetObjParam(PD_Type ID);
 void PD_SetObjParam(PD_Type ID,pd_Param Param);
 
