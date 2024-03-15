@@ -11,6 +11,8 @@
 #include "Odometry.h"
 #include "PositionControl.h"
 #include "ActuatorValve.h"
+#include "Flag.h"
+
 #define IMU_Wait		6
 #define KP_INIT_X		1
 #define KP_INIT_Y		1
@@ -144,6 +146,22 @@
 #define PF_STATE10_THETA -89*M_PI/180
 #define TF_STATE10_THETA 3
 #define VF_STATE10_THETA 0
+
+typedef struct TrajectPlanningPoint {
+// position
+	float pfX;
+	float pfY;
+	float pfTheta;
+// time
+	float tfX;
+	float tfY;
+	float tfTheta;
+// velocity
+	float vfX;
+	float vfY;
+	float vfTheta;
+} TrajectPlanningPoint;
+
 typedef enum PD_Type{
 	PD_X,
 	PD_Y,
@@ -159,22 +177,27 @@ typedef enum Signal_type{
 	R_Control,
 }Signal_type;
 
+typedef enum ProcessControlFlag {
+	USE_PDX,
+	USE_PDY,
+	USE_PDTheta,
+	ON_STEADY_STATE,
+} ProcessControlFlag;
 
-typedef struct processControl_Parameter{
+
+
+typedef struct ProcessControl_Parameter {
 	pd_Param pdX,pdY,pdTheta;
 	trajec_Param trajecX,trajecY,trajecTheta;
 
-	int state;
+	uint8_t state;
 	uint8_t stateChange;
-	uint8_t stopUsePDX;
-	uint8_t stopUsePDY;
-	uint8_t stopUsePDTheta;
 	uint8_t ssCheck,steadyCheck;
 
 	float u,v,r;
 	float uControl,vControl,rControl;
 	float yaw;
-}processControl_Parameter;
+} ProcessControl_Parameter;
 
 pd_Param PD_GetObjParam(PD_Type ID);
 void PD_SetObjParam(PD_Type ID,pd_Param Param);

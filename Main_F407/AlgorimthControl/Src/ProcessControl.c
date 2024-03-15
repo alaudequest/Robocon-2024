@@ -9,11 +9,25 @@
 #include "cmsis_os.h"
 
 
-processControl_Parameter process;
+ProcessControl_Parameter process;
 extern UART_HandleTypeDef huart1;
 
 char tx_ResetBuff[] = "rst\n";
 char tx_ReadBuff[]  = "red\n";
+
+uint32_t flagProcessCtrl;
+static inline void flagProcessCtrl_SetFlag(ProcessControlFlag f) {
+	SETFLAG(flagProcessCtrl, f);
+}
+
+static inline bool flagProcessCtrl_CheckFlag(ProcessControlFlag f) {
+	return CHECKFLAG(flagProcessCtrl, f);
+}
+
+static inline void flagProcessCtrl_ClearFlag(ProcessControlFlag f) {
+	CLEARFLAG(flagProcessCtrl, f);
+}
+
 
 
 static float cal_absF(float num)
@@ -120,13 +134,13 @@ void process_ChangeState(){process.state+=1;}
 void PD_Enable(PD_Type ID){
 	switch (ID) {
 		case PD_X:
-			process.stopUsePDX = 0;
+			flagProcessCtrl_SetFlag(USE_PDX);
 			break;
 		case PD_Y:
-			process.stopUsePDY = 0;
+			flagProcessCtrl_SetFlag(USE_PDY);
 			break;
 		case PD_Theta:
-			process.stopUsePDTheta = 0;
+			flagProcessCtrl_SetFlag(USE_PDTheta);
 			break;
 		default:
 			break;
@@ -136,14 +150,13 @@ void PD_Enable(PD_Type ID){
 void PD_Disable(PD_Type ID){
 	switch (ID) {
 		case PD_X:
-			process.stopUsePDX = 1;
-			break;
+			flagProcessCtrl_ClearFlag(USE_PDX);
+		break;
 		case PD_Y:
-			process.stopUsePDY = 1;
-			break;
+			flagProcessCtrl_ClearFlag(USE_PDY);
+		break;
 		case PD_Theta:
-			process.stopUsePDTheta = 1;
-			break;
+			flagProcessCtrl_ClearFlag(USE_PDTheta);
 		default:
 			break;
 	}
@@ -277,6 +290,10 @@ void process_GetRicePlant(void (*ptnBreakProtectionCallBack)())
 	process_ChangeState();
 }
 
+void process_RunChassis_Refactor() {
+
+}
+
 void process_RunChassis()
 {
 	switch (process.state) {
@@ -407,18 +424,18 @@ void process_Run(uint8_t Run){
 		trajecPlan_Cal(&process.trajecY);
 		trajecPlan_Cal(&process.trajecTheta);
 
-		if(!process.stopUsePDX)
+		if(flagProcessCtrl_CheckFlag(USE_PDX))
 		{
 			PD_Cal(&process.pdX, process.trajecX.xTrajec, odo_GetPoseX());
 			process.u = process.pdX.u + process.trajecX.xdottraject;
 
 		}
-		if(!process.stopUsePDY)
+		if(flagProcessCtrl_CheckFlag(USE_PDY))
 		{
 			PD_Cal(&process.pdY, process.trajecY.xTrajec, odo_GetPoseY());
 			process.v = process.pdY.u + process.trajecY.xdottraject;
 		}
-		if(!process.stopUsePDTheta)
+		if(flagProcessCtrl_CheckFlag(USE_PDTheta))
 		{
 			PD_Cal(&process.pdTheta, process.trajecTheta.xTrajec, odo_GetPoseTheta());
 			process.r = process.pdTheta.u + process.trajecTheta.xdottraject;
