@@ -12,8 +12,8 @@
 #include "PositionControl.h"
 #include "ActuatorValve.h"
 #define IMU_Wait		6
-#define KP_INIT_X		1
-#define KP_INIT_Y		1
+#define KP_INIT_X		0.5
+#define KP_INIT_Y		0.5
 #define KP_INIT_THETA	1.2
 
 #define KD_INIT_X		0
@@ -174,6 +174,7 @@ typedef struct processControl_Parameter{
 	float u,v,r;
 	float uControl,vControl,rControl;
 	float yaw;
+	uint8_t ball;
 }processControl_Parameter;
 
 float cal_absF(float num);
@@ -211,4 +212,6 @@ void process_PD_TestTheta(float Target);
 void process_PD_RotationControlSignal();
 void process_RotationMatrix(float u, float v, float r);
 void process_TrajecStateCondition_EndPath_NoYaw(float xCondition, float yCondition, float thetaCondition);
+void process_setVal_PutBall(int Value);
+uint8_t process_ReturnBallValue();
 #endif /* INC_PROCESSCONTROL_H_ */

@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-//#include "LogData.c"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "CAN_Control.h"
@@ -35,6 +35,7 @@
 #include "Odometry.h"
 #include "PositionControl.h"
 #include "ProcessControl.h"
+#include "PutBall.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -339,6 +340,8 @@ int main(void)
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
@@ -596,28 +599,29 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
-  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 80-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
+  htim3.Init.Period = 1000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -627,9 +631,22 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -806,8 +823,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SSBall_Pin SSLua1_Pin SSLua2_Pin */
-  GPIO_InitStruct.Pin = SSBall_Pin|SSLua1_Pin|SSLua2_Pin;
+  /*Configure GPIO pins : SSPutBall_Pin SSBall_Pin SSLua1_Pin SSLua2_Pin */
+  GPIO_InitStruct.Pin = SSPutBall_Pin|SSBall_Pin|SSLua1_Pin|SSLua2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -1215,7 +1232,16 @@ void StartDefaultTask(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-
+uint8_t testdc;
+void Drive(int status){
+	if (status == 1){
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 300);
+	}else{
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+	}
+}
 /* USER CODE END Header_InverseKinematic */
 void InverseKinematic(void const * argument)
 {
@@ -1223,8 +1249,8 @@ void InverseKinematic(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-
-
+		startPutBall(process_ReturnBallValue());
+//		Drive(testdc);
 		osDelay(1);
 	}
   /* USER CODE END InverseKinematic */
@@ -1279,119 +1305,10 @@ void Actuator(void const * argument)
   /* USER CODE BEGIN Actuator */
 	/* Infinite loop */
 	for (;;) {
-//		process_RunSSAndActuator(&TestBreakProtection);
-//		if(ReleaseAll== 1){
-//			Release();
-//			ReleaseAll = 0;
-//		}
-//		if(shoot == 1){
-//			canShoot();
-//			shoot = 0;
-//		}
-//
-//		if(encEnb == 1){
-//			StopEnc(0);
-//			encEnb = 0;
-//		}
-//		if(encDis == 1){
-//			StopEnc(1);
-//			encDis = 0;
-//		}
-//		BallSS = HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin);
-//
-//		if((stateRun == 4)||(stateRun == 15)){
-//			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin)&&HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin)){
-//				ssCheck ++;
-//			}else {
-//				ssCheck = 0;
-//			}
-//
-//
-//			if(ssCheck > 5){
-//				stateRun ++ ;
-//				ssCheck = 0;
-//			}
-//		}
-//
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 7 ---------------------------------------------------//
-//			if(stateRun == 7){
-////				ResetIMU();
-//				valve_BothCatch();
-//				Odo.poseTheta = 0;
-//				Odo.poseY = 0;
-//				Odo.poseX = 0;
-//				stateChange = 0;
-//				TestBreakProtection();
-//				osDelay(50);
-//				stateRun += 1;
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 17 ---------------------------------------------------//
-//			if(stateRun == 17){
-////				ResetIMU();
-//				valve_BothCatch();
-//				Odo.poseTheta = 0;
-//				Odo.poseY = 0;
-//				Odo.poseX = 0;
-//				stateChange = 0;
-//				TestBreakProtection();
-//				osDelay(50);
-//				stateRun += 1;
-//			}
-//
-//			if(stateRun == 28){
-//				Odo.poseTheta = yaw;
-//				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
-//					ssCheck++;
-//				}else{
-//					ssCheck = 0;
-//				}
-//					if(ssCheck>15){
-//						stateRun++;
-//						ssCheck = 0;
-//				}
-//			}
-//			if(stateRun == 35){
-//				Odo.poseTheta = yaw;
-//				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
-//					ssCheck++;
-//				}else{
-//					ssCheck = 0;
-//				}
-//					if(ssCheck>15){
-//						stateRun++;
-//						ssCheck = 0;
-//				}
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 12 ---------------------------------------------------//
-//			if(stateRun == 12){
-//
-//				StopUseXY = 0;
-//				stateRun += 1;
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 22 ---------------------------------------------------//
-//			if(stateRun == 22){
-//				StopUseXY = 0;
-//				stateRun += 1;
-//			}
+		process_RunSSAndActuator(&TestBreakProtection);
 
 
-//		float X = odo_GetPoseX();
-//		float Y = odo_GetPoseY();
-//		float THETA = odo_GetPoseTheta();
-//
-//		log_AddArgumentToBuffer((void *)&X,TYPE_FLOAT);
-//		log_AddArgumentToBuffer((void *)&Y,TYPE_FLOAT);
-//		log_AddArgumentToBuffer((void *)&THETA,TYPE_FLOAT);
-//
-//		log_SendString();
-
-
-
-		osDelay(500);
+		osDelay(1);
 	}
   /* USER CODE END Actuator */
 }
@@ -1417,16 +1334,19 @@ void OdometerHandle(void const * argument)
 //		valve_Init();
 //		osDelay(1000);
 		process_Init();
+//		process_ResetIMU();
 		/* Infinite loop */
 		for (;;) {
 			if(!shootFlag){
 				RTR_SpeedAngle();
 			}
+
+
 			odo_SpeedAngleUpdate();
 //			odo_PosCal();
 
-//			process_ReadIMU();
-//			process_SetYaw(CurrAngle);
+			process_ReadIMU();
+			process_SetYaw(CurrAngle);
 //
 			process_Run(Run);
 //
@@ -1439,6 +1359,8 @@ void OdometerHandle(void const * argument)
 //			if(Gamepad == 0){
 			if(GamePad.Up==1 && GamePad.Triangle==1){
 				Run = 1;
+			}else if (GamePad.Down == 1 && GamePad.Cross == 1){
+				Run = 0;
 			}
 //			if (Run == 1){
 //				process_PD_TestX(testX);
@@ -1452,9 +1374,15 @@ void OdometerHandle(void const * argument)
 //
 //			}else{
 //				process_RotationMatrix(-GamePad.XLeftCtr, GamePad.YLeftCtr, GamePad.XRightCtr);
+			if(Run == 1){
 				uControlX = 	process_GetCtrSignal(U_Control);
 				uControlY = 	process_GetCtrSignal(V_Control);
 				uControlTheta = process_GetCtrSignal(R_Control);
+			}else {
+				uControlX = 	-GamePad.XLeftCtr;
+				uControlY = 	GamePad.YLeftCtr;
+				uControlTheta = GamePad.XRightCtr;
+			}
 //			}
 
 

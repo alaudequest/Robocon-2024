@@ -79,5 +79,5 @@ void odo_SetObj_SpAg(Slave_ID ID,CAN_SpeedBLDC_AngleDC spAg);
 void odo_OmegaToZeta(zeta_Param *zeta, float *VxA, float *VyA);
 
 void odo_EulerCal();
-
+void odo_ResetTheta();
 #endif /* INC_ODOMETRY_H_ */

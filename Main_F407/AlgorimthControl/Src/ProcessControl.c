@@ -191,7 +191,7 @@ void process_TrajecStateCondition_EndPath_NoYaw(float xCondition, float yConditi
 		PD_Disable(PD_Y);
 		process_SetCtrSignal(U, 0);
 		process_SetCtrSignal(V, 0);
-		if((cal_absF(odo_GetPoseTheta() - PF_STATE10_THETA)<=thetaCondition))
+		if((cal_absF(odo_GetPoseTheta() - process.trajecTheta.Pf)<=thetaCondition))
 		{
 			process.steadyCheck ++;
 		}else{
@@ -302,50 +302,54 @@ void process_RunChassis()
 //				process_ChangeState();
 //			}
 			odo_ResetPose()	;
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1, 3, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), odo_GetPoseY(),3, odo_GetVout(), 0);
-			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), 45*M_PI/180, 3, odo_GetRout(), 0);
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.4, 3, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -1.4, 3, odo_GetVout(), 0);
+			trajecPlan_SetParam(&process.trajecTheta, 0,0*M_PI/180, 2, odo_GetRout(), 0);
 			process_ChangeState();
 			break;
 		case 1:
 //			process_TrajecStateCondition_OnPath(CONDITION_STATE1_X,CONDITION_STATE1_Y);
 //			process_TrajecStateCondition_EndPath_NoYaw(0.02, 0.02,2*M_PI/180);
-			process_TrajecStateCondition_OnPath(0.02, 0.02);
+			odo_SetPoseTheta(process.yaw);
+			process_TrajecStateCondition_OnPath(0.4, 0.4);
 			break;
 		case 2:
+//			odo_ResetPose()	;
 //			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE2_X, TF_STATE2_X, odo_GetUout(), VF_STATE2_X);
 //			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE2_Y, TF_STATE2_Y, odo_GetVout(), VF_STATE2_Y);
 //			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE2_THETA, TF_STATE2_THETA, odo_GetRout(), VF_STATE2_THETA);
 //
-//			PD_Enable(PD_X);
-//			PD_Enable(PD_Y);
-//			PD_Enable(PD_Theta);
-//
-//			process_ChangeState();
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), odo_GetPoseX(), 3, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -1,3, odo_GetVout(), 0);
-			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), 90*M_PI/180, 3, odo_GetRout(), 0);
+
+////
+////			process_ChangeState();
+//			odo_ResetTheta();
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.2, 2, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -2.0,2, odo_GetVout(), 0);
+			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -0*M_PI/180, 2, odo_GetRout(), 0);
 			process_ChangeState();
 
 			break;
 		case 3:
-//			process_TrajecStateCondition_OnPath(CONDITION_STATE3_X,CONDITION_STATE3_Y);
-			process_TrajecStateCondition_EndPath_NoYaw(0.02, 0.02,2*M_PI/180);
+			odo_SetPoseTheta(process.yaw);
+			process_TrajecStateCondition_OnPath(0.06, 0.06);
+
+//			process_TrajecStateCondition_EndPath_NoYaw(0.02, 0.02,2*M_PI/180);
 
 			break;
 		case 4:
-//			PD_Disable(PD_X);
-//			PD_Disable(PD_Y);
-//			PD_Disable(PD_Theta);
-//
-//			process_SetSignal(U_STATE4, V_STATE4, R_STATE4);
-//			process_ChangeState();
+			process_setVal_PutBall(1);
+			process_ChangeState();
+			break;
+		case 5:
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), odo_GetPoseX(), 2, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), odo_GetPoseY()+0.8, 2, odo_GetVout(), 0);
+			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 2, odo_GetRout(), 0);
+			process_ChangeState();
+
 			break;
 		case 6:
-//			process_RicePlantApproach();
-			break;
-		case 8:
-
+			odo_SetPoseTheta(process.yaw);
+			process_TrajecStateCondition_OnPath(0.1, 0.1);
 //			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE8_X, TF_STATE8_X, odo_GetUout(), VF_STATE8_X);
 //			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE8_Y, TF_STATE8_Y, odo_GetVout(), VF_STATE8_Y);
 //			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE8_THETA, TF_STATE8_THETA, odo_GetRout(), VF_STATE8_THETA);
@@ -356,22 +360,31 @@ void process_RunChassis()
 //
 //			process_ChangeState();
 			break;
-		case 9:
-//			process_TrajecStateCondition_OnPath(CONDITION_STATE9_X,CONDITION_STATE9_Y);
-			break;
-		case 10:
-//			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), PF_STATE10_X, TF_STATE10_X, odo_GetUout(), VF_STATE10_X);
-//			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), PF_STATE10_Y, TF_STATE10_Y, odo_GetVout(), VF_STATE10_Y);
-//			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), PF_STATE10_THETA, TF_STATE10_THETA, odo_GetRout(), VF_STATE10_THETA);
-//
+		case 7:
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), odo_GetPoseX()+1.6, 3, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), odo_GetPoseY(), 3, odo_GetVout(), 0);
+			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 2, odo_GetRout(), 0);
+
 //			PD_Enable(PD_X);
 //			PD_Enable(PD_Y);
 //			PD_Enable(PD_Theta);
 //
-//			process_ChangeState();
+			process_ChangeState();
 			break;
-		case 11:
-//			process_TrajecStateCondition_EndPath(X_STEADY,Y_STEADY,THETA_STEADY);
+		case 8:
+			odo_SetPoseTheta(process.yaw);
+			process_TrajecStateCondition_OnPath(0.05,0.05);
+			break;
+		case 9:
+			PD_Disable(PD_X);
+			PD_Disable(PD_Y);
+			PD_Disable(PD_Theta);
+
+			process_SetSignal(0.05,-0.15,0);
+			break;
+		case 10 :
+			process_SetSignal(0,0,0);
+			process_ChangeState();
 			break;
 		default:
 			break;
@@ -382,13 +395,24 @@ void process_RunChassis()
 void process_RunSSAndActuator(void (*ptnBreakProtectionCallBack)())
 {
 	switch (process.state) {
-		case 5:
-			process_SSCheck();
+		case 9 :
+			if (HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin))
+			{
+				process.ssCheck ++;
+			}else {
+				process.ssCheck = 0;
+			}
+			if(process.ssCheck>30){
+				process_ChangeState();
+				process_setVal_PutBall(2);
+				process.ssCheck = 0;
+			}
+
+//			process_GetRicePlant(ptnBreakProtectionCallBack);
 			break;
-		case 7 :
-			process_GetRicePlant(ptnBreakProtectionCallBack);
-			break;
-		case 12 :
+		case 11 :
+			osDelay(4000);
+			process_setVal_PutBall(0);
 			break;
 		default:
 			break;
@@ -428,6 +452,14 @@ void process_Run(uint8_t Run){
 		process.vControl = process.u*sin(-odo_GetPoseTheta()) + process.v*cos(-odo_GetPoseTheta());
 		process.rControl = process.r;
 	}
+}
+void process_setVal_PutBall(int Value)
+{
+	process.ball = Value;
+}
+
+uint8_t process_ReturnBallValue(){
+	return process.ball;
 }
 void process_PD_TestX(float Target){
 	PD_Cal(&process.pdX, Target, odo_GetPoseX());

@@ -75,3 +75,6 @@ void odo_ResetPose(){
 	odo.pose.poseX = 0;
 	odo.pose.poseY = 0;
 }
+void odo_ResetTheta(){
+	odo.pose.poseTheta = 0;
+}
