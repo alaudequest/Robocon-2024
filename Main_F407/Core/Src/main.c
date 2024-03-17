@@ -33,8 +33,7 @@
 #include "Gamepad.h"
 #include "ActuatorValve.h"
 #include "Odometry.h"
-#include "PositionControl.h"
-#include "ProcessControl.h"
+#include "ProcessControlRefactor.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -231,7 +230,7 @@ uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
 void Receive(uint8_t *DataArray){
       uint8_t *pInt = NULL;
       if(DataArray[4] == 13){
-           pInt = &CurrAngle;
+		pInt = (uint8_t*) &CurrAngle;
            for(uint8_t i = 0; i < 4; i++) {
                *(pInt + i) = DataArray[i];
             }
@@ -886,88 +885,6 @@ void Release(){
 		osDelay(1);
 	}
 }
-// used for README example
-/*
- typedef enum EnableFuncHandle{
- ENABLE_START,
- ENABLE_SETHOME,
- ENABLE_BREAK_PROTECTION,
- ENABLE_ANGLE_SPEED,
- ENABLE_CAN_TX,
- ENABLE_END,
- }EnableFuncHandle;
- #define TARGET_FLAG_GROUP enableFlag
- bool enableSendSpeedAndAngle = false;
- bool enableSendPID = false;
- bool enableSendTestMode = false;
- bool enableSendBrake = false;
- EnableFuncHandle mode = ENABLE_ANGLE_SPEED;
- uint8_t testMode = 1;
- uint8_t brake = 1;
- float bldcSpeed = 50;
- float dcAngle = 0;
-
- bool enableSendBreakProtection = false;
- uint32_t enableFlag = 0;
-
- void enfunc_SetFlag(CAN_MODE_ID e){SETFLAG(TARGET_FLAG_GROUP,e);}
- bool enfunc_CheckFlag(CAN_MODE_ID e){return CHECKFLAG(TARGET_FLAG_GROUP,e);}
- void enfunc_ClearFlag(CAN_MODE_ID e){CLEARFLAG(TARGET_FLAG_GROUP,e);}
-
- bool TestFlag;
- void FlagEnable(){
- if (TestFlag){
- enfunc_SetFlag(mode);
- TestFlag = false;
- canTxHandleFunc(Mode_ID, Device_ID);
- }
- }
-
- void SendSpeedAndRotation(CAN_DEVICE_ID targetID,float Speed, float Angle)
- {
- if(!enfunc_CheckFlag(ENABLE_ANGLE_SPEED)) return;
- CAN_SpeedBLDC_AngleDC speedAngle;
- speedAngle.bldcSpeed = Speed;
- speedAngle.dcAngle = Angle;
- canfunc_MotorPutSpeedAndAngle(speedAngle);
- canctrl_Send(&hcan1, targetID);
- enfunc_ClearFlag(ENABLE_ANGLE_SPEED);
- }
-
- void SetTestMode(bool testMode, CAN_DEVICE_ID targetID,bool *enable){
- if(!*enable) return;
- canfunc_SetBoolValue(testMode,CANCTRL_MODE_TEST);
- canctrl_Send(&hcan1, targetID);
- *enable = false;
- }
-
- void SetBrake(bool brake, CAN_DEVICE_ID targetID,bool *enable){
- if(!*enable) return;
- canfunc_SetBoolValue(brake,CANCTRL_MODE_MOTOR_BLDC_BRAKE);
- canctrl_Send(&hcan1, targetID);
- *enable = false;
- }
-
- void SetHome(CAN_DEVICE_ID targetID)
- {
- if(!enfunc_CheckFlag(ENABLE_SETHOME))return;
- canfunc_SetBoolValue(1,CANCTRL_MODE_SET_HOME);
- canctrl_Send(&hcan1, targetID);
- enfunc_ClearFlag(ENABLE_SETHOME);
- }
-
- void BreakProtection(CAN_DEVICE_ID targetID)
- {
- if(!enfunc_CheckFlag(ENABLE_BREAK_PROTECTION)) return;
- canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
- canctrl_Send(&hcan1, targetID);
- osDelay(1000);
- canfunc_SetBoolValue(0, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
- canctrl_Send(&hcan1, targetID);
- enfunc_ClearFlag(ENABLE_BREAK_PROTECTION);
- }
- */
-
 
 int count;
 int NopeCycle = 3300;
@@ -988,171 +905,6 @@ void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Stop(&htim10);
 }
 
-#define PulsePerRev 200*2.56
-
-//#define a 0.045
-typedef struct SpeedReadSlave{
-	float V;
-	float Vx;
-	float Vy;
-
-	float VxC;
-	float VyC;
-
-	float Offset;
-
-	float Vfilt;
-	float VfiltPre;
-	float filterAlpha;
-
-	int preCount;
-}SpeedReadSlave;
-
-typedef struct ForwardKine{
-	float uOut;
-	float vOut;
-	float thetaOut;
-}ForwardKine;
-
-typedef struct SwerveOdoHandle{
-	float dX;
-	float dY;
-	float dTheta;
-
-	float poseX;
-	float poseY;
-	float poseTheta;
-
-	float S;
-	float C;
-
-	float OffsetGyro;
-	float Suy;
-}SwerveOdoHandle;
-
-void omegaToZeta(ForwardKine *kine, float* VxA, float* VyA)
-{
-	kine->uOut 		= - 0.2357*VxA[0] + 0.2357*VyA[0] - 0.2357*VxA[1] - 0.2357*VyA[1] + 0.3333*VxA[2] + 0.0000*VyA[2] ;
-	kine->vOut 		= - 0.2467*VxA[0] - 0.3262*VyA[0] + 0.2467*VxA[1] - 0.3262*VyA[1] - 0.0000*VxA[2] + 0.1898*VyA[2] ;
-	kine->thetaOut 	=   0.1417*VxA[0] + 1.1707*VyA[0] - 0.1417*VxA[1] + 1.1707*VyA[1] + 0.0000*VxA[2] + 1.8560*VyA[2] ;
-}
-
-SwerveOdoHandle Odo;
-ForwardKine	Fkine;
-SpeedReadSlave Module[4];
-float Vx[4],Vy[4];
-float Gyro;
-
-#define UABOVE_X 	0.3
-#define UBELOW_X	-0.3
-
-#define UABOVE_Y 	0.3
-#define UBELOW_Y	-0.3
-
-#define UABOVE_THETA 	5
-#define UBELOW_THETA	-5
-
-#define ROBOT_RADIUS	0.25;
-
-typedef struct PDParam{
-	float e;
-	float pre;
-
-	float kP;
-	float kD;
-
-	float uP;
-	float uD;
-	float uDf;
-	float uDfpre;
-	float Alpha;
-
-	float u;
-	float uAbove;
-	float uBelow;
-}PDParam;
-
-
-
-void PD_setParam(PDParam *pd,float kP,float kD,float Alpha)
-{
-	pd->kP = kP;
-	pd->kD = kD;
-	pd->Alpha = Alpha;
-}
-
-void PD_setLimit(PDParam *pd,float uAbove,float uBelow)
-{
-	pd->uAbove = uAbove;
-	pd->uBelow = uBelow;
-}
-
-PDParam pDX;
-PDParam pDY;
-PDParam pDTheta;
-
-float TargetX;
-float TargetY;
-float TargetTheta;
-
-
-uint8_t Break;
-float absFloat(float num){
-	if (num<0.0){
-		return num*-1.0;
-	}
-	else
-	return num;
-}
-float min(float a,float b){
-	float min;
-	min = a;
-	if(b<=min){
-		min = b;
-	}
-	return min;
-}
-
-float max(float a,float b){
-	float max;
-	max = a;
-	if(b>=max){
-		max = b;
-	}
-	return max;
-}
-int Isteady(float e,float thresthold)
-{
-	if (absFloat(e)<thresthold){
-		return 1;
-	}
-
-	return 0;
-}
-
-
-uint8_t Run,resetParam,breakProtect;
-float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.6,kdTheta,alphaCtrol = 0.2;
-int testSpeed,testPos;
-float uControlX,uControlY,uControlTheta;
-uint8_t stateRun = 0 ,steadycheck;
-
-uint8_t xaDay;
-
-uint8_t ssCheck,stateChange,rst,Gamepad;
-#define PFxState10 -0.93
-#define PFyState10 -0.75
-#define PFxState20 -0.93
-#define PFyState20 0.05
-
-char tx_buffer1[] = "rst\n";
-char tx_buffer2[] = "red\n";
-
-float yaw;
-uint8_t red,rst;
-
-uint8_t StopUseXY,StopUsetheta;
-uint8_t StopUsePIDX,StopUsePIDY,StopUsePIDr;
 void ReadIMU(){
 	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer2, strlen(tx_buffer2), 100);
 	osDelay(6);
@@ -1412,55 +1164,20 @@ void odo_SpeedAngleUpdate(){
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
-	  /* USER CODE BEGIN OdometerHandle */
-
-//		valve_Init();
-//		osDelay(1000);
 		process_Init();
 		/* Infinite loop */
-		for (;;) {
+	for (;;) {
 			if(!shootFlag){
 				RTR_SpeedAngle();
 			}
-			odo_SpeedAngleUpdate();
-//			odo_PosCal();
-
-//			process_ReadIMU();
-//			process_SetYaw(CurrAngle);
-//
-			process_Run(Run);
-//
-//			if(GamePad.Touch == 1){
-//				Run = 1;
-//			}
-//			if(GamePad.Triangle == 1){
-//				Gamepad = 1;
-//			}
-//			if(Gamepad == 0){
 			if(GamePad.Up==1 && GamePad.Triangle==1){
 				Run = 1;
 			}
-//			if (Run == 1){
-//				process_PD_TestX(testX);
-//				process_PD_TestY(testY);
-//				process_PD_TestTheta(testTheta);
-//				process_PD_RotationControlSignal();
+		odo_SpeedAngleUpdate();
+		process_Run(Run);
+		osDelay(DELTA_T * 1000);
 
-//				uControlX = 	process_GetCtrSignal(U_Control);
-//				uControlY = 	process_GetCtrSignal(V_Control);
-//				uControlTheta = process_GetCtrSignal(R_Control);
-//
-//			}else{
-//				process_RotationMatrix(-GamePad.XLeftCtr, GamePad.YLeftCtr, GamePad.XRightCtr);
-				uControlX = 	process_GetCtrSignal(U_Control);
-				uControlY = 	process_GetCtrSignal(V_Control);
-				uControlTheta = process_GetCtrSignal(R_Control);
-//			}
-
-
-			osDelay(DELTA_T*1000 - IMU_Wait);
-
-		}
+	}
   /* USER CODE END OdometerHandle */
 }
 
