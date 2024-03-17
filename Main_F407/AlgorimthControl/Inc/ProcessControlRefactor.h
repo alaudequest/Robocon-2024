@@ -8,6 +8,9 @@
 #ifndef INC_PROCESSCONTROLREFACTOR_H_
 #define INC_PROCESSCONTROLREFACTOR_H_
 #include "stdbool.h"
+#include "PID.h"
+#include "main.h"
+#include "TrajectoryPlanning.h"
 typedef enum PID_Axis {
 	PID_AxisX,
 	PID_AxisY,
@@ -66,6 +69,6 @@ PID_Param GetAxisParamsPID(PID_Axis axis);
 
 void process_Init();
 void process_ManualSetChangeStage();
-ProcessOutputResult process_Run(uint8_t Run);
+ProcessOutputResult process_Run(bool Run);
 float process_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, float manualSetValue);
 #endif /* INC_PROCESSCONTROLREFACTOR_H_ */

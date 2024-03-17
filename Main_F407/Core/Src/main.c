@@ -78,7 +78,7 @@ osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
-
+QueueHandle_t qControlUVR;
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
@@ -359,6 +359,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
+	qControlUVR = xQueueCreate(5, sizeof(ProcessOutputResult));
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -825,16 +826,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 
-uint8_t enableTestMode;
-CAN_SpeedBLDC_AngleDC Gun_Actuator;
-void setTestModeActuator(){
-	if(!enableTestMode) return;
-	Gun_Actuator.bldcSpeed = 17.7;
-	Gun_Actuator.dcAngle = 44.4;
-	canfunc_MotorPutSpeedAndAngle(Gun_Actuator);
-	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
-	enableTestMode = 0;
-}
 void TestBreakProtection() {
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
 		canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
@@ -905,16 +896,6 @@ void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Stop(&htim10);
 }
 
-void ReadIMU(){
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer2, strlen(tx_buffer2), 100);
-	osDelay(6);
-//	yaw = CurrAngle*M_PI/180;
-}
-void ResetIMU(){
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer1, strlen(tx_buffer1), 100);
-	osDelay(6);
-//	yaw = CurrAngle*M_PI/180;
-}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -929,25 +910,13 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
-
+	uint8_t RunStage = 0;
 	swer_Init();
 
 	for (;;) {
-
-		if(xaDay == 0)
-		{
-			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-		}else{
-			 InvCpltCallback(MODULE_ID_3, 0, 0);
-			 InvCpltCallback(MODULE_ID_1, 0, 0);
-			 InvCpltCallback(MODULE_ID_2, 0, 0);
-		}
-
-		if(((GamePad.Square == 1)&&(GamePad.Circle == 1))||stateRun == 50)
-		{
-			xaDay = 1;
+		if(((GamePad.Square == 1) && (GamePad.Circle == 1)) || RunStage == 50) {
+			uint32_t untangleBLDC = 1;
+			xTaskNotify(TaskInvKineHandle, untangleBLDC, eSetValueWithOverwrite);
 		}
 		if (gamepadRxIsBusy) {
 			gamepadRxIsBusy = 0;
@@ -972,11 +941,20 @@ void StartDefaultTask(void const * argument)
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
-
+	uint32_t untangleBLDC;
+	ProcessOutputResult result;
 	/* Infinite loop */
 	for (;;) {
 
-
+		if(xTaskNotifyWait(pdFALSE, pdFALSE, &untangleBLDC, 0)) ;
+		if(untangleBLDC == 0 && xQueueReceive(qControlUVR, (void*) &result, 10) == pdTRUE) {
+			for (ModuleID id = MODULE_ID_1; id <= MODULE_ID_3; id++)
+				invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InvCpltCallback);
+		} else {
+			InvCpltCallback(MODULE_ID_3, 0, 0);
+			InvCpltCallback(MODULE_ID_1, 0, 0);
+			InvCpltCallback(MODULE_ID_2, 0, 0);
+		}
 		osDelay(1);
 	}
   /* USER CODE END InverseKinematic */
@@ -1165,16 +1143,19 @@ void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 		process_Init();
+	bool Run = false;
+	ProcessOutputResult result;
 		/* Infinite loop */
 	for (;;) {
 			if(!shootFlag){
 				RTR_SpeedAngle();
 			}
 			if(GamePad.Up==1 && GamePad.Triangle==1){
-				Run = 1;
+			Run = true;
 			}
 		odo_SpeedAngleUpdate();
-		process_Run(Run);
+		result = process_Run(Run);
+		xQueueSend(qControlUVR, (void* )&result, 10);
 		osDelay(DELTA_T * 1000);
 
 	}

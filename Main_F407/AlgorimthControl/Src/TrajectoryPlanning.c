@@ -43,6 +43,5 @@ void trajectplan_SetCalculateParameters(TrajectoryCalculateParameters *pParams, 
 {
 	t = 0;
 	p0 = _p0;
-	pf = _pf;
 	tp = _tp;
 }
