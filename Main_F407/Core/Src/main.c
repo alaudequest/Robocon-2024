@@ -157,7 +157,7 @@ void Actuator(void const * argument);
 void OdometerHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void setHomeComplete();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -189,11 +189,11 @@ void CAN_Init() {
 			0,
 			CAN_RX_FIFO0);
 }
-
-void setHomeComplete()
-{
-
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	while (1);
 }
+
+
 
 void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 	switch (mode) {
@@ -280,9 +280,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
-void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
-	while (1);
-}
+
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	__HAL_UART_CLEAR_OREFLAG(huart);
@@ -293,6 +291,12 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 //void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 //	log_TransmitCompleteHandle(huart);
 //}
+
+/*=============================== Other Functions ===============================*/
+void setHomeComplete()
+{
+
+}
 /* USER CODE END 0 */
 
 /**
