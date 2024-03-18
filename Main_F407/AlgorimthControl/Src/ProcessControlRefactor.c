@@ -11,7 +11,8 @@
 
 #define MAX_TRAJECT_STAGE 10
 #define MAX_MANUAL_SET_STAGE 10
-#define CONTROL_TYPE_INIT ON_TRAJECTORY_PLANNING_CONTROL
+//#define CONTROL_TYPE_INIT ON_TRAJECTORY_PLANNING_CONTROL
+#define CONTROL_TYPE_INIT ON_MANUAL_SET_CONTROL
 
 
 AxisData X, Y, Theta;
@@ -146,6 +147,11 @@ void process_Init() {
 	Y.trajectCalParams.tp.tf = 0;
 	Theta.trajectCalParams.tp.tf = 0;
 	X.trajectCalParams.tp.pf = 0;
+
+	X.pid.deltaT = 0.05;
+	Y.pid.deltaT = 0.05;
+	Theta.pid.deltaT = 0.05;
+
 	PID_SetParameters(&X.pid, 1, 0, 0, 0);
 	PID_SetParameters(&Y.pid, 1, 0, 0, 0);
 	PID_SetParameters(&Theta.pid, 1.2, 0, 0, 0);
@@ -159,19 +165,19 @@ void process_ManualSetChangeStage() {
 	if(manualStage < MAX_MANUAL_SET_STAGE) manualStage++;
 }
 
-void proces_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage) {
+void process_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage) {
 	arrManualSet[stage] = input;
 }
 
-ManualSetParameters proces_GetManualSetValueFromArray(ManualSetStage stage) {
+ManualSetParameters process_GetManualSetValueFromArray(ManualSetStage stage) {
 	return arrManualSet[stage];
 }
 
-void proces_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage) {
+void process_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage) {
 	arrTrajectPoints[stage] = p;
 }
 
-AxesTrajectPoint proces_GetTrajectPointFromArray(TrajectoryStage stage) {
+AxesTrajectPoint process_GetTrajectPointFromArray(TrajectoryStage stage) {
 	return arrTrajectPoints[stage];
 }
 

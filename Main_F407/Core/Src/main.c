@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-//#include "LogData.c"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "CAN_Control.h"
@@ -70,8 +70,6 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
-uint32_t TaskInvKineBuffer[ 256 ];
-osStaticThreadDef_t TaskInvKineControlBlock;
 osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
@@ -370,7 +368,7 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskInvKine */
-  osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
+  osThreadDef(TaskInvKine, InverseKinematic, osPriorityAboveNormal, 0, 256);
   TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
   /* definition and creation of TaskCAN */
@@ -907,16 +905,16 @@ void RTR_SpeedAngle(){
  * @retval None
  */
 uint8_t useEuler;
+float uControlX,uControlY,uControlTheta;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
-	uint8_t RunStage = 0;
-	swer_Init();
+
 
 	for (;;) {
-		if(((GamePad.Square == 1) && (GamePad.Circle == 1)) || RunStage == 50) {
+		if(((GamePad.Square == 1) && (GamePad.Circle == 1))) {
 			uint32_t untangleBLDC = 1;
 			xTaskNotify(TaskInvKineHandle, untangleBLDC, eSetValueWithOverwrite);
 		}
@@ -927,6 +925,7 @@ void StartDefaultTask(void const * argument)
 		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
 			__HAL_UART_ENABLE(&huart3);
 		}
+
 		osDelay(50);
 	}
   /* USER CODE END 5 */
@@ -945,19 +944,22 @@ void InverseKinematic(void const * argument)
   /* USER CODE BEGIN InverseKinematic */
 	uint32_t untangleBLDC;
 	ProcessOutputResult result;
+	swer_Init();
 	/* Infinite loop */
 	for (;;) {
 
 		if(xTaskNotifyWait(pdFALSE, pdFALSE, &untangleBLDC, 0)) ;
-		if(untangleBLDC == 0 && xQueueReceive(qControlUVR, (void*) &result, 10) == pdTRUE) {
-			for (ModuleID id = MODULE_ID_1; id <= MODULE_ID_3; id++)
-				invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InvCpltCallback);
-		} else {
-			InvCpltCallback(MODULE_ID_3, 0, 0);
-			InvCpltCallback(MODULE_ID_1, 0, 0);
-			InvCpltCallback(MODULE_ID_2, 0, 0);
+		if(xQueueReceive(qControlUVR, (void*) &result, 10) == pdTRUE){
+			if(untangleBLDC == 0) {
+				for (ModuleID id = MODULE_ID_1; id <= MODULE_ID_3; id++)
+					invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InvCpltCallback);
+			} else {
+				InvCpltCallback(MODULE_ID_3, 0, 0);
+				InvCpltCallback(MODULE_ID_1, 0, 0);
+				InvCpltCallback(MODULE_ID_2, 0, 0);
+			}
 		}
-		osDelay(1);
+		osDelay(50);
 	}
   /* USER CODE END InverseKinematic */
 }
@@ -1140,21 +1142,45 @@ void odo_SpeedAngleUpdate(){
 		odo_SetObj_SpAg(i,nodeSpeedAngle[i]);
 	}
 }
+
+bool Run = false;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 		process_Init();
-	bool Run = false;
+
 	ProcessOutputResult result;
+
+
+	AxesTrajectPoint point;
+	point.trajectPointX.pf = 1;
+	point.trajectPointX.tf = 2;
+	point.trajectPointX.vf = 0;
+	point.trajectPointX.ReachOffset = 0.03;
+
+
+//	SetTrajectPoint(&point);
+//	process_PutTrajectPointToArray(point, 0);
+
+
+	ManualSetParameters Signal;
+	Signal.DisablePID_AxisTheta = 1;
+	Signal.DisablePID_AxisX = 1;
+	Signal.DisablePID_AxisY = 1;
+	Signal.u = 0.5;
+	Signal.v = 0;
+	Signal.r = 0;
+	process_PutManualSetValueToArray(Signal, 0);
+
 		/* Infinite loop */
 	for (;;) {
 			if(!shootFlag){
 				RTR_SpeedAngle();
 			}
-			if(GamePad.Up==1 && GamePad.Triangle==1){
-			Run = true;
-			}
+//			if(GamePad.Up==1 && GamePad.Triangle==1){
+//			Run = true;
+//			}
 		odo_SpeedAngleUpdate();
 		result = process_Run(Run);
 		xQueueSend(qControlUVR, (void* )&result, 10);

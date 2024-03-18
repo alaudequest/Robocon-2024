@@ -62,10 +62,10 @@ typedef struct AxesTrajectPoint {
 
 void process_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage);
 AxesTrajectPoint process_GetTrajectPointFromArray(TrajectoryStage stage);
-void proces_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage);
-ManualSetParameters proces_GetManualSetValueFromArray(ManualSetStage stage);
-void SetAxisParamsPID(PID_Axis axis, PID_Param pid);
-PID_Param GetAxisParamsPID(PID_Axis axis);
+void process_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage);
+ManualSetParameters process_GetManualSetValueFromArray(ManualSetStage stage);
+void process_SetAxisParamsPID(PID_Axis axis, PID_Param pid);
+PID_Param process_GetAxisParamsPID(PID_Axis axis);
 
 void process_Init();
 void process_ManualSetChangeStage();

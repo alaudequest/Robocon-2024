@@ -50,7 +50,7 @@ typedef enum LogDataType {
 
 void log_Init(UART_HandleTypeDef *huart);
 void log_TransmitCompleteHandle(UART_HandleTypeDef *huart);
-void log_AddArgumentToBuffer(void *data, DataType type);
+void log_AddArgumentToBuffer(void *data, LogDataType type);
 void log_AddHeaderArgumentToBuffer(char *name);
 void log_SendString();
 
