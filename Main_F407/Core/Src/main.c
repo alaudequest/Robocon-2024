@@ -36,6 +36,7 @@
 #include "PositionControl.h"
 #include "ProcessControl.h"
 #include "PutBall.h"
+#include "LogData.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -63,12 +64,14 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
@@ -79,6 +82,7 @@ uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
+osThreadId TaskSiloHandle;
 /* USER CODE BEGIN PV */
 
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -152,11 +156,13 @@ static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM5_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void Actuator(void const * argument);
 void OdometerHandle(void const * argument);
+void StartTaskSilo(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -292,9 +298,40 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	__HAL_UART_DISABLE(huart);
 }
-//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
-//	log_TransmitCompleteHandle(huart);
-//}
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
+	log_TransmitCompleteHandle(huart);
+}
+
+void Send_Data(){
+
+	odo_Pose pose = odo_GetPose();
+	float Xtrajec = GetXtraject(TrajecX);
+	float Ytrajec = GetXtraject(TrajecY);
+	float ThetaTrajec = GetXtraject(TrajecTheta);
+
+	log_AddArgumentToBuffer((void*)&pose.poseX, TYPE_FLOAT);
+	log_AddArgumentToBuffer((void*)&pose.poseY, TYPE_FLOAT);
+	log_AddArgumentToBuffer((void*)&pose.poseTheta, TYPE_FLOAT);
+
+	log_AddArgumentToBuffer((void*)&Xtrajec, TYPE_FLOAT);
+	log_AddArgumentToBuffer((void*)&Ytrajec, TYPE_FLOAT);
+	log_AddArgumentToBuffer((void*)&ThetaTrajec, TYPE_FLOAT);
+
+
+	log_SendString();
+}
+
+void Send_Header(){
+	log_AddHeaderArgumentToBuffer("PoseX");
+	log_AddHeaderArgumentToBuffer("PoseY");
+	log_AddHeaderArgumentToBuffer("PoseTheta");
+
+	log_AddHeaderArgumentToBuffer("TrajecPlanX");
+	log_AddHeaderArgumentToBuffer("TrajecPlanY");
+	log_AddHeaderArgumentToBuffer("TrajecPlanTheta");
+
+	log_SendString();
+}
 /* USER CODE END 0 */
 
 /**
@@ -335,13 +372,19 @@ int main(void)
   MX_TIM10_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 //  	log_Init(&huart2);
+  	log_Init(&huart2);
+  	Send_Header();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
@@ -385,6 +428,10 @@ int main(void)
   /* definition and creation of TaskOdometer */
   osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
+
+  /* definition and creation of TaskSilo */
+  osThreadDef(TaskSilo, StartTaskSilo, osPriorityLow, 0, 64);
+  TaskSiloHandle = osThreadCreate(osThread(TaskSilo), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -562,7 +609,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -647,6 +694,69 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 80-1;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 1000-1;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+  HAL_TIM_MspPostInit(&htim5);
 
 }
 
@@ -788,8 +898,12 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -1246,11 +1360,15 @@ void Drive(int status){
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
-
+	uint32_t value = 0;
 	/* Infinite loop */
 	for (;;) {
-		startPutBall(process_ReturnBallValue());
-//		Drive(testdc);
+//		startPutBall(process_ReturnBallValue());
+////		Drive(testdc);
+//		osDelay(1);
+		if(xTaskNotifyWait(pdFALSE, pdFALSE, &value, portMAX_DELAY)){
+			Send_Data();
+		}
 		osDelay(1);
 	}
   /* USER CODE END InverseKinematic */
@@ -1341,39 +1459,20 @@ void OdometerHandle(void const * argument)
 				RTR_SpeedAngle();
 			}
 
-
 			odo_SpeedAngleUpdate();
-//			odo_PosCal();
+			odo_PosCal();
 
 			process_ReadIMU();
 			process_SetYaw(CurrAngle);
-//
+
 			process_Run(Run);
-//
-//			if(GamePad.Touch == 1){
-//				Run = 1;
-//			}
-//			if(GamePad.Triangle == 1){
-//				Gamepad = 1;
-//			}
-//			if(Gamepad == 0){
+
 			if(GamePad.Up==1 && GamePad.Triangle==1){
 				Run = 1;
 			}else if (GamePad.Down == 1 && GamePad.Cross == 1){
 				Run = 0;
 			}
-//			if (Run == 1){
-//				process_PD_TestX(testX);
-//				process_PD_TestY(testY);
-//				process_PD_TestTheta(testTheta);
-//				process_PD_RotationControlSignal();
 
-//				uControlX = 	process_GetCtrSignal(U_Control);
-//				uControlY = 	process_GetCtrSignal(V_Control);
-//				uControlTheta = process_GetCtrSignal(R_Control);
-//
-//			}else{
-//				process_RotationMatrix(-GamePad.XLeftCtr, GamePad.YLeftCtr, GamePad.XRightCtr);
 			if(Run == 1){
 				uControlX = 	process_GetCtrSignal(U_Control);
 				uControlY = 	process_GetCtrSignal(V_Control);
@@ -1383,13 +1482,33 @@ void OdometerHandle(void const * argument)
 				uControlY = 	GamePad.YLeftCtr;
 				uControlTheta = GamePad.XRightCtr;
 			}
-//			}
 
-
+			xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
 			osDelay(DELTA_T*1000 - IMU_Wait);
 
 		}
   /* USER CODE END OdometerHandle */
+}
+
+/* USER CODE BEGIN Header_StartTaskSilo */
+/**
+* @brief Function implementing the TaskSilo thread.
+* @param argument: Not used
+* @retval None
+*/
+uint8_t testSilo;
+/* USER CODE END Header_StartTaskSilo */
+void StartTaskSilo(void const * argument)
+{
+  /* USER CODE BEGIN StartTaskSilo */
+  /* Infinite loop */
+  for(;;)
+  {
+	startPutBall(process_ReturnBallValue());
+//	startPutBall(testSilo);
+    osDelay(1);
+  }
+  /* USER CODE END StartTaskSilo */
 }
 
 /**

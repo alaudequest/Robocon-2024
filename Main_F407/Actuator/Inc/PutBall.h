@@ -13,15 +13,25 @@
 #include "Motor.h"
 #include "Accel.h"
 
-typedef struct PutBallParam_t{
-	Encoder_t putBall_enc;
-	MotorDC putBall_mdc;
+typedef struct PutParam_t{
+	Encoder_t enc;
+	MotorDC mdc;
 	AccelParam_t accel;
 	uint8_t flag;
 	uint8_t status;
-	uint8_t rst;
-}PutBallParam_t;
+	uint8_t StopPutFlag;
+
+}PutParam_t;
+
+typedef struct GetParam_t{
+	Encoder_t enc;
+	MotorDC mdc;
+	AccelParam_t accel;
+	uint8_t flag;
+	uint8_t status;
+}GetParam_t;
 
 void startPutBall(uint8_t status);
+uint8_t PutBall_getFlag();
 
 #endif /* INC_PUTBALL_H_ */

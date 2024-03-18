@@ -8,7 +8,7 @@
 
 #include "LogData.h"
 
-char txLogBuffer[100] = {0};
+char txLogBuffer[150] = {0};
 UART_HandleTypeDef *targetUART;
 
 static HAL_StatusTypeDef checkNull(){

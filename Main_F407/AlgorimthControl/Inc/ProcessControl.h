@@ -11,6 +11,7 @@
 #include "Odometry.h"
 #include "PositionControl.h"
 #include "ActuatorValve.h"
+#include "PutBall.h"
 #define IMU_Wait		6
 #define KP_INIT_X		0.5
 #define KP_INIT_Y		0.5
@@ -159,6 +160,11 @@ typedef enum Signal_type{
 	R_Control,
 }Signal_type;
 
+typedef enum Trajec_Type{
+	TrajecX,
+	TrajecY,
+	TrajecTheta,
+}Trajec_Type;
 
 typedef struct processControl_Parameter{
 	pd_Param pdX,pdY,pdTheta;
@@ -212,6 +218,9 @@ void process_PD_TestTheta(float Target);
 void process_PD_RotationControlSignal();
 void process_RotationMatrix(float u, float v, float r);
 void process_TrajecStateCondition_EndPath_NoYaw(float xCondition, float yCondition, float thetaCondition);
+
 void process_setVal_PutBall(int Value);
+
+float GetXtraject(Trajec_Type ID);
 uint8_t process_ReturnBallValue();
 #endif /* INC_PROCESSCONTROL_H_ */
