@@ -288,9 +288,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	__HAL_UART_DISABLE(huart);
 }
-//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
-//	log_TransmitCompleteHandle(huart);
-//}
+
 
 /*=============================== Other Functions ===============================*/
 void setHomeComplete()
