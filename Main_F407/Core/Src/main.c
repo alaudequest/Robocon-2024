@@ -100,7 +100,6 @@ float Xright;
 _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
 float u, v, r;
-
 float DeltaYR, DeltaYL, DeltaX;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
 
@@ -368,19 +367,19 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskInvKine */
-  osThreadDef(TaskInvKine, InverseKinematic, osPriorityAboveNormal, 0, 256);
+  osThreadDef(TaskInvKine, InverseKinematic, osPriorityNormal, 0, 256);
   TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
   /* definition and creation of TaskCAN */
-  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
+  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityHigh, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
   TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
   /* definition and creation of TaskActuator */
-  osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
+  osThreadDef(TaskActuator, Actuator, osPriorityLow, 0, 128);
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
   /* definition and creation of TaskOdometer */
-  osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityAboveNormal, 0, 256);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -942,23 +941,25 @@ void StartDefaultTask(void const * argument)
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
-	uint32_t untangleBLDC;
+	uint32_t untangleBLDC = 0;
 	ProcessOutputResult result;
 	swer_Init();
 	/* Infinite loop */
 	for (;;) {
 
-		if(xTaskNotifyWait(pdFALSE, pdFALSE, &untangleBLDC, 0)) ;
-		if(xQueueReceive(qControlUVR, (void*) &result, 10) == pdTRUE){
+//		if(xTaskNotifyWait(pdFALSE, pdFALSE, &untangleBLDC, 0)) ;
+		if(xQueueReceive(qControlUVR, (void*) &result, 100) == pdTRUE){
 			if(untangleBLDC == 0) {
 				for (ModuleID id = MODULE_ID_1; id <= MODULE_ID_3; id++)
 					invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InvCpltCallback);
-			} else {
+			}
+			else {
 				InvCpltCallback(MODULE_ID_3, 0, 0);
 				InvCpltCallback(MODULE_ID_1, 0, 0);
 				InvCpltCallback(MODULE_ID_2, 0, 0);
 			}
 		}
+
 		osDelay(50);
 	}
   /* USER CODE END InverseKinematic */
@@ -1013,115 +1014,7 @@ void Actuator(void const * argument)
   /* USER CODE BEGIN Actuator */
 	/* Infinite loop */
 	for (;;) {
-//		process_RunSSAndActuator(&TestBreakProtection);
-//		if(ReleaseAll== 1){
-//			Release();
-//			ReleaseAll = 0;
-//		}
-//		if(shoot == 1){
-//			canShoot();
-//			shoot = 0;
-//		}
-//
-//		if(encEnb == 1){
-//			StopEnc(0);
-//			encEnb = 0;
-//		}
-//		if(encDis == 1){
-//			StopEnc(1);
-//			encDis = 0;
-//		}
-//		BallSS = HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin);
-//
-//		if((stateRun == 4)||(stateRun == 15)){
-//			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin)&&HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin)){
-//				ssCheck ++;
-//			}else {
-//				ssCheck = 0;
-//			}
-//
-//
-//			if(ssCheck > 5){
-//				stateRun ++ ;
-//				ssCheck = 0;
-//			}
-//		}
-//
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 7 ---------------------------------------------------//
-//			if(stateRun == 7){
-////				ResetIMU();
-//				valve_BothCatch();
-//				Odo.poseTheta = 0;
-//				Odo.poseY = 0;
-//				Odo.poseX = 0;
-//				stateChange = 0;
-//				TestBreakProtection();
-//				osDelay(50);
-//				stateRun += 1;
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 17 ---------------------------------------------------//
-//			if(stateRun == 17){
-////				ResetIMU();
-//				valve_BothCatch();
-//				Odo.poseTheta = 0;
-//				Odo.poseY = 0;
-//				Odo.poseX = 0;
-//				stateChange = 0;
-//				TestBreakProtection();
-//				osDelay(50);
-//				stateRun += 1;
-//			}
-//
-//			if(stateRun == 28){
-//				Odo.poseTheta = yaw;
-//				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
-//					ssCheck++;
-//				}else{
-//					ssCheck = 0;
-//				}
-//					if(ssCheck>15){
-//						stateRun++;
-//						ssCheck = 0;
-//				}
-//			}
-//			if(stateRun == 35){
-//				Odo.poseTheta = yaw;
-//				if(HAL_GPIO_ReadPin(SSBall_GPIO_Port, SSBall_Pin)){
-//					ssCheck++;
-//				}else{
-//					ssCheck = 0;
-//				}
-//					if(ssCheck>15){
-//						stateRun++;
-//						ssCheck = 0;
-//				}
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 12 ---------------------------------------------------//
-//			if(stateRun == 12){
-//
-//				StopUseXY = 0;
-//				stateRun += 1;
-//			}
-//	//MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM//
-//	//--------------------------------------State 22 ---------------------------------------------------//
-//			if(stateRun == 22){
-//				StopUseXY = 0;
-//				stateRun += 1;
-//			}
 
-
-//		float X = odo_GetPoseX();
-//		float Y = odo_GetPoseY();
-//		float THETA = odo_GetPoseTheta();
-//
-//		log_AddArgumentToBuffer((void *)&X,TYPE_FLOAT);
-//		log_AddArgumentToBuffer((void *)&Y,TYPE_FLOAT);
-//		log_AddArgumentToBuffer((void *)&THETA,TYPE_FLOAT);
-//
-//		log_SendString();
 
 
 
@@ -1150,7 +1043,7 @@ void OdometerHandle(void const * argument)
   /* USER CODE BEGIN OdometerHandle */
 		process_Init();
 
-	ProcessOutputResult result;
+
 
 
 	AxesTrajectPoint point;
@@ -1159,19 +1052,117 @@ void OdometerHandle(void const * argument)
 	point.trajectPointX.vf = 0;
 	point.trajectPointX.ReachOffset = 0.03;
 
+	point.trajectPointY.pf = 0;
+	point.trajectPointY.tf = 2;
+	point.trajectPointY.vf = 0;
+	point.trajectPointY.ReachOffset = 0.03;
 
-//	SetTrajectPoint(&point);
-//	process_PutTrajectPointToArray(point, 0);
+	point.trajectPointTheta.pf = 0;
+	point.trajectPointTheta.tf = 2;
+	point.trajectPointTheta.vf = 0;
+	point.trajectPointTheta.ReachOffset = 0.03;
+	point.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
+
+	process_PutTrajectPointToArray(point, 0);
+
+	AxesTrajectPoint point1;
+	point1.trajectPointX.pf = 1;
+	point1.trajectPointX.tf = 2;
+	point1.trajectPointX.vf = 0;
+	point1.trajectPointX.ReachOffset = 0.03;
+
+	point1.trajectPointY.pf = 1;
+	point1.trajectPointY.tf = 2;
+	point1.trajectPointY.vf = 0;
+	point1.trajectPointY.ReachOffset = 0.03;
+
+	point1.trajectPointTheta.pf = 0;
+	point1.trajectPointTheta.tf = 2;
+	point1.trajectPointTheta.vf = 0;
+	point1.trajectPointTheta.ReachOffset = 0.03;
+	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
+
+	process_PutTrajectPointToArray(point1, 1);
+
+	point1.trajectPointX.pf = 3;
+	point1.trajectPointX.tf = 2;
+	point1.trajectPointX.vf = 0;
+	point1.trajectPointX.ReachOffset = 0.03;
+
+	point1.trajectPointY.pf = 1;
+	point1.trajectPointY.tf = 2;
+	point1.trajectPointY.vf = 0;
+	point1.trajectPointY.ReachOffset = 0.03;
+
+	point1.trajectPointTheta.pf = 0;
+	point1.trajectPointTheta.tf = 2;
+	point1.trajectPointTheta.vf = 0;
+	point1.trajectPointTheta.ReachOffset = 0.03;
+	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
+
+	process_PutTrajectPointToArray(point1, 2);
+
+	point1.trajectPointX.pf = 3;
+	point1.trajectPointX.tf = 2;
+	point1.trajectPointX.vf = 0;
+	point1.trajectPointX.ReachOffset = 0.03;
+
+	point1.trajectPointY.pf = 2;
+	point1.trajectPointY.tf = 2;
+	point1.trajectPointY.vf = 0;
+	point1.trajectPointY.ReachOffset = 0.03;
+
+	point1.trajectPointTheta.pf = 0;
+	point1.trajectPointTheta.tf = 2;
+	point1.trajectPointTheta.vf = 0;
+	point1.trajectPointTheta.ReachOffset = 0.03;
+	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
+
+	process_PutTrajectPointToArray(point1, 3);
+
+	point1.trajectPointX.pf = 3;
+	point1.trajectPointX.tf = 2;
+	point1.trajectPointX.vf = 0;
+	point1.trajectPointX.ReachOffset = 0.03;
+
+	point1.trajectPointY.pf = 5;
+	point1.trajectPointY.tf = 2;
+	point1.trajectPointY.vf = 0;
+	point1.trajectPointY.ReachOffset = 0.03;
+
+	point1.trajectPointTheta.pf = 2;
+	point1.trajectPointTheta.tf = 2;
+	point1.trajectPointTheta.vf = 0;
+	point1.trajectPointTheta.ReachOffset = 0.03;
+	point1.nextStageControlType = ON_MANUAL_SET_CONTROL;
+
+	process_PutTrajectPointToArray(point1, 4);
+
 
 
 	ManualSetParameters Signal;
 	Signal.DisablePID_AxisTheta = 1;
 	Signal.DisablePID_AxisX = 1;
 	Signal.DisablePID_AxisY = 1;
-	Signal.u = 0.5;
+	Signal.u = 0;
 	Signal.v = 0;
 	Signal.r = 0;
 	process_PutManualSetValueToArray(Signal, 0);
+	Signal.DisablePID_AxisTheta = 1;
+	Signal.DisablePID_AxisX = 1;
+	Signal.DisablePID_AxisY = 1;
+	Signal.u = 0.5;
+	Signal.v = 0;
+	Signal.r = 0;
+	process_PutManualSetValueToArray(Signal, 1);
+	Signal.DisablePID_AxisTheta = 1;
+	Signal.DisablePID_AxisX = 1;
+	Signal.DisablePID_AxisY = 1;
+	Signal.u = 0;
+	Signal.v = 0.5;
+	Signal.r = 0;
+	process_PutManualSetValueToArray(Signal, 2);
+
 
 		/* Infinite loop */
 	for (;;) {
@@ -1182,8 +1173,8 @@ void OdometerHandle(void const * argument)
 //			Run = true;
 //			}
 		odo_SpeedAngleUpdate();
-		result = process_Run(Run);
-		xQueueSend(qControlUVR, (void* )&result, 10);
+		ProcessOutputResult result = process_Run(Run);
+		xQueueSend(qControlUVR, (void* )&result, 100);
 		osDelay(DELTA_T * 1000);
 
 	}

@@ -42,6 +42,7 @@ typedef enum ProcessControlFlag {
 } ProcessControlFlag;
 
 typedef enum ControlType {
+	NO_CONTROL,
 	ON_MANUAL_SET_CONTROL,
 	ON_TRAJECTORY_PLANNING_CONTROL,
 	ON_ACTUATOR,

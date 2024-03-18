@@ -75,3 +75,12 @@ void odo_ResetPose(){
 	odo.pose.poseX = 0;
 	odo.pose.poseY = 0;
 }
+
+void odo_ResetPose_2(bool *reset){
+	if(*reset == 0) return;
+	odo.pose.poseTheta = 0;
+	odo.pose.poseX = 0;
+	odo.pose.poseY = 0;
+	*reset = 0;
+}
+

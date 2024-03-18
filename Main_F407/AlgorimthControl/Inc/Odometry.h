@@ -71,6 +71,7 @@ void odo_SetZeta(zeta_Param zeta);
 
 void odo_SetPoseTheta(float theta);
 void odo_ResetPose();
+void odo_ResetPose_2(bool *reset);
 
 void odo_PosCal();
 

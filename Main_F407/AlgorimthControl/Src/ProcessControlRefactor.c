@@ -8,6 +8,7 @@
 
 #include "ProcessControlRefactor.h"
 #include "Odometry.h"
+#include "cmsis_os.h"
 
 #define MAX_TRAJECT_STAGE 10
 #define MAX_MANUAL_SET_STAGE 10
@@ -22,6 +23,7 @@ ControlType currentControlType = CONTROL_TYPE_INIT;
 AxesTrajectPoint arrTrajectPoints[MAX_TRAJECT_STAGE] = {0};
 ManualSetParameters arrManualSet[MAX_MANUAL_SET_STAGE];
 bool LockSettingTrajectParam = false;
+bool resetOdometer = true;
 
 static float cal_absF(float num)
 {
@@ -91,8 +93,8 @@ static void TrajectoryManager() {
 	trajectplan_Calculate(&Theta.trajectCalParams);
 	if(trajectory_IsReachTargetPoint(trajectStage)) {
 		LockSettingTrajectParam = false; // to set new parameters
-		if(trajectStage < MAX_TRAJECT_STAGE) trajectStage++;
 		currentControlType = arrTrajectPoints[trajectStage].nextStageControlType;
+		if(trajectStage < MAX_TRAJECT_STAGE) trajectStage++;
 	}
 }
 
@@ -112,6 +114,8 @@ static void RunControlType(ControlType type) {
 		break;
 		case ON_ACTUATOR:
 			break;
+		default:
+			break;
 	}
 }
 
@@ -127,6 +131,7 @@ ProcessOutputResult process_Run(bool Run) {
 	odo_PosCal();
 	ProcessOutputResult output;
 	if(Run) {
+		odo_ResetPose_2(&resetOdometer);
 		RunControlType(currentControlType);
 		float poseX = odo_GetPoseX();
 		float poseY = odo_GetPoseY();
