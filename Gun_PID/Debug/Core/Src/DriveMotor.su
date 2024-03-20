@@ -1,0 +1,2 @@
+../Core/Src/DriveMotor.c:10:6:DC_Drive	24	static
+../Core/Src/DriveMotor.c:26:6:Gun_Drive	24	static

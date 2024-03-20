@@ -1425,7 +1425,7 @@ void Actuator(void const * argument)
 	for (;;) {
 		process_RunSSAndActuator(&TestBreakProtection);
 
-
+//		BallSS= HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin);
 		osDelay(1);
 	}
   /* USER CODE END Actuator */
