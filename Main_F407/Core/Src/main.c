@@ -1324,7 +1324,7 @@ void StartDefaultTask(void const * argument)
 			 InvCpltCallback(MODULE_ID_2, 0, 0);
 		}
 
-		if(((GamePad.Square == 1)&&(GamePad.Circle == 1))||stateRun == 50)
+		if(((GamePad.Square == 1)&&(GamePad.Right == 1))||stateRun == 50)
 		{
 			xaDay = 1;
 		}
@@ -1444,6 +1444,7 @@ void odo_SpeedAngleUpdate(){
 	}
 }
 /* USER CODE END Header_OdometerHandle */
+int gamepad;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1471,13 +1472,14 @@ void OdometerHandle(void const * argument)
 				Run = 1;
 			}else if (GamePad.Down == 1 && GamePad.Cross == 1){
 				Run = 0;
+				gamepad = 1;
 			}
 
 			if(Run == 1){
 				uControlX = 	process_GetCtrSignal(U_Control);
 				uControlY = 	process_GetCtrSignal(V_Control);
 				uControlTheta = process_GetCtrSignal(R_Control);
-			}else {
+			}else if(Run == 0 && gamepad == 1) {
 				uControlX = 	-GamePad.XLeftCtr;
 				uControlY = 	GamePad.YLeftCtr;
 				uControlTheta = GamePad.XRightCtr;

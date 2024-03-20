@@ -13,8 +13,8 @@
 #include "ActuatorValve.h"
 #include "PutBall.h"
 #define IMU_Wait		6
-#define KP_INIT_X		0.5
-#define KP_INIT_Y		0.5
+#define KP_INIT_X		1
+#define KP_INIT_Y		1
 #define KP_INIT_THETA	1.2
 
 #define KD_INIT_X		0

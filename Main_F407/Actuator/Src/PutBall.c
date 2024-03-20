@@ -47,10 +47,11 @@ void startPutBall(uint8_t state)
 		if (putBall.StopPutFlag)
 		{
 			MotorDC_Drive(&putBall.mdc, 0);
+			MotorDC_Drive(&getBall.mdc, 0);
 			encoder_ResetCount(&putBall.enc);
 		}else{
 			MotorDC_Drive(&putBall.mdc, 400);
-			MotorDC_Drive(&getBall.mdc, 0);
+			MotorDC_Drive(&getBall.mdc, -1000);
 		}
 	}
 	else if(state == 2)
