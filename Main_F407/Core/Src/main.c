@@ -805,11 +805,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : SensorForklift_Pin */
+  GPIO_InitStruct.Pin = SensorForklift_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(SensorForklift_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : SSBall_Pin SSLua1_Pin SSLua2_Pin */
   GPIO_InitStruct.Pin = SSBall_Pin|SSLua1_Pin|SSLua2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -1041,16 +1051,25 @@ bool Run = false;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
-		process_Init();
+	PID_Param pidInit;
+	TrajectPlanningPoint tpInit;
 
+	pidInit.kP = 1;
+	pidInit.u_AboveLimit = 1;
+	pidInit.u_BelowLimit = -1;
+	pidInit.deltaT = 0.05;
+	process_SetupAxisParameter(pidInit, tpInit, PID_AxisX);
+	process_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
+	pidInit.kP = 1.2;
+	process_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
 
 
 
 	AxesTrajectPoint point;
-	point.trajectPointX.pf = 1;
-	point.trajectPointX.tf = 2;
-	point.trajectPointX.vf = 0;
-	point.trajectPointX.ReachOffset = 0.03;
+	point.trajectPointX.pf = 1; // move X axis 1 meter
+	point.trajectPointX.tf = 2; // in 2 second
+	point.trajectPointX.vf = 0; // final velocity is 0 m/s
+	point.trajectPointX.ReachOffset = 0.03; // offset is 0.03m
 
 	point.trajectPointY.pf = 0;
 	point.trajectPointY.tf = 2;

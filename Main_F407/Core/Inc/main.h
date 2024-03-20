@@ -65,6 +65,9 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
+#define SensorForklift_Pin GPIO_PIN_11
+#define SensorForklift_GPIO_Port GPIOE
+#define SensorForklift_EXTI_IRQn EXTI15_10_IRQn
 #define SSBall_Pin GPIO_PIN_12
 #define SSBall_GPIO_Port GPIOE
 #define SSLua1_Pin GPIO_PIN_13
