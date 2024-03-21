@@ -10,18 +10,25 @@
 #include "Odometry.h"
 #include "cmsis_os.h"
 
-#define MAX_TRAJECT_STAGE 10
+#define MAX_TRAJECT_STAGE 5
 #define MAX_MANUAL_SET_STAGE 10
+#define MAX_DELAY_STAGE 3
 //#define CONTROL_TYPE_INIT ON_TRAJECTORY_PLANNING_CONTROL
 #define CONTROL_TYPE_INIT ON_MANUAL_SET_CONTROL
 
 
 AxisData X, Y, Theta;
+
 ManualSetStage manualStage = 0;
 TrajectoryStage trajectStage = 0;
-ControlType currentControlType = CONTROL_TYPE_INIT;
+DelayStage delayStage = 0;
+
+DelayParameter_t arrDelay[MAX_DELAY_STAGE] = {0};
 AxesTrajectPoint arrTrajectPoints[MAX_TRAJECT_STAGE] = {0};
 ManualSetParameters arrManualSet[MAX_MANUAL_SET_STAGE];
+
+uint32_t currentDelay = 0;
+ControlType currentControlType = CONTROL_TYPE_INIT;
 bool LockSettingTrajectParam = false;
 bool resetOdometer = true;
 
@@ -114,6 +121,8 @@ static void RunControlType(ControlType type) {
 		break;
 		case ON_ACTUATOR:
 			break;
+		case ON_DELAY:
+		break;
 		default:
 			break;
 	}
@@ -139,7 +148,6 @@ ProcessOutputResult process_Run(bool Run) {
 		float u = process_GetOutputValueOfPID(&X, poseX, arrManualSet[manualStage].u);
 		float v = process_GetOutputValueOfPID(&Y, poseY, arrManualSet[manualStage].v);
 		float r = process_GetOutputValueOfPID(&Theta, poseTheta, arrManualSet[manualStage].r);
-		// Rotation matrix transformation from robot coordinate to the ground surface coordinate
 		output.uControl = u * cos(-poseTheta) - v * sin(-poseTheta);
 		output.vControl = u * sin(-poseTheta) + v * cos(-poseTheta);
 		output.rControl = r;
@@ -147,23 +155,23 @@ ProcessOutputResult process_Run(bool Run) {
 	return output;
 }
 
-void process_Init() {
-	X.trajectCalParams.tp.tf = 0;
-	Y.trajectCalParams.tp.tf = 0;
-	Theta.trajectCalParams.tp.tf = 0;
-	X.trajectCalParams.tp.pf = 0;
-
-	X.pid.deltaT = 0.05;
-	Y.pid.deltaT = 0.05;
-	Theta.pid.deltaT = 0.05;
-
-	PID_SetParameters(&X.pid, 1, 0, 0, 0);
-	PID_SetParameters(&Y.pid, 1, 0, 0, 0);
-	PID_SetParameters(&Theta.pid, 1.2, 0, 0, 0);
-
-	PID_SetSaturate(&X.pid, 1, -1);
-	PID_SetSaturate(&Y.pid, 1, -1);
-	PID_SetSaturate(&Theta.pid, 1, -1);
+void process_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpInit, PID_Axis typeAxis) {
+	AxisData *targetAxis = NULL;
+	switch (typeAxis) {
+		case PID_AxisX:
+			targetAxis = &X;
+		break;
+		case PID_AxisY:
+			targetAxis = &Y;
+		break;
+		case PID_AxisTheta:
+			targetAxis = &Theta;
+		break;
+	}
+	PID_SetParameters(&targetAxis->pid, pidAxisInit.kP, pidAxisInit.kI, pidAxisInit.kD, pidAxisInit.alpha);
+	PID_SetSaturate(&targetAxis->pid, pidAxisInit.u_AboveLimit, pidAxisInit.u_BelowLimit);
+	trajectplan_SetCalculateParameters(&targetAxis->trajectCalParams, 0, 0, tpInit);
+	targetAxis->pid.deltaT = pidAxisInit.deltaT;
 }
 
 void process_ManualSetChangeStage() {
@@ -215,3 +223,28 @@ void process_SetAxisParamsPID(PID_Axis axis, PID_Param pid) {
 		break;
 	}
 }
+
+void process_PutDelayValueToArray(uint32_t milisecond, uint8_t stage, ControlType nextControlType) {
+	if(stage > MAX_DELAY_STAGE) return;
+	arrDelay[stage].delay = milisecond;
+	arrDelay[stage].nextControlType = nextControlType;
+}
+
+uint32_t process_GetDelayValueFromArray(uint8_t stage) {
+	return arrDelay[stage].delay;
+}
+
+/**
+ * Should be place in HAL_TIM_PeriodElapsedCallback
+ */
+void process_DelayInISR() {
+	if(currentControlType != ON_DELAY) return;
+	if(currentDelay < arrDelay[delayStage].delay)
+		currentDelay++;
+	else if(delayStage < MAX_DELAY_STAGE) {
+		currentDelay = 0;
+		delayStage++;
+	}
+
+}
+
