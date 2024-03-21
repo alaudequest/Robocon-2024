@@ -59,6 +59,8 @@ typedef enum MainEvent
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 CAN_HandleTypeDef hcan1;
 
 TIM_HandleTypeDef htim1;
@@ -157,6 +159,7 @@ static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -332,6 +335,25 @@ void Send_Header(){
 
 	log_SendString();
 }
+float count,adc_val_Fil,sum;
+float adc_val = 0;
+float distance = 0;
+void readADC(){
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, 1000);
+	adc_val = HAL_ADC_GetValue(&hadc1);
+	count++;
+	sum+=adc_val;
+	if(count>50)
+	{
+		adc_val_Fil=sum/50;
+		sum = 0;
+		count = 0;
+	}
+	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.2;
+
+	HAL_ADC_Stop(&hadc1);
+}
 /* USER CODE END 0 */
 
 /**
@@ -373,6 +395,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_TIM5_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 //  	log_Init(&huart2);
   	log_Init(&huart2);
@@ -496,6 +519,58 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -922,6 +997,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -1100,7 +1176,7 @@ void Release(){
  */
 
 
-int count;
+//int count;
 int NopeCycle = 3300;
 
 float preGyro;
@@ -1363,9 +1439,6 @@ void InverseKinematic(void const * argument)
 	uint32_t value = 0;
 	/* Infinite loop */
 	for (;;) {
-//		startPutBall(process_ReturnBallValue());
-////		Drive(testdc);
-//		osDelay(1);
 		if(xTaskNotifyWait(pdFALSE, pdFALSE, &value, portMAX_DELAY)){
 			Send_Data();
 		}
@@ -1393,8 +1466,6 @@ void CAN_Bus(void const * argument)
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3, CANCTRL_MODE_SET_HOME);
 	osDelay(1);
 	osDelay(500);
-//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
-//	osDelay(1);
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
@@ -1424,7 +1495,7 @@ void Actuator(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		process_RunSSAndActuator(&TestBreakProtection);
-
+		readADC();
 //		BallSS= HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin);
 		osDelay(1);
 	}
@@ -1444,7 +1515,6 @@ void odo_SpeedAngleUpdate(){
 	}
 }
 /* USER CODE END Header_OdometerHandle */
-int gamepad;
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -1466,20 +1536,21 @@ void OdometerHandle(void const * argument)
 			process_ReadIMU();
 			process_SetYaw(CurrAngle);
 
+			process_SetBallDis(distance);
 			process_Run(Run);
 
 			if(GamePad.Up==1 && GamePad.Triangle==1){
 				Run = 1;
 			}else if (GamePad.Down == 1 && GamePad.Cross == 1){
 				Run = 0;
-				gamepad = 1;
+				Gamepad = 1;
 			}
 
 			if(Run == 1){
 				uControlX = 	process_GetCtrSignal(U_Control);
 				uControlY = 	process_GetCtrSignal(V_Control);
 				uControlTheta = process_GetCtrSignal(R_Control);
-			}else if(Run == 0 && gamepad == 1) {
+			}else if(Run == 0 && Gamepad == 1) {
 				uControlX = 	-GamePad.XLeftCtr;
 				uControlY = 	GamePad.YLeftCtr;
 				uControlTheta = GamePad.XRightCtr;
@@ -1498,7 +1569,7 @@ void OdometerHandle(void const * argument)
 * @param argument: Not used
 * @retval None
 */
-uint8_t testSilo;
+uint8_t testSilo,testSS;
 /* USER CODE END Header_StartTaskSilo */
 void StartTaskSilo(void const * argument)
 {
@@ -1506,8 +1577,9 @@ void StartTaskSilo(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  testSS = HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin);
 	startPutBall(process_ReturnBallValue());
-//	startPutBall(testSilo);
+//	  startPutBall(testSilo);
     osDelay(1);
   }
   /* USER CODE END StartTaskSilo */

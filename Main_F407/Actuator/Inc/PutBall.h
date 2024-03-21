@@ -20,6 +20,7 @@ typedef struct PutParam_t{
 	uint8_t flag;
 	uint8_t status;
 	uint8_t StopPutFlag;
+	int count;
 
 }PutParam_t;
 

@@ -181,6 +181,7 @@ typedef struct processControl_Parameter{
 	float uControl,vControl,rControl;
 	float yaw;
 	uint8_t ball;
+	float Ball_dis;
 }processControl_Parameter;
 
 float cal_absF(float num);
@@ -220,7 +221,8 @@ void process_RotationMatrix(float u, float v, float r);
 void process_TrajecStateCondition_EndPath_NoYaw(float xCondition, float yCondition, float thetaCondition);
 
 void process_setVal_PutBall(int Value);
-
+void process_SetBallDis(float dis);
 float GetXtraject(Trajec_Type ID);
 uint8_t process_ReturnBallValue();
+void process_GetBall();
 #endif /* INC_PROCESSCONTROL_H_ */

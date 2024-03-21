@@ -21,7 +21,7 @@ void startPutBall(uint8_t state)
 	encoder_Init(&putBall.enc, &htim2, 19200, 0.001);
 	if(state == 0)
 	{
-
+		putBall.count = 0;
 		putBall.StopPutFlag = 0;
 		if(putBall.accel.vel_controller > -600)
 		{
@@ -38,6 +38,7 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 1)
 	{
+		putBall.count = 0;
 		putBall.accel.vel_controller = 0;
 		getBall.accel.vel_controller = 0;
 		if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin))
@@ -56,8 +57,8 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 2)
 	{
-
-		if(encoder_GetPulse(&putBall.enc, MODE_X4) >= 63000)
+		putBall.count += 1;
+		if(putBall.count >= 1000)
 		{
 			putBall.StopPutFlag = 2;
 		}
