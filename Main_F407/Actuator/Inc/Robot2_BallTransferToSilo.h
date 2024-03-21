@@ -26,5 +26,5 @@ typedef struct RuloParam_t {
 void balltransfer_Init();
 void balltransfer_Rulo_Activate(bool activate);
 void balltransfer_Forklift_Move(float speed);
-
+int32_t balltransfer_Forklift_GetEncoderPulse();
 #endif /* INC_ROBOT2_BALLTRANSFERTOSILO_H_ */
