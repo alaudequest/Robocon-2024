@@ -34,6 +34,7 @@
 #include "ActuatorValve.h"
 #include "Odometry.h"
 #include "ProcessControlRefactor.h"
+#include "Robot2_BallTransferToSilo.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -61,20 +62,24 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
+uint32_t TaskInvKineBuffer[ 256 ];
+osStaticThreadDef_t TaskInvKineControlBlock;
 osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
-osThreadId TaskActuatorHandle;
-osThreadId TaskOdometerHandle;
+osThreadId ActuatorHandle;
+osThreadId ChassisControlHandle;
 /* USER CODE BEGIN PV */
 QueueHandle_t qControlUVR;
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -101,21 +106,7 @@ _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
 float u, v, r;
 float DeltaYR, DeltaYL, DeltaX;
-//float TestTargetX = 0, TestTargetY = 0,  = 0;
 
-
-
-uint32_t flagMain = 0;
-#define MAIN_FLAG_GROUP flagMain
-void flagmain_SetFlag(MainEvent e) {
-	SETFLAG(MAIN_FLAG_GROUP, e);
-}
-bool flagmain_CheckFlag(MainEvent e) {
-	return CHECKFLAG(MAIN_FLAG_GROUP, e);
-}
-void flagmain_ClearFlag(MainEvent e) {
-	CLEARFLAG(MAIN_FLAG_GROUP, e);
-}
 
 
 uint32_t nodeSwerveSetHomeComplete = 0;
@@ -147,11 +138,12 @@ static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM5_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
-void Actuator(void const * argument);
-void OdometerHandle(void const * argument);
+void TaskActuator(void const * argument);
+void TaskChassisControl(void const * argument);
 
 /* USER CODE BEGIN PFP */
 void setHomeComplete();
@@ -292,6 +284,12 @@ void setHomeComplete()
 {
 
 }
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == SensorForklift_Pin) {
+		__NOP();
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -332,16 +330,23 @@ int main(void)
   MX_TIM10_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 //  	log_Init(&huart2);
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
-	pid.kP = -0.12;
-	pid.kI = 5.32;
-	pid.kD = 20.22;
-	pid.alpha = 5.31;
-	pid.deltaT = 0.001;
+	balltransfer_Init();
+	balltransfer_Rulo_Activate(1);
+	HAL_Delay(1000);
+	balltransfer_Rulo_Activate(0);
+	balltransfer_Forklift_Move(150);
+	HAL_Delay(1000);
+	balltransfer_Forklift_Move(-50);
+	HAL_Delay(1000);
+	balltransfer_Forklift_Move(0);
+	int32_t pulse = balltransfer_Forklift_GetEncoderPulse();
+	while (1);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -367,20 +372,20 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskInvKine */
-  osThreadDef(TaskInvKine, InverseKinematic, osPriorityNormal, 0, 256);
+  osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityNormal, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
   TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
   /* definition and creation of TaskCAN */
-  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityHigh, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
+  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityAboveNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
   TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
-  /* definition and creation of TaskActuator */
-  osThreadDef(TaskActuator, Actuator, osPriorityLow, 0, 128);
-  TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
+  /* definition and creation of Actuator */
+  osThreadDef(Actuator, TaskActuator, osPriorityBelowNormal, 0, 128);
+  ActuatorHandle = osThreadCreate(osThread(Actuator), NULL);
 
-  /* definition and creation of TaskOdometer */
-  osThreadDef(TaskOdometer, OdometerHandle, osPriorityAboveNormal, 0, 256);
-  TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
+  /* definition and creation of ChassisControl */
+  osThreadDef(ChassisControl, TaskChassisControl, osPriorityNormal, 0, 256);
+  ChassisControlHandle = osThreadCreate(osThread(ChassisControl), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -558,7 +563,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
@@ -595,28 +600,29 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
-  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 80-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
+  htim3.Init.Period = 1000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -626,9 +632,85 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 80-1;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 1000-1;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+  HAL_TIM_MspPostInit(&htim5);
 
 }
 
@@ -770,8 +852,12 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -827,7 +913,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 uint8_t shootFlag;
-void InvCpltCallback(ModuleID ID, float speed, float angle) {
+void InversekinematicCompleteCallback(ModuleID ID, float speed, float angle) {
 	CAN_SpeedBLDC_AngleDC speedAngle;
 	speedAngle.bldcSpeed = speed;
 	speedAngle.dcAngle = angle;
@@ -961,12 +1047,12 @@ void InverseKinematic(void const * argument)
 		if(xQueueReceive(qControlUVR, (void*) &result, 100) == pdTRUE){
 			if(untangleBLDC == 0) {
 				for (ModuleID id = MODULE_ID_1; id <= MODULE_ID_3; id++)
-					invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InvCpltCallback);
+					invkine_Implementation(id, result.uControl, result.vControl, result.rControl, &InversekinematicCompleteCallback);
 			}
 			else {
-				InvCpltCallback(MODULE_ID_3, 0, 0);
-				InvCpltCallback(MODULE_ID_1, 0, 0);
-				InvCpltCallback(MODULE_ID_2, 0, 0);
+				InversekinematicCompleteCallback(MODULE_ID_3, 0, 0);
+				InversekinematicCompleteCallback(MODULE_ID_1, 0, 0);
+				InversekinematicCompleteCallback(MODULE_ID_2, 0, 0);
 			}
 		}
 
@@ -1011,46 +1097,42 @@ void CAN_Bus(void const * argument)
   /* USER CODE END CAN_Bus */
 }
 
-/* USER CODE BEGIN Header_Actuator */
+/* USER CODE BEGIN Header_TaskActuator */
 /**
- * @brief Function implementing the TaskActuator thread.
- * @param argument: Not used
- * @retval None
- */
-uint8_t BallSS,shoot;
-/* USER CODE END Header_Actuator */
-void Actuator(void const * argument)
+* @brief Function implementing the Actuator thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TaskActuator */
+void TaskActuator(void const * argument)
 {
-  /* USER CODE BEGIN Actuator */
-	/* Infinite loop */
-	for (;;) {
-
-
-
-
-		osDelay(500);
-	}
-  /* USER CODE END Actuator */
+  /* USER CODE BEGIN TaskActuator */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END TaskActuator */
 }
 
-/* USER CODE BEGIN Header_OdometerHandle */
+/* USER CODE BEGIN Header_TaskChassisControl */
 /**
- * @brief Function implementing the TaskOdometer thread.
- * @param argument: Not used
- * @retval None
- */
-float testX,testY,testTheta;
-void odo_SpeedAngleUpdate(){
-	for (int i = 0;i<3;i++){
-		odo_SetObj_SpAg(i,nodeSpeedAngle[i]);
+* @brief Function implementing the ChassisControl thread.
+* @param argument: Not used
+* @retval None
+*/
+
+void odo_SpeedAngleUpdate() {
+	for (int i = 0; i < 3; i++) {
+		odo_SetObj_SpAg(i, nodeSpeedAngle[i]);
 	}
 }
-
 bool Run = false;
-/* USER CODE END Header_OdometerHandle */
-void OdometerHandle(void const * argument)
+/* USER CODE END Header_TaskChassisControl */
+void TaskChassisControl(void const * argument)
 {
-  /* USER CODE BEGIN OdometerHandle */
+  /* USER CODE BEGIN TaskChassisControl */
+  /* Infinite loop */
 	PID_Param pidInit;
 	TrajectPlanningPoint tpInit;
 
@@ -1062,8 +1144,6 @@ void OdometerHandle(void const * argument)
 	process_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
 	pidInit.kP = 1.2;
 	process_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
-
-
 
 	AxesTrajectPoint point;
 	point.trajectPointX.pf = 1; // move X axis 1 meter
@@ -1155,11 +1235,11 @@ void OdometerHandle(void const * argument)
 	point1.trajectPointTheta.ReachOffset = 0.03;
 	point1.nextStageControlType = ON_MANUAL_SET_CONTROL;
 
-	process_PutTrajectPointToArray(point1, 4);
+		process_PutTrajectPointToArray(point1, 4);
 
 
 
-	ManualSetParameters Signal;
+		ManualSetParameters Signal;
 	Signal.DisablePID_AxisTheta = 1;
 	Signal.DisablePID_AxisX = 1;
 	Signal.DisablePID_AxisY = 1;
@@ -1183,21 +1263,21 @@ void OdometerHandle(void const * argument)
 	process_PutManualSetValueToArray(Signal, 2);
 
 
-		/* Infinite loop */
+			/* Infinite loop */
 	for (;;) {
-			if(!shootFlag){
-				RTR_SpeedAngle();
-			}
-//			if(GamePad.Up==1 && GamePad.Triangle==1){
-//			Run = true;
-//			}
+		if(!shootFlag) {
+			RTR_SpeedAngle();
+		}
+		//			if(GamePad.Up==1 && GamePad.Triangle==1){
+		//			Run = true;
+		//			}
 		odo_SpeedAngleUpdate();
 		ProcessOutputResult result = process_Run(Run);
 		xQueueSend(qControlUVR, (void* )&result, 100);
 		osDelay(DELTA_T * 1000);
 
-	}
-  /* USER CODE END OdometerHandle */
+		}
+  /* USER CODE END TaskChassisControl */
 }
 
 /**
