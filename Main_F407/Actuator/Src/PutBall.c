@@ -6,7 +6,7 @@
  */
 
 #include "PutBall.h"
-
+#include "cmsis_os.h"
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim5;
@@ -43,7 +43,11 @@ void startPutBall(uint8_t state)
 		getBall.accel.vel_controller = 0;
 		if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin))
 		{
-			putBall.StopPutFlag = 1;
+			osDelay(2);
+			if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin)){
+				putBall.StopPutFlag = 1;
+			}
+
 		}
 		if (putBall.StopPutFlag)
 		{
@@ -71,7 +75,7 @@ void startPutBall(uint8_t state)
 		}
 		else
 		{
-			Accel_Cal(&putBall.accel, 500, 1);
+			Accel_Cal(&putBall.accel, 450, 1);
 			Accel_Cal(&getBall.accel, -1000, 0.5);
 			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
 			MotorDC_Drive(&getBall.mdc, getBall.accel.vel_controller);

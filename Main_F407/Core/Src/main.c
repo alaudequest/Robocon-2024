@@ -1496,7 +1496,7 @@ void Actuator(void const * argument)
 	for (;;) {
 		process_RunSSAndActuator(&TestBreakProtection);
 		readADC();
-//		BallSS= HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin);
+		BallSS= HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin);
 		osDelay(1);
 	}
   /* USER CODE END Actuator */
@@ -1577,7 +1577,7 @@ void StartTaskSilo(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  testSS = HAL_GPIO_ReadPin(SSLua2_GPIO_Port, SSLua2_Pin);
+	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
 	startPutBall(process_ReturnBallValue());
 //	  startPutBall(testSilo);
     osDelay(1);
