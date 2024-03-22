@@ -414,16 +414,12 @@ void process_RunSSAndActuator(void (*ptnBreakProtectionCallBack)())
 //			process_GetRicePlant(ptnBreakProtectionCallBack);
 			break;
 		case 9 :
-//			osDelay(500);
+
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
-			process.stateChange++;
-			if(process.stateChange>1000)
-			{
-				process.stateChange = 0;
-				process_setVal_PutBall(2);
-				process_ChangeState();
-			}
+			osDelay(500);
+			process_setVal_PutBall(2);
+			process_ChangeState();
 
 			break;
 		default:
