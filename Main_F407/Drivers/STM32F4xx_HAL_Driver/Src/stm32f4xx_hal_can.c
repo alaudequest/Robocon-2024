@@ -1407,6 +1407,7 @@ HAL_StatusTypeDef HAL_CAN_AbortTxRequest(CAN_HandleTypeDef *hcan, uint32_t TxMai
 uint32_t HAL_CAN_GetTxMailboxesFreeLevel(CAN_HandleTypeDef *hcan)
 {
   uint32_t freelevel = 0U;
+
   HAL_CAN_StateTypeDef state = hcan->State;
 
   if ((state == HAL_CAN_STATE_READY) ||

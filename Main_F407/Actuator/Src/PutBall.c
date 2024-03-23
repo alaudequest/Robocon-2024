@@ -39,6 +39,7 @@ void startPutBall(uint8_t state)
 	else if(state == 1)
 	{
 		putBall.count = 0;
+		putBall.flag = 0;
 		putBall.accel.vel_controller = 0;
 		getBall.accel.vel_controller = 0;
 		if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin))
@@ -61,6 +62,7 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 2)
 	{
+		putBall.StopPutFlag = 0;
 		putBall.count += 1;
 		if(putBall.count >= 1000)
 		{
@@ -68,6 +70,7 @@ void startPutBall(uint8_t state)
 		}
 		if (putBall.StopPutFlag == 2)
 		{
+			putBall.StopPutFlag = 0;
 			Accel_Cal(&putBall.accel, 0, 0.75);
 			Accel_Cal(&getBall.accel, 0, 2);
 			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
@@ -79,6 +82,31 @@ void startPutBall(uint8_t state)
 			Accel_Cal(&getBall.accel, -1000, 0.5);
 			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
 			MotorDC_Drive(&getBall.mdc, getBall.accel.vel_controller);
+		}
+	}
+	else if(state == 3)
+	{
+		putBall.count = 0;
+		putBall.flag = 0;
+		putBall.accel.vel_controller = 0;
+		getBall.accel.vel_controller = 0;
+
+		if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin))
+		{
+			osDelay(5);
+			if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin)){
+				putBall.StopPutFlag = 1;
+			}
+
+		}
+		if (putBall.StopPutFlag)
+		{
+			MotorDC_Drive(&putBall.mdc, 0);
+			MotorDC_Drive(&getBall.mdc, 0);
+			encoder_ResetCount(&putBall.enc);
+		}else{
+			MotorDC_Drive(&putBall.mdc, -200);
+			MotorDC_Drive(&getBall.mdc, -1000);
 		}
 	}
 }

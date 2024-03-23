@@ -134,6 +134,7 @@ HAL_StatusTypeDef canctrl_GetMultipleMessages(void *data, size_t sizeOfDataType)
 
 HAL_StatusTypeDef canctrl_Send(CAN_HandleTypeDef *can, CAN_DEVICE_ID targetID)
 {
+
 	if(!txHeader.DLC && !can) return HAL_ERROR;
 	if(!HAL_CAN_GetTxMailboxesFreeLevel(can)) return HAL_BUSY;
 	HAL_StatusTypeDef err = HAL_OK;

@@ -1389,12 +1389,12 @@ void StartDefaultTask(void const * argument)
 
 	for (;;) {
 
-		if(xaDay == 0)
+		if(xaDay == 0 )
 		{
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-		}else{
+		}else {
 			 InvCpltCallback(MODULE_ID_3, 0, 0);
 			 InvCpltCallback(MODULE_ID_1, 0, 0);
 			 InvCpltCallback(MODULE_ID_2, 0, 0);
@@ -1497,6 +1497,13 @@ void Actuator(void const * argument)
 		process_RunSSAndActuator(&TestBreakProtection);
 		readADC();
 		BallSS= HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin);
+//		if (GamePad.Left == 1){
+//			osDelay(500);
+//			if(GamePad.Left == 1){
+//				process_ChangeState();
+//				while (GamePad.Left == 1){osDelay(1);}
+//			}
+//		}
 		osDelay(1);
 	}
   /* USER CODE END Actuator */
@@ -1529,6 +1536,7 @@ void OdometerHandle(void const * argument)
 			if(!shootFlag){
 				RTR_SpeedAngle();
 			}
+
 
 			odo_SpeedAngleUpdate();
 			odo_PosCal();
@@ -1578,7 +1586,7 @@ void StartTaskSilo(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
+//	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
 	startPutBall(process_ReturnBallValue());
 //	  startPutBall(testSilo);
     osDelay(1);

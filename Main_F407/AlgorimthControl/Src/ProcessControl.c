@@ -322,101 +322,119 @@ void process_GetRicePlant(void (*ptnBreakProtectionCallBack)())
 
 
 
-//void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
-//{
-//	process.HeadDirect_speed = sqrt(process.u);
-//}
-
-void process_DeAccel_FloatingEnc()
+void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
 {
 
+//		if ()
+//		if (process.yaw < TargetHeading) {process.Target_Head += HeadAccel;}
+//		else if (process.yaw > TargetHeading){process.Target_Head -= HeadAccel;}
+//
+
+
+	if ((process.floating_dis < 500)&&(process.chasis_Vector_TargetSpeed < maxSpeed))
+		{
+			process.chasis_Vector_TargetSpeed += accel;
+			process.Process_Running = 0;
+		}
+
+	if ((process.floating_dis > 500)&&(process.floating_dis <(s -500)))process.chasis_Vector_TargetSpeed = maxSpeed;
+
+	if (((process.floating_dis > (s-500))&&(process.floating_dis <= (s-400)))) {
+		process.chasis_Vector_TargetSpeed = maxSpeed/2;
+	}
+
+	if (((process.floating_dis > (s-400))&&(process.floating_dis <= (s-300)))) {
+		process.chasis_Vector_TargetSpeed = maxSpeed/3;
+	}
+
+	if (((process.floating_dis > (s-300)))) {
+		process.chasis_Vector_TargetSpeed -= accel ;
+	}
+
+	if (process.chasis_Vector_TargetSpeed<=0){
+		process.chasis_Vector_TargetSpeed = 0;
+		process.Process_Running = 1;
+		PD_Disable(PD_Theta);
+		process.r = 0;
+		process_ChangeState();
+	}
+
+	if (process.floating_dis > s) {
+		process.chasis_Vector_TargetSpeed = 0;
+		process.Process_Running = 1;
+		PD_Disable(PD_Theta);
+		process.r = 0;
+		process_ChangeState();
+	}
+
+	process.u = cos(Angle*M_PI/180)*process.chasis_Vector_TargetSpeed ;
+	process.v = sin(Angle*M_PI/180)*process.chasis_Vector_TargetSpeed ;
 }
+
 
 void process_RunChassis()
 {
 	switch (process.state) {
 		case 0:
-//			process_GetBall();
 			process_setVal_PutBall(1);
-
-			odo_ResetPose()	;
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.1, 3, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -1.2, 3, odo_GetVout(), 0);
-			trajecPlan_SetParam(&process.trajecTheta, 0,0*M_PI/180, 2, odo_GetRout(), 0);
-			process_ChangeState();
+			PD_Disable(PD_X);
+			PD_Disable(PD_Y);
 			process_ResetFloatingDis();
+			process_ChangeState();
+
 			break;
 		case 1:
-//			process_setVal_PutBall(0);
-//			if (PutBall_getFlag()){
-//				process_setVal_PutBall(1);
-////				process_ChangeState();
-//			}
+			process_Accel_FloatingEnc(-65, 0.8,5100,0.02);
 
-			process_TrajecStateCondition_OnPath(0.05,0.05);
 			break;
 		case 2:
-//			odo_SetPoseTheta(process.yaw);
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.1, 3.5, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -2.30,3.5, odo_GetVout(), 0);
-			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -0*M_PI/180, 2, odo_GetRout(), 0);
-			process_ChangeState();
+			process_GetBall();
 
 			break;
 		case 3:
-//			odo_SetPoseTheta(process.yaw);
-//			process_TrajecStateCondition_OnPath(0.06, 0.06);
-			process_TrajecStateCondition_OnPath(0.05,0.05);
-//			process_TrajecStateCondition_EndPath(0.03, 0.03,2*M_PI/180);
-//			process_TrajecStateCondition_EndPath_NoYaw(0.03, 0.03,2*M_PI/180);
+			process_setVal_PutBall(0);
+			if (PutBall_getFlag()){
+				process_setVal_PutBall(1);
+				trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 3, odo_GetRout(), 0);
+				PD_Enable(PD_Theta);
+				process_ResetFloatingDis();
+				process_ChangeState();
+			}
 
 			break;
 		case 4 :
-			process_GetBall();
+			process_Accel_FloatingEnc(30, 0.8,3670,0.02);
+
 			break;
 		case 5:
+			PD_Enable(PD_Theta);
+			process_SetCtrSignal(U, 0.01);
+			process_SetCtrSignal(V, -0.08);
+			break;
+		case 7:
+			process_Accel_FloatingEnc(-166, 0.8,3300,0.02);
+			break;
+		case 9 :
+			process_GetBall();
+			break;
+		case 10 :
 			process_setVal_PutBall(0);
 			if (PutBall_getFlag()){
+				process_setVal_PutBall(1);
+				trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 3, odo_GetRout(), 0);
+				PD_Enable(PD_Theta);
+				process_ResetFloatingDis();
 				process_ChangeState();
 			}
 			break;
-		case 6:
-
-			process_setVal_PutBall(1);
-//			odo_ResetPose();
-//			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.5 ,4, odo_GetUout(), 0);
-//			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), 1.1 ,4, odo_GetVout(), 0);
-//			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 4, odo_GetRout(), 0);
-//			PD_Enable(PD_X);
-//			PD_Enable(PD_Y);
-//			PD_Enable(PD_Theta);
-//			process_ChangeState();
+		case 11 :
+			process_Accel_FloatingEnc(37, 0.8,3300,0.02);
 			break;
-		case 7:
-			process_TrajecStateCondition_OnPath(0.03, 0.03);
-//			process_TrajecStateCondition_OnPath(0.05,0.05);
-			break;
-		case 8:
-			PD_Disable(PD_X);
-			PD_Disable(PD_Y);
-			process_SetCtrSignal(U, 0.03);
+		case 12:
+			PD_Enable(PD_Theta);
+			process_SetCtrSignal(U, 0.01);
 			process_SetCtrSignal(V, -0.08);
 			break;
-//		case 8:
-//			odo_SetPoseTheta(process.yaw);
-//			process_TrajecStateCondition_OnPath(0.05,0.05);
-//			break;
-//		case 9:
-//			PD_Disable(PD_X);
-//			PD_Disable(PD_Y);
-//			PD_Disable(PD_Theta);
-//
-//			process_SetSignal(0.05,-0.15,0);
-//			break;
-//		case 10 :
-//			process_SetSignal(0.05,0.1,0);
-//			process_ChangeState();
-//			break;
 		default:
 			break;
 	}
@@ -426,32 +444,68 @@ void process_RunChassis()
 void process_RunSSAndActuator(void (*ptnBreakProtectionCallBack)())
 {
 	switch (process.state) {
-		case 8 :
+		case 5 :
 			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin))
 			{
 				process.ssCheck ++;
 			}else {
 				process.ssCheck = 0;
 			}
-			if(process.ssCheck>50){
+			if(process.ssCheck>30){
 				process_ChangeState();
-//				process_setVal_PutBall(2);
+				PD_Disable(PD_Theta);
+				process_SetCtrSignal(R, 0);
+				process_SetCtrSignal(U, 0.03);
+				process_SetCtrSignal(V, 0);
 				process.ssCheck = 0;
 			}
 
-//			process_GetRicePlant(ptnBreakProtectionCallBack);
 			break;
-		case 9 :
-			PD_Disable(PD_Theta);
-			process_SetCtrSignal(R, 0);
-			process_SetCtrSignal(U, 0);
-			process_SetCtrSignal(V, 0.1);
-			osDelay(700);
+		case 6 :
+			process_setVal_PutBall(2);
+			osDelay(2000);
+			process_setVal_PutBall(3);
+			ptnBreakProtectionCallBack();
+			process_ChangeState();
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
-			osDelay(500);
-			process_setVal_PutBall(2);
+			process_ResetFloatingDis();
+			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), 0*M_PI/180, 3, odo_GetRout(), 0);
+			PD_Enable(PD_Theta);
+			break;
+		case 8:
+			process_SetCtrSignal(U, 0);
+			process_SetCtrSignal(V, 0.03);
+			process.ssCheck = 0;
+			osDelay(200);
 			process_ChangeState();
+			break;
+		case 12 :
+			if (HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin))
+			{
+				process.ssCheck ++;
+			}else {
+				process.ssCheck = 0;
+			}
+			if(process.ssCheck>30){
+				process_ChangeState();
+				PD_Disable(PD_Theta);
+				process_SetCtrSignal(R, 0);
+				process_SetCtrSignal(U, 0.03);
+				process_SetCtrSignal(V, 0);
+				process.ssCheck = 0;
+			}
+
+			break;
+		case 13 :
+			process_setVal_PutBall(2);
+			osDelay(2000);
+			process_setVal_PutBall(3);
+			ptnBreakProtectionCallBack();
+			process_ChangeState();
+			process_SetCtrSignal(U, 0);
+			process_SetCtrSignal(V, 0);
+			process_ResetFloatingDis();
 
 			break;
 		default:
@@ -486,7 +540,7 @@ void process_Run(uint8_t Run){
 		{
 			odo_SetPoseTheta(process.yaw);
 			PD_Cal(&process.pdTheta, process.trajecTheta.xTrajec, odo_GetPoseTheta());
-			process.r = process.pdTheta.u + process.trajecTheta.xdottraject;
+			process.r = process.pdTheta.u + process.trajecTheta.xdottraject ;
 		}
 
 		process.uControl = process.u*cos(-odo_GetPoseTheta()) - process.v*sin(-odo_GetPoseTheta());
@@ -545,46 +599,76 @@ void process_SetBallDis(float dis)
 void process_GetBall(){
 	PD_Disable(PD_X);
 	PD_Disable(PD_Y);
+
 	if (process.stateChange==0){
+		PD_Enable(PD_Theta);
 		process_SetCtrSignal(U, 0.1);
 		process_SetCtrSignal(V, 0);
-		if (process.Ball_dis<0.25)
+		if (process.state < 6)
+		{
+		if (process.Ball_dis<0.26)
 		{
 			process.stateChange = 1;
 			process_ResetFloatingDis();
+		}
+		}else{
+			if (process.Ball_dis<0.33)
+			{
+				process.stateChange = 1;
+				process_ResetFloatingDis();
+			}
 		}
 	}
 	else if (process.stateChange==1){
 		process_SetCtrSignal(U, 0.1);
 		process_SetCtrSignal(V, 0);
-		if (process.floating_dis>160)
+		if (process.floating_dis>140)
 		{
 			process.stateChange = 2;
+			process.ssCheck = 0;
 		}
 	}
 	else if (process.stateChange==2){
 		process_SetCtrSignal(U, 0);
-		process_SetCtrSignal(V, -0.1);
-		if (process.floating_dis>0.18)
+		process_SetCtrSignal(V, -0.05);
+		if (process.Ball_dis < 0.22)
 		{
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
+
+			PD_Disable(PD_Theta);
+			process_SetCtrSignal(R, 0);
+			process.ssCheck = 0;
 			process.stateChange = 3;
 		}
 	}
-	else if (process.stateChange == 3)
+	else if (process.stateChange==3){
+
+
+		process_SetCtrSignal(U, 0);
+		process_SetCtrSignal(V, 0);
+		process.ssCheck ++;
+		if (process.ssCheck > 16)
+		{
+			process.stateChange = 0;
+			process.ssCheck = 0;
+			process.stateChange = 5;
+		}
+	}
+	else if (process.stateChange == 4)
 		{
 			process_SetCtrSignal(U, 0);
-			process_SetCtrSignal(V, 0.1);
-			if (process.ssCheck < 0.225)
+			process_SetCtrSignal(V, 0.05);
+			if (process.Ball_dis > 0.18)
 			{
-				process_SetCtrSignal(U, 0);
-				process_SetCtrSignal(V, 0);
-				process.stateChange = 4;
+
+				process.stateChange = 5;
+				process.ssCheck = 0;
+				PD_Disable(PD_Theta);
 
 			}
 		}
-	else if (process.stateChange == 4)
+	else if (process.stateChange == 5)
 		{
 			PD_Disable(PD_Theta);
 			process_SetCtrSignal(R, 0);

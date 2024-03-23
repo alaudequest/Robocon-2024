@@ -185,7 +185,10 @@ typedef struct processControl_Parameter{
 	uint8_t ball;
 	float Ball_dis;
 	int floating_dis;
-	float HeadDirect_speed;
+	float chasis_Vector_Speed;
+	float chasis_Vector_TargetSpeed;
+	uint8_t Process_Running;
+	float Target_Head;
 }processControl_Parameter;
 
 float cal_absF(float num);
@@ -231,4 +234,5 @@ uint8_t process_ReturnBallValue();
 void process_GetBall();
 void process_SetFloatingDis();
 void process_ResetFloatingDis();
+void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel);
 #endif /* INC_PROCESSCONTROL_H_ */
