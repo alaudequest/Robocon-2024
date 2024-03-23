@@ -12,6 +12,8 @@
 #include "PositionControl.h"
 #include "ActuatorValve.h"
 #include "PutBall.h"
+#include "Encoder.h"
+
 #define IMU_Wait		6
 #define KP_INIT_X		1
 #define KP_INIT_Y		1
@@ -182,6 +184,8 @@ typedef struct processControl_Parameter{
 	float yaw;
 	uint8_t ball;
 	float Ball_dis;
+	int floating_dis;
+	float HeadDirect_speed;
 }processControl_Parameter;
 
 float cal_absF(float num);
@@ -225,4 +229,6 @@ void process_SetBallDis(float dis);
 float GetXtraject(Trajec_Type ID);
 uint8_t process_ReturnBallValue();
 void process_GetBall();
+void process_SetFloatingDis();
+void process_ResetFloatingDis();
 #endif /* INC_PROCESSCONTROL_H_ */

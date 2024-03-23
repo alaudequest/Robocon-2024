@@ -43,7 +43,7 @@ void startPutBall(uint8_t state)
 		getBall.accel.vel_controller = 0;
 		if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin))
 		{
-			osDelay(2);
+			osDelay(5);
 			if(HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin)){
 				putBall.StopPutFlag = 1;
 			}

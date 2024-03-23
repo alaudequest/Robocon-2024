@@ -8,9 +8,10 @@
 #include "ProcessControl.h"
 #include "cmsis_os.h"
 
-
+extern TIM_HandleTypeDef htim1;
 processControl_Parameter process;
 extern UART_HandleTypeDef huart1;
+Encoder_t FloatingEnc;
 
 char tx_ResetBuff[] = "rst\n";
 char tx_ReadBuff[]  = "red\n";
@@ -54,6 +55,7 @@ void PD_SetObjParam(PD_Type ID,pd_Param Param){
 }
 
 void process_Init(){
+	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
 	process_ResetIMU();
 	process.trajecX.tf = 0;
 	process.trajecY.tf = 0;
@@ -66,9 +68,21 @@ void process_Init(){
 	PD_SetSaturate(&process.pdX, LIMIT_ABOVE_INIT_X, LIMIT_BELOW_INIT_X);
 	PD_SetSaturate(&process.pdY, LIMIT_ABOVE_INIT_Y, LIMIT_BELOW_INIT_Y);
 	PD_SetSaturate(&process.pdTheta, LIMIT_ABOVE_INIT_THETA, LIMIT_BELOW_INIT_THETA);
+
+	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
 	process_setVal_PutBall(1);
+
 }
 
+void process_SetFloatingDis()
+{
+	process.floating_dis = encoder_GetFloatingDis(&FloatingEnc);
+}
+
+void process_ResetFloatingDis()
+{
+	encoder_ResetCount(&FloatingEnc);
+}
 float process_GetCtrSignal(Signal_type ID)
 {
 	switch (ID) {
@@ -306,6 +320,18 @@ void process_GetRicePlant(void (*ptnBreakProtectionCallBack)())
 	process_ChangeState();
 }
 
+
+
+//void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
+//{
+//	process.HeadDirect_speed = sqrt(process.u);
+//}
+
+void process_DeAccel_FloatingEnc()
+{
+
+}
+
 void process_RunChassis()
 {
 	switch (process.state) {
@@ -314,10 +340,11 @@ void process_RunChassis()
 			process_setVal_PutBall(1);
 
 			odo_ResetPose()	;
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.2, 3, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.1, 3, odo_GetUout(), 0);
 			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -1.2, 3, odo_GetVout(), 0);
 			trajecPlan_SetParam(&process.trajecTheta, 0,0*M_PI/180, 2, odo_GetRout(), 0);
 			process_ChangeState();
+			process_ResetFloatingDis();
 			break;
 		case 1:
 //			process_setVal_PutBall(0);
@@ -325,13 +352,13 @@ void process_RunChassis()
 //				process_setVal_PutBall(1);
 ////				process_ChangeState();
 //			}
-//			odo_SetPoseTheta(process.yaw);
+
 			process_TrajecStateCondition_OnPath(0.05,0.05);
 			break;
 		case 2:
 //			odo_SetPoseTheta(process.yaw);
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.2, 3.5, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -2.28,3.5, odo_GetVout(), 0);
+			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.1, 3.5, odo_GetUout(), 0);
+			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), -2.30,3.5, odo_GetVout(), 0);
 			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -0*M_PI/180, 2, odo_GetRout(), 0);
 			process_ChangeState();
 
@@ -354,15 +381,16 @@ void process_RunChassis()
 			}
 			break;
 		case 6:
+
 			process_setVal_PutBall(1);
-			odo_ResetPose();
-			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.5 ,4, odo_GetUout(), 0);
-			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), 1.02 ,4, odo_GetVout(), 0);
-			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 4, odo_GetRout(), 0);
-			PD_Enable(PD_X);
-			PD_Enable(PD_Y);
-			PD_Enable(PD_Theta);
-			process_ChangeState();
+//			odo_ResetPose();
+//			trajecPlan_SetParam(&process.trajecX, odo_GetPoseX(), 1.5 ,4, odo_GetUout(), 0);
+//			trajecPlan_SetParam(&process.trajecY, odo_GetPoseY(), 1.1 ,4, odo_GetVout(), 0);
+//			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), -45*M_PI/180, 4, odo_GetRout(), 0);
+//			PD_Enable(PD_X);
+//			PD_Enable(PD_Y);
+//			PD_Enable(PD_Theta);
+//			process_ChangeState();
 			break;
 		case 7:
 			process_TrajecStateCondition_OnPath(0.03, 0.03);
@@ -414,7 +442,11 @@ void process_RunSSAndActuator(void (*ptnBreakProtectionCallBack)())
 //			process_GetRicePlant(ptnBreakProtectionCallBack);
 			break;
 		case 9 :
-
+			PD_Disable(PD_Theta);
+			process_SetCtrSignal(R, 0);
+			process_SetCtrSignal(U, 0);
+			process_SetCtrSignal(V, 0.1);
+			osDelay(700);
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
 			osDelay(500);
@@ -518,27 +550,44 @@ void process_GetBall(){
 		process_SetCtrSignal(V, 0);
 		if (process.Ball_dis<0.25)
 		{
-//			process_SetCtrSignal(U, 0);
-//			process_SetCtrSignal(V, 0);
-//			process_ChangeState();
 			process.stateChange = 1;
+			process_ResetFloatingDis();
 		}
 	}
-	else if (process.stateChange == 1)
+	else if (process.stateChange==1){
+		process_SetCtrSignal(U, 0.1);
+		process_SetCtrSignal(V, 0);
+		if (process.floating_dis>160)
 		{
-			process_SetCtrSignal(U, -0.08);
-			process_SetCtrSignal(V, -0.08);
-			process.ssCheck ++;
-			if (process.ssCheck > 18)
+			process.stateChange = 2;
+		}
+	}
+	else if (process.stateChange==2){
+		process_SetCtrSignal(U, 0);
+		process_SetCtrSignal(V, -0.1);
+		if (process.floating_dis>0.18)
+		{
+			process_SetCtrSignal(U, 0);
+			process_SetCtrSignal(V, 0);
+			process.stateChange = 3;
+		}
+	}
+	else if (process.stateChange == 3)
+		{
+			process_SetCtrSignal(U, 0);
+			process_SetCtrSignal(V, 0.1);
+			if (process.ssCheck < 0.225)
 			{
 				process_SetCtrSignal(U, 0);
 				process_SetCtrSignal(V, 0);
-				process.stateChange = 2;
-				process.ssCheck = 0;
+				process.stateChange = 4;
+
 			}
 		}
-	else if (process.stateChange == 2)
+	else if (process.stateChange == 4)
 		{
+			PD_Disable(PD_Theta);
+			process_SetCtrSignal(R, 0);
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
 			process.ssCheck ++;

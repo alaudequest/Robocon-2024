@@ -350,7 +350,7 @@ void readADC(){
 		sum = 0;
 		count = 0;
 	}
-	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.2;
+	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.28;
 
 	HAL_ADC_Stop(&hadc1);
 }
@@ -449,7 +449,7 @@ int main(void)
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
   /* definition and creation of TaskOdometer */
-  osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityHigh, 0, 256);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
   /* definition and creation of TaskSilo */
@@ -1536,6 +1536,7 @@ void OdometerHandle(void const * argument)
 			process_ReadIMU();
 			process_SetYaw(CurrAngle);
 
+			process_SetFloatingDis();
 			process_SetBallDis(distance);
 			process_Run(Run);
 
