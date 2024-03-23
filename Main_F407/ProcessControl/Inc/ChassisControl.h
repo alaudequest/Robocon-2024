@@ -2,11 +2,12 @@
  * ProcessControlRefactor.h
  *
  *  Created on: Mar 17, 2024
- *      Author: SpiritBoi
+ *  		Author: Nguyen Hai Hoang
+ *      Refactor by: SpiritBoi
  */
 
-#ifndef INC_PROCESSCONTROLREFACTOR_H_
-#define INC_PROCESSCONTROLREFACTOR_H_
+#ifndef INC_CHASSISCONTROL_H_
+#define INC_CHASSISCONTROL_H_
 #include "stdbool.h"
 #include "PID.h"
 #include "main.h"
@@ -22,10 +23,10 @@ Process_Init(){
 	pidInit.u_AboveLimit = 1;
 	pidInit.u_BelowLimit = -1;
 	pidInit.deltaT = 0.05;
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisX);
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
+ processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisX);
+ processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
 	pidInit.kP = 1.2;
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
+ processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
 }
 
 int main(){
@@ -46,7 +47,7 @@ int main(){
 	point.trajectPointTheta.ReachOffset = 0.03;
 	point.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
 
-	process_PutTrajectPointToArray(point, 0);
+ processChassis_PutTrajectPointToArray(point, 0);
 
 	point.trajectPointX.pf = 1;
 	point.trajectPointX.tf = 2;
@@ -63,7 +64,7 @@ int main(){
 	point.trajectPointTheta.vf = 0;
 	point.trajectPointTheta.ReachOffset = 0.03;
 	point.nextStageControlType = ON_MANUAL_SET_CONTROL;
-	process_PutTrajectPointToArray(point1, 2);
+ processChassis_PutTrajectPointToArray(point1, 2);
 
 	ManualSetParameters manualset;
 	manualset.DisablePID_AxisTheta = 1;
@@ -74,7 +75,7 @@ int main(){
 	manualset.r = 0;
 	point.nextStageControlType = NO_CONTROL;
 
-	ProcessOutputResult result = process_Run(Run);
+ ProcessOutputResult result = processChassis_Run(Run);
 }
  */
 
@@ -87,14 +88,12 @@ typedef enum PID_Axis {
 	PID_AxisTheta, /**< PID_AxisTheta */
 } PID_Axis;
 
-typedef enum ControlType {
+typedef enum ChassisControlType {
 	NO_CONTROL, /**< NO_CONTROL */
 	ON_MANUAL_SET_CONTROL, /**< ON_MANUAL_SET_CONTROL */
 	ON_TRAJECTORY_PLANNING_CONTROL,/**< ON_TRAJECTORY_PLANNING_CONTROL */
-	ON_ACTUATOR, /**< ON_ACTUATOR */
 	ON_DELAY,
-	WAIT_DIGITALSENSOR,
-} ControlType;
+} ChassisControlType;
 /**
  * @brief The output u,v,r is the result of tranformation matrix
  * from robot coodinate to ground surface coordinate
@@ -105,23 +104,6 @@ typedef struct ProcessOutputResult {
 	float rControl;
 } ProcessOutputResult;
 
-typedef enum DigitalSensor {
-	NOT_USE,
-	SENSOR_FORKLIFT,
-	SENSOR_CATCH_BALL,
-	SENSOR_SILO,
-} DigitalSensor;
-
-typedef struct DigitalSensor_t {
-	DigitalSensor sensor;
-	ControlType nextControlType;
-} DigitalSensor_t;
-
-typedef uint8_t DelayStage;
-typedef struct DelayParameter_t {
-	ControlType nextControlType;
-	uint16_t delay;
-} DelayParameter_t;
 
 typedef uint8_t ManualSetStage;
 
@@ -159,17 +141,17 @@ typedef struct AxesTrajectPoint {
 	TrajectPlanningPoint trajectPointX;
 	TrajectPlanningPoint trajectPointY;
 	TrajectPlanningPoint trajectPointTheta;
-	ControlType nextStageControlType;
+	ChassisControlType nextStageControlType;
 } AxesTrajectPoint;
 
-void process_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage);
-AxesTrajectPoint process_GetTrajectPointFromArray(TrajectoryStage stage);
-void process_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage);
-ManualSetParameters process_GetManualSetValueFromArray(ManualSetStage stage);
-void process_SetAxisParamsPID(PID_Axis axis, PID_Param pid);
-PID_Param process_GetAxisParamsPID(PID_Axis axis);
-void process_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpInit, PID_Axis typeAxis);
-void process_ManualSetChangeStage();
-ProcessOutputResult process_Run(bool Run);
-float process_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, float manualSetValue);
-#endif /* INC_PROCESSCONTROLREFACTOR_H_ */
+void processChassis_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage);
+AxesTrajectPoint processChassis_GetTrajectPointFromArray(TrajectoryStage stage);
+void processChassis_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage);
+ManualSetParameters processChassis_GetManualSetValueFromArray(ManualSetStage stage);
+void processChassis_SetAxisParamsPID(PID_Axis axis, PID_Param pid);
+PID_Param processChassis_GetAxisParamsPID(PID_Axis axis);
+void processChassis_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpInit, PID_Axis typeAxis);
+void processChassis_ManualSetChangeStage();
+ProcessOutputResult processChassis_Run(bool Run);
+float processChassis_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, float manualSetValue);
+#endif /* INC_CHASSISCONTROL_H_ */

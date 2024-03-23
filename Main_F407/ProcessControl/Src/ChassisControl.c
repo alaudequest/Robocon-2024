@@ -6,13 +6,13 @@
  *      Refactor by: SpiritBoi
  */
 
-#include "ProcessControlRefactor.h"
 #include "Odometry.h"
 #include "cmsis_os.h"
+#include "../Inc/ChassisControl.h"
 
 #define MAX_TRAJECT_STAGE 5
 #define MAX_MANUAL_SET_STAGE 10
-#define MAX_DELAY_STAGE 3
+
 //#define CONTROL_TYPE_INIT ON_TRAJECTORY_PLANNING_CONTROL
 #define CONTROL_TYPE_INIT ON_MANUAL_SET_CONTROL
 
@@ -21,14 +21,12 @@ AxisData X, Y, Theta;
 
 ManualSetStage manualStage = 0;
 TrajectoryStage trajectStage = 0;
-DelayStage delayStage = 0;
 
-DelayParameter_t arrDelay[MAX_DELAY_STAGE] = {0};
 AxesTrajectPoint arrTrajectPoints[MAX_TRAJECT_STAGE] = {0};
 ManualSetParameters arrManualSet[MAX_MANUAL_SET_STAGE];
 
-uint32_t currentDelay = 0;
-ControlType currentControlType = CONTROL_TYPE_INIT;
+
+ChassisControlType currentControlType = CONTROL_TYPE_INIT;
 bool LockSettingTrajectParam = false;
 bool resetOdometer = true;
 
@@ -111,7 +109,7 @@ static void ManualSet_DisablePID(ManualSetStage stage) {
 	if(arrManualSet[stage].DisablePID_AxisTheta) PID_Disable(PID_AxisTheta);
 }
 
-static void RunControlType(ControlType type) {
+static void SelectChassisControlType(ChassisControlType type) {
 	switch (type) {
 		case ON_MANUAL_SET_CONTROL:
 			ManualSet_DisablePID(manualStage);
@@ -119,8 +117,6 @@ static void RunControlType(ControlType type) {
 		case ON_TRAJECTORY_PLANNING_CONTROL:
 			TrajectoryManager();
 		break;
-		case ON_ACTUATOR:
-			break;
 		case ON_DELAY:
 		break;
 		default:
@@ -128,7 +124,7 @@ static void RunControlType(ControlType type) {
 	}
 }
 
-float process_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, float manualSetValue) {
+float processChassis_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, float manualSetValue) {
 	if(axis->enablePID == 0) return manualSetValue;
 	PID_Calculate(&axis->pid, axis->trajectCalParams.xTrajec, odometerAxisPoseValue);
 	return axis->pid.u + axis->trajectCalParams.xDotTraject;
@@ -136,18 +132,18 @@ float process_GetOutputValueOfPID(AxisData *axis, float odometerAxisPoseValue, f
 
 
 
-ProcessOutputResult process_Run(bool Run) {
+ProcessOutputResult processChassis_Run(bool Run) {
 	odo_PosCal();
 	ProcessOutputResult output;
 	if(Run) {
 		odo_ResetPose_2(&resetOdometer);
-		RunControlType(currentControlType);
+		SelectChassisControlType(currentControlType);
 		float poseX = odo_GetPoseX();
 		float poseY = odo_GetPoseY();
 		float poseTheta = odo_GetPoseTheta();
-		float u = process_GetOutputValueOfPID(&X, poseX, arrManualSet[manualStage].u);
-		float v = process_GetOutputValueOfPID(&Y, poseY, arrManualSet[manualStage].v);
-		float r = process_GetOutputValueOfPID(&Theta, poseTheta, arrManualSet[manualStage].r);
+		float u = processChassis_GetOutputValueOfPID(&X, poseX, arrManualSet[manualStage].u);
+		float v = processChassis_GetOutputValueOfPID(&Y, poseY, arrManualSet[manualStage].v);
+		float r = processChassis_GetOutputValueOfPID(&Theta, poseTheta, arrManualSet[manualStage].r);
 		output.uControl = u * cos(-poseTheta) - v * sin(-poseTheta);
 		output.vControl = u * sin(-poseTheta) + v * cos(-poseTheta);
 		output.rControl = r;
@@ -155,7 +151,7 @@ ProcessOutputResult process_Run(bool Run) {
 	return output;
 }
 
-void process_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpInit, PID_Axis typeAxis) {
+void processChassis_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpInit, PID_Axis typeAxis) {
 	AxisData *targetAxis = NULL;
 	switch (typeAxis) {
 		case PID_AxisX:
@@ -174,27 +170,27 @@ void process_SetupAxisParameter(PID_Param pidAxisInit, TrajectPlanningPoint tpIn
 	targetAxis->pid.deltaT = pidAxisInit.deltaT;
 }
 
-void process_ManualSetChangeStage() {
+void processChassis_ManualSetChangeStage() {
 	if(manualStage < MAX_MANUAL_SET_STAGE) manualStage++;
 }
 
-void process_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage) {
+void processChassis_PutManualSetValueToArray(ManualSetParameters input, ManualSetStage stage) {
 	arrManualSet[stage] = input;
 }
 
-ManualSetParameters process_GetManualSetValueFromArray(ManualSetStage stage) {
+ManualSetParameters processChassis_GetManualSetValueFromArray(ManualSetStage stage) {
 	return arrManualSet[stage];
 }
 
-void process_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage) {
+void processChassis_PutTrajectPointToArray(AxesTrajectPoint p, TrajectoryStage stage) {
 	arrTrajectPoints[stage] = p;
 }
 
-AxesTrajectPoint process_GetTrajectPointFromArray(TrajectoryStage stage) {
+AxesTrajectPoint processChassis_GetTrajectPointFromArray(TrajectoryStage stage) {
 	return arrTrajectPoints[stage];
 }
 
-PID_Param process_GetAxisParamsPID(PID_Axis axis)
+PID_Param processChassis_GetAxisParamsPID(PID_Axis axis)
 {
 	switch (axis) {
 		case PID_AxisX:
@@ -210,7 +206,7 @@ PID_Param process_GetAxisParamsPID(PID_Axis axis)
 	return X.pid;
 }
 
-void process_SetAxisParamsPID(PID_Axis axis, PID_Param pid) {
+void processChassis_SetAxisParamsPID(PID_Axis axis, PID_Param pid) {
 	switch (axis) {
 		case PID_AxisX:
 			X.pid = pid;
@@ -224,27 +220,4 @@ void process_SetAxisParamsPID(PID_Axis axis, PID_Param pid) {
 	}
 }
 
-void process_PutDelayValueToArray(uint32_t milisecond, uint8_t stage, ControlType nextControlType) {
-	if(stage > MAX_DELAY_STAGE) return;
-	arrDelay[stage].delay = milisecond;
-	arrDelay[stage].nextControlType = nextControlType;
-}
-
-uint32_t process_GetDelayValueFromArray(uint8_t stage) {
-	return arrDelay[stage].delay;
-}
-
-/**
- * Should be place in HAL_TIM_PeriodElapsedCallback
- */
-void process_DelayInISR() {
-	if(currentControlType != ON_DELAY) return;
-	if(currentDelay < arrDelay[delayStage].delay)
-		currentDelay++;
-	else if(delayStage < MAX_DELAY_STAGE) {
-		currentDelay = 0;
-		delayStage++;
-	}
-
-}
 
