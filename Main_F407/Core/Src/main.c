@@ -33,17 +33,13 @@
 #include "Gamepad.h"
 #include "ActuatorValve.h"
 #include "Odometry.h"
-#include "ProcessControlRefactor.h"
+#include "ChassisControl.h"
 #include "Robot2_BallTransferToSilo.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum MainEvent
-{
-	MEVT_GET_NODE_SPEED_ANGLE,
-}MainEvent;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -201,7 +197,6 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 		break;
 		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
 			nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
-//			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
 		break;
 		default:
 			break;
@@ -336,16 +331,7 @@ int main(void)
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
-	balltransfer_Init();
-	balltransfer_Rulo_Activate(1);
-	HAL_Delay(1000);
-	balltransfer_Rulo_Activate(0);
-	balltransfer_Forklift_Move(150);
-	HAL_Delay(1000);
-	balltransfer_Forklift_Move(-50);
-	HAL_Delay(1000);
-	balltransfer_Forklift_Move(0);
-	int32_t pulse = balltransfer_Forklift_GetEncoderPulse();
+
 	while (1);
   /* USER CODE END 2 */
 
@@ -1108,6 +1094,16 @@ void TaskActuator(void const * argument)
 {
   /* USER CODE BEGIN TaskActuator */
   /* Infinite loop */
+
+	balltransfer_Init();
+	balltransfer_Rulo_Activate(1);
+	HAL_Delay(1000);
+	balltransfer_Rulo_Activate(0);
+	balltransfer_Forklift_Move(150);
+	HAL_Delay(1000);
+	balltransfer_Forklift_Move(-50);
+	HAL_Delay(1000);
+	balltransfer_Forklift_Move(0);
   for(;;)
   {
     osDelay(1);
@@ -1140,10 +1136,10 @@ void TaskChassisControl(void const * argument)
 	pidInit.u_AboveLimit = 1;
 	pidInit.u_BelowLimit = -1;
 	pidInit.deltaT = 0.05;
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisX);
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
+	processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisX);
+	processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisY);
 	pidInit.kP = 1.2;
-	process_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
+	processChassis_SetupAxisParameter(pidInit, tpInit, PID_AxisTheta);
 
 	AxesTrajectPoint point;
 	point.trajectPointX.pf = 1; // move X axis 1 meter
@@ -1162,8 +1158,7 @@ void TaskChassisControl(void const * argument)
 	point.trajectPointTheta.ReachOffset = 0.03;
 	point.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
 
-	process_PutTrajectPointToArray(point, 0);
-
+	processChassis_PutTrajectPointToArray(point, 0);
 	AxesTrajectPoint point1;
 	point1.trajectPointX.pf = 1;
 	point1.trajectPointX.tf = 2;
@@ -1181,7 +1176,7 @@ void TaskChassisControl(void const * argument)
 	point1.trajectPointTheta.ReachOffset = 0.03;
 	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
 
-	process_PutTrajectPointToArray(point1, 1);
+	processChassis_PutTrajectPointToArray(point1, 1);
 
 	point1.trajectPointX.pf = 3;
 	point1.trajectPointX.tf = 2;
@@ -1199,7 +1194,7 @@ void TaskChassisControl(void const * argument)
 	point1.trajectPointTheta.ReachOffset = 0.03;
 	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
 
-	process_PutTrajectPointToArray(point1, 2);
+	processChassis_PutTrajectPointToArray(point1, 2);
 
 	point1.trajectPointX.pf = 3;
 	point1.trajectPointX.tf = 2;
@@ -1217,7 +1212,7 @@ void TaskChassisControl(void const * argument)
 	point1.trajectPointTheta.ReachOffset = 0.03;
 	point1.nextStageControlType = ON_TRAJECTORY_PLANNING_CONTROL;
 
-	process_PutTrajectPointToArray(point1, 3);
+	processChassis_PutTrajectPointToArray(point1, 3);
 
 	point1.trajectPointX.pf = 3;
 	point1.trajectPointX.tf = 2;
@@ -1235,7 +1230,7 @@ void TaskChassisControl(void const * argument)
 	point1.trajectPointTheta.ReachOffset = 0.03;
 	point1.nextStageControlType = ON_MANUAL_SET_CONTROL;
 
-		process_PutTrajectPointToArray(point1, 4);
+	processChassis_PutTrajectPointToArray(point1, 4);
 
 
 
@@ -1246,21 +1241,21 @@ void TaskChassisControl(void const * argument)
 	Signal.u = 0;
 	Signal.v = 0;
 	Signal.r = 0;
-	process_PutManualSetValueToArray(Signal, 0);
+	processChassis_PutManualSetValueToArray(Signal, 0);
 	Signal.DisablePID_AxisTheta = 1;
 	Signal.DisablePID_AxisX = 1;
 	Signal.DisablePID_AxisY = 1;
 	Signal.u = 0.5;
 	Signal.v = 0;
 	Signal.r = 0;
-	process_PutManualSetValueToArray(Signal, 1);
+	processChassis_PutManualSetValueToArray(Signal, 1);
 	Signal.DisablePID_AxisTheta = 1;
 	Signal.DisablePID_AxisX = 1;
 	Signal.DisablePID_AxisY = 1;
 	Signal.u = 0;
 	Signal.v = 0.5;
 	Signal.r = 0;
-	process_PutManualSetValueToArray(Signal, 2);
+	processChassis_PutManualSetValueToArray(Signal, 2);
 
 
 			/* Infinite loop */
@@ -1272,7 +1267,7 @@ void TaskChassisControl(void const * argument)
 		//			Run = true;
 		//			}
 		odo_SpeedAngleUpdate();
-		ProcessOutputResult result = process_Run(Run);
+		ProcessOutputResult result = processChassis_Run(Run);
 		xQueueSend(qControlUVR, (void* )&result, 100);
 		osDelay(DELTA_T * 1000);
 
