@@ -235,4 +235,6 @@ void process_GetBall();
 void process_SetFloatingDis();
 void process_ResetFloatingDis();
 void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel);
+void process_GetBall2();
+void process_WallApproach();
 #endif /* INC_PROCESSCONTROL_H_ */

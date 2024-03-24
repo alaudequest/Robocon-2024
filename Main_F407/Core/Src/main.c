@@ -1013,8 +1013,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SSPutBall_Pin SSBall_Pin SSLua1_Pin SSLua2_Pin */
-  GPIO_InitStruct.Pin = SSPutBall_Pin|SSBall_Pin|SSLua1_Pin|SSLua2_Pin;
+  /*Configure GPIO pins : Sesor_BatThanh_Pin SSPutBall_Pin SSBall_Pin SSLua1_Pin
+                           SSLua2_Pin */
+  GPIO_InitStruct.Pin = Sesor_BatThanh_Pin|SSPutBall_Pin|SSBall_Pin|SSLua1_Pin
+                          |SSLua2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -1497,13 +1499,7 @@ void Actuator(void const * argument)
 		process_RunSSAndActuator(&TestBreakProtection);
 		readADC();
 		BallSS= HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin);
-//		if (GamePad.Left == 1){
-//			osDelay(500);
-//			if(GamePad.Left == 1){
-//				process_ChangeState();
-//				while (GamePad.Left == 1){osDelay(1);}
-//			}
-//		}
+
 		osDelay(1);
 	}
   /* USER CODE END Actuator */
@@ -1586,7 +1582,7 @@ void StartTaskSilo(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
+	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
 	startPutBall(process_ReturnBallValue());
 //	  startPutBall(testSilo);
     osDelay(1);
