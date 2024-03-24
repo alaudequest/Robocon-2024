@@ -52,11 +52,7 @@ void valve_BothCatch()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
-void valve_BothHold(){
-	HC595_SetBitOutput(1); // hạ cánh tay trái
-	HC595_SetBitOutput(3); // hạ cánh tay phải
-	HC595_ShiftOut(NULL, 1, 1);
-}
+
 void valve_BothRelease()
 {
 	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN); // hạ cánh tay trái
@@ -72,6 +68,35 @@ void valve_BothRelease()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
+
+void valve_LeftCollectBall() {
+	// chống đụng cơ cấu lấy bóng
+	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	// thu cơ cấu lùa banh vào
+	HC595_ClearBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_LeftWaitCollectBall() {
+	// chống đụng cơ cấu lấy bóng
+	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	// đẩy cơ cấu lùa banh ra, chờ bắt banh
+	HC595_SetBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_RightCollectBall() {
+	// thu cơ cấu lùa banh vào
+	HC595_ClearBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_RightWaitCollectBall() {
+	// đẩy cơ cấu lùa banh ra, chờ bắt banh
+	HC595_SetBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
 
 void valve_TestPin(pinName pin) {
 	HC595_TestPin(pin);
