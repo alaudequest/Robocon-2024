@@ -444,6 +444,13 @@ void process_RunChassis()
 			process_SetCtrSignal(U, 0.033);
 			process_SetCtrSignal(V, -0.08);
 			break;
+		case 15 :
+			trajecPlan_SetParam(&process.trajecTheta, odo_GetPoseTheta(), 0, 3, odo_GetRout(), 0);
+			PD_Enable(PD_Theta);
+			process_ChangeState();
+			break;
+		case 16 :
+			process_Accel_FloatingEnc(152, 0.7,6700,0.05);
 		default:
 			break;
 	}
@@ -648,7 +655,7 @@ void process_GetBall(){
 			PD_Disable(PD_Theta);
 			process_SetCtrSignal(R, 0);
 			process.ssCheck = 0;
-			process.stateChange = 3;
+			process.stateChange = 4;
 		}
 	}
 	else if (process.stateChange==3){
@@ -668,9 +675,10 @@ void process_GetBall(){
 		{
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0.05);
-			if (process.Ball_dis > 0.17)
+			if (process.Ball_dis > 0.13)
 			{
-
+				process_SetCtrSignal(U, 0);
+				process_SetCtrSignal(V, 0);
 				process.stateChange = 5;
 				process.ssCheck = 0;
 				PD_Disable(PD_Theta);
@@ -733,7 +741,7 @@ void process_GetBall2(){
 	else if (process.stateChange==3){
 		process_SetCtrSignal(U, 0);
 		process_SetCtrSignal(V, -0.05);
-		if (process.Ball_dis < 0.20)
+		if (process.Ball_dis < 0.22)
 		{
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0);
@@ -741,7 +749,7 @@ void process_GetBall2(){
 			PD_Disable(PD_Theta);
 			process_SetCtrSignal(R, 0);
 			process.ssCheck = 0;
-			process.stateChange = 4;
+			process.stateChange = 5;
 		}
 	}
 	else if (process.stateChange==4){
@@ -761,9 +769,10 @@ void process_GetBall2(){
 		{
 			process_SetCtrSignal(U, 0);
 			process_SetCtrSignal(V, 0.05);
-			if (process.Ball_dis > 0.17)
+			if (process.Ball_dis > 0.13)
 			{
-
+				process_SetCtrSignal(U, 0);
+				process_SetCtrSignal(V, 0);
 				process.stateChange = 6;
 				process.ssCheck = 0;
 				PD_Disable(PD_Theta);
@@ -797,7 +806,7 @@ void process_GetBall3()
 		process_SetCtrSignal(U, 0);
 		process_SetCtrSignal(V, 0);
 		process.ssCheck ++;
-		if (process.ssCheck > 16)
+		if (process.ssCheck > 5)
 		{
 			process.stateChange = 0;
 			process.ssCheck = 0;
@@ -818,7 +827,7 @@ void process_GetBall3()
 	else if (process.stateChange==2){
 		process_SetCtrSignal(U, -0.1);
 		process_SetCtrSignal(V, 0);
-		if (process.floating_dis>200)
+		if (process.floating_dis>280)
 		{
 			process.stateChange = 3;
 			process.ssCheck = 0;

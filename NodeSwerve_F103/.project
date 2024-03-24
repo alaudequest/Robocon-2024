@@ -31,6 +31,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>CAN</name>
+			<type>2</type>
+			<location>E:/LAB/Robocon-2024/Main_F407/CAN</location>
+		</link>
+		<link>
 			<name>HOANGCAN</name>
 			<type>2</type>
 			<location>C:/Users/Admin/Desktop/Robocon2024/Main_F407/CAN</location>

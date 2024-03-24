@@ -326,11 +326,12 @@ int main(void)
 //	if (HAL_FLASHEx_Erase(&EraseInitStruct, &pageError) != HAL_OK){
 //	   return HAL_FLASH_GetError ();
 //	}
-//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x02) != HAL_OK){
+//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x01) != HAL_OK){
 //	return HAL_FLASH_GetError ();
 //	}
 //	HAL_FLASH_Lock();
 //	uint32_t testFlash = *(__IO uint32_t*)FLASH_ADDR_TARGET;
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */

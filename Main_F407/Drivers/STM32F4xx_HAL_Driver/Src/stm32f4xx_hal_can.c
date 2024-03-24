@@ -1432,7 +1432,6 @@ uint32_t HAL_CAN_GetTxMailboxesFreeLevel(CAN_HandleTypeDef *hcan)
   }
 
   /* Return Tx Mailboxes free level */
-
   return freelevel;
 }
 
