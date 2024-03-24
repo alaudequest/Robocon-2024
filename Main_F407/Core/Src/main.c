@@ -2434,47 +2434,65 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 */
 bool testTick = true;
 uint16_t speed = 0;
+
+HAL_StatusTypeDef Delay_tick(uint32_t delay) {
+	static TickType_t xStartTime = 0;
+	if(!xStartTime) {
+		xStartTime = xTaskGetTickCount();
+	}
+	if(xTaskGetTickCount() - xStartTime > delay) {
+		xStartTime = 0;
+		return HAL_OK;
+	}
+	return HAL_BUSY;
+}
 /* USER CODE END Header_GunHandle */
 void GunHandle(void const * argument)
 {
   /* USER CODE BEGIN GunHandle */
 	gun_Init();
-	bool IsGetBall = false;
+//	bool IsGetBall = false;
 	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
   /* Infinite loop */
   for(;;)
   {
-	  if (xQueueReceive(qShoot, (void*) &IsGetBall, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+	  if (xQueueReceive(qShoot, (void*) &IsShoot, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 	  		  xStartTime = xTaskGetTickCount();
 	  }
 	  if(testTick){
-		  IsGetBall = 1;
+		  IsShoot = 1;
 		  testTick = 0;
 		  xStartTime = xTaskGetTickCount();
 	  }
-	  if(IsGetBall){
+	  if(IsShoot){
 		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
-//			  gun_StopGetBall();
-			  IsGetBall = 0;
-			  IsShoot = 1;
-			  xOccurredTime = 0;
-			  xStartTime = xTaskGetTickCount();
-		  }else{
-			  gun_StartGetBall();
-			  gun_StartShootBall(700);
-		  }
-	  }else if(IsShoot) {
-		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
-			  gun_StopGetBall();
-			  gun_StopShootBall();
+		  if(xOccurredTime > 5000/portTICK_PERIOD_MS){
+//			  IsGetBall = 0;
 			  IsShoot = 0;
 			  xOccurredTime = 0;
-		  }else {
-			  gun_StartShootBall(700);
+//			  xStartTime = xTaskGetTickCount();
+		  }else{
+			  gun_StartGetBall();
+			  gun_StartShootBall(speed);
+			  if(Delay_tick(500) == HAL_OK) {
+				  speed += 120;
+			  }
 		  }
+//	  }else if(IsShoot) {
+//		  xOccurredTime = xTaskGetTickCount() - xStartTime;
+//		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
+//			  gun_StopGetBall();
+//			  gun_StopShootBall();
+//			  IsShoot = 0;
+//			  xOccurredTime = 0;
+//			  speed = 0;
+//		  }else {
+//			  gun_StartShootBall(speed);
+//			  if(Delay_tick(500) == HAL_OK) {
+//				  speed += 200;
+//			  }
+//		  }
 	  }else {
 		  gun_StopAll();
 	  }
