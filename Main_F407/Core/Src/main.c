@@ -27,6 +27,7 @@
 #include "stdbool.h"
 #include "PID.h"
 #include "Flag.h"
+#include "ActuatorGun.h"
 #include "InverseKinematic.h"
 #include "SwerveModule.h"
 #include "string.h"
@@ -59,6 +60,7 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
@@ -74,6 +76,9 @@ uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
+osThreadId TaskGunHandle;
+uint32_t TaskGunBuffer[ 128 ];
+osStaticThreadDef_t TaskGunControlBlock;
 /* USER CODE BEGIN PV */
 
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -103,7 +108,7 @@ float u, v, r;
 float DeltaYR, DeltaYL, DeltaX;
 //float TestTargetX = 0, TestTargetY = 0,  = 0;
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
-
+QueueHandle_t qShoot;
 
 uint32_t flagMain = 0;
 #define MAIN_FLAG_GROUP flagMain
@@ -143,11 +148,13 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM5_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void Actuator(void const * argument);
 void OdometerHandle(void const * argument);
+void GunHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -322,6 +329,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM10_Init();
   MX_USART1_UART_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -332,6 +340,8 @@ int main(void)
 	pid.kD = 20.22;
 	pid.alpha = 5.31;
 	pid.deltaT = 0.001;
+
+	qShoot = xQueueCreate(1, sizeof(bool));
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -370,6 +380,10 @@ int main(void)
   /* definition and creation of TaskOdometer */
   osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
+
+  /* definition and creation of TaskGun */
+  osThreadStaticDef(TaskGun, GunHandle, osPriorityNormal, 0, 128, TaskGunBuffer, &TaskGunControlBlock);
+  TaskGunHandle = osThreadCreate(osThread(TaskGun), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -622,6 +636,69 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 80-1;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 1000-1;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+  HAL_TIM_MspPostInit(&htim5);
+
+}
+
+/**
   * @brief TIM10 Initialization Function
   * @param None
   * @retval None
@@ -746,12 +823,22 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, MotorGetB1_Pin|MotorGetB2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : MotorGetB1_Pin MotorGetB2_Pin */
+  GPIO_InitStruct.Pin = MotorGetB1_Pin|MotorGetB2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
   GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
@@ -2337,6 +2424,47 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 
 	}
   /* USER CODE END OdometerHandle */
+}
+
+/* USER CODE BEGIN Header_GunHandle */
+/**
+* @brief Function implementing the TaskGun thread.
+* @param argument: Not used
+* @retval None
+*/
+bool testTick = false;
+/* USER CODE END Header_GunHandle */
+void GunHandle(void const * argument)
+{
+  /* USER CODE BEGIN GunHandle */
+	gun_Init();
+	bool IsFirePhoenix = false;
+	TickType_t xStartTime = 0, xOccurredTime = 0;
+  /* Infinite loop */
+  for(;;)
+  {
+	  if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+	  		  xStartTime = xTaskGetTickCount();
+	  }
+	  if(testTick){
+		  IsFirePhoenix = 1;
+		  testTick = 0;
+		  xStartTime = xTaskGetTickCount();
+	  }
+	  if(IsFirePhoenix){
+		  xOccurredTime = xTaskGetTickCount() - xStartTime;
+		  if(xOccurredTime > 3000/portTICK_PERIOD_MS){
+			  gun_StopAll();
+			  IsFirePhoenix = 0;
+			  xOccurredTime = 0;
+		  }else{
+			  gun_StartShootBall(500);
+			  gun_StartGetBall();
+		  }
+	  }
+    osDelay(1);
+  }
+  /* USER CODE END GunHandle */
 }
 
 /**
