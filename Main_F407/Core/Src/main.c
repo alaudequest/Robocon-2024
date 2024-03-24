@@ -2439,32 +2439,46 @@ void GunHandle(void const * argument)
 {
   /* USER CODE BEGIN GunHandle */
 	gun_Init();
-	bool IsFirePhoenix = false;
+	bool IsGetBall = false;
+	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
   /* Infinite loop */
   for(;;)
   {
-	  if (xQueueReceive(qShoot, (void*) &IsFirePhoenix, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+	  if (xQueueReceive(qShoot, (void*) &IsGetBall, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 	  		  xStartTime = xTaskGetTickCount();
 	  }
 	  if(testTick){
-		  IsFirePhoenix = 1;
+		  IsGetBall = 1;
 		  testTick = 0;
 		  xStartTime = xTaskGetTickCount();
 	  }
-	  if(IsFirePhoenix){
+	  if(IsGetBall){
 		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-		  if(xOccurredTime > 3000/portTICK_PERIOD_MS){
-			  gun_StopAll();
-			  IsFirePhoenix = 0;
+		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
+//			  gun_StopGetBall();
+			  IsGetBall = 0;
+			  IsShoot = 1;
 			  xOccurredTime = 0;
+			  xStartTime = xTaskGetTickCount();
 		  }else{
-			  gun_StartShootBall(1000);
 			  gun_StartGetBall();
+			  gun_StartShootBall(700);
+		  }
+	  }else if(IsShoot) {
+		  xOccurredTime = xTaskGetTickCount() - xStartTime;
+		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
+			  gun_StopGetBall();
+			  gun_StopShootBall();
+			  IsShoot = 0;
+			  xOccurredTime = 0;
+		  }else {
+			  gun_StartShootBall(700);
 		  }
 	  }else {
 		  gun_StopAll();
 	  }
+
     osDelay(1);
   }
   /* USER CODE END GunHandle */
