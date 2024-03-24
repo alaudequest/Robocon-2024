@@ -21,26 +21,26 @@ void gun_Init() {
 }
 
 void gun_StartGetBall() {
+	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_SET);
+}
+void gun_StopGetBall(){
 	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_RESET);
 }
-void gun_StopGetBall(){
-	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_SET);
-}
 
 void gun_StartShootBall(uint16_t pwm) {
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 1000-pwm);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 1000-pwm);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, pwm);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, pwm);
 }
 void gun_StopShootBall() {
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 1000);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 1000);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
 }
 
 void gun_StopAll() {
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 1000);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 1000);
-	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_SET);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
+	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_RESET);
 }

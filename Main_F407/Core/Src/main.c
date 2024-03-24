@@ -2432,7 +2432,8 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 * @param argument: Not used
 * @retval None
 */
-bool testTick = false;
+bool testTick = true;
+uint16_t speed = 0;
 /* USER CODE END Header_GunHandle */
 void GunHandle(void const * argument)
 {
@@ -2458,9 +2459,11 @@ void GunHandle(void const * argument)
 			  IsFirePhoenix = 0;
 			  xOccurredTime = 0;
 		  }else{
-			  gun_StartShootBall(500);
+			  gun_StartShootBall(1000);
 			  gun_StartGetBall();
 		  }
+	  }else {
+		  gun_StopAll();
 	  }
     osDelay(1);
   }
