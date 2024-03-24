@@ -17,7 +17,6 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <RB1ActuatorValve.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -33,6 +32,7 @@
 #include "string.h"
 #include "Gamepad.h"
 #include "PIDPosition.h"
+#include "RB1ActuatorValve.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,30 +93,7 @@ PID_type pidType = PID_BLDC_SPEED;
 uint8_t UARTRX3_Buffer[9];
 uint8_t DataTayGame[9];
 
-float Xleft, Yleft;
-float Xright;
-
-_GamePad GamePad;
-uint32_t gamepadRxIsBusy = 0;
-float u, v, r;
-
-float DeltaYR, DeltaYL, DeltaX;
-//float TestTargetX = 0, TestTargetY = 0,  = 0;
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
-
-
-uint32_t flagMain = 0;
-#define MAIN_FLAG_GROUP flagMain
-void flagmain_SetFlag(MainEvent e) {
-	SETFLAG(MAIN_FLAG_GROUP, e);
-}
-bool flagmain_CheckFlag(MainEvent e) {
-	return CHECKFLAG(MAIN_FLAG_GROUP, e);
-}
-void flagmain_ClearFlag(MainEvent e) {
-	CLEARFLAG(MAIN_FLAG_GROUP, e);
-}
-
 
 uint32_t nodeSwerveSetHomeComplete = 0;
 #define SETHOME_FLAG_GROUP nodeSwerveSetHomeComplete
@@ -248,31 +225,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART3) {
-		gamepadRxIsBusy = 1;
-		int ViTriData = -1;
-		for (int i = 0; i <= 8; ++i) {
-			if (UARTRX3_Buffer[i] == 0xAA) {
-				ViTriData = i;
-			}
-		}
-		if (ViTriData != -1) {
-			int cnt = 0;
-			while (cnt < 9) {
-				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
-				++ViTriData;
-				if (ViTriData >= 9) {
-					ViTriData = 0;
-				}
-				++cnt;
-			}
-
-			GamepPadHandle(&GamePad, DataTayGame);
-
-		} else {
-			GamePad.Status = 0;
-		}
-		if (!gamepadRxIsBusy)
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 
 	}
 }
@@ -292,7 +244,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if(GPIO_Pin == RB1SensorArmRight_Pin) {
 		__NOP();
 	}
-	if(GPIO_Pin == RB1SensorPushBallUp_Pin) {
+	if(GPIO_Pin == RB1SensorLiftBallUp_Pin) {
 		__NOP();
 	}
 }
@@ -769,8 +721,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RB1SensorPushBallUp_Pin RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
-  GPIO_InitStruct.Pin = RB1SensorPushBallUp_Pin|RB1SensorArmRight_Pin|RB1SensorArmLeft_Pin;
+  /*Configure GPIO pins : RB1SensorLiftBallUp_Pin RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
+  GPIO_InitStruct.Pin = RB1SensorLiftBallUp_Pin|RB1SensorArmRight_Pin|RB1SensorArmLeft_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -914,7 +866,11 @@ void CAN_Bus(void const * argument)
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
+	valve_Init();
+	valve_BothCatch();
+	valve_BothRelease();
 	/* Infinite loop */
+
 	for (;;) {
 
 	}

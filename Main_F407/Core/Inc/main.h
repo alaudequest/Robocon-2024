@@ -65,9 +65,9 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
-#define RB1SensorPushBallUp_Pin GPIO_PIN_12
-#define RB1SensorPushBallUp_GPIO_Port GPIOE
-#define RB1SensorPushBallUp_EXTI_IRQn EXTI15_10_IRQn
+#define RB1SensorLiftBallUp_Pin GPIO_PIN_12
+#define RB1SensorLiftBallUp_GPIO_Port GPIOE
+#define RB1SensorLiftBallUp_EXTI_IRQn EXTI15_10_IRQn
 #define RB1SensorArmRight_Pin GPIO_PIN_13
 #define RB1SensorArmRight_GPIO_Port GPIOE
 #define RB1SensorArmRight_EXTI_IRQn EXTI15_10_IRQn
