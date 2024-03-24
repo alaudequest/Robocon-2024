@@ -65,12 +65,12 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
-#define SSBall_Pin GPIO_PIN_12
-#define SSBall_GPIO_Port GPIOE
-#define SSLua1_Pin GPIO_PIN_13
-#define SSLua1_GPIO_Port GPIOE
-#define SSLua2_Pin GPIO_PIN_14
-#define SSLua2_GPIO_Port GPIOE
+#define RB1SensorPushBallUp_Pin GPIO_PIN_12
+#define RB1SensorPushBallUp_GPIO_Port GPIOE
+#define RB1SensorArmRight_Pin GPIO_PIN_13
+#define RB1SensorArmRight_GPIO_Port GPIOE
+#define RB1SensorArmLeft_Pin GPIO_PIN_14
+#define RB1SensorArmLeft_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

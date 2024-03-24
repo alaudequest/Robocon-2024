@@ -755,10 +755,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SSBall_Pin SSLua1_Pin SSLua2_Pin */
-  GPIO_InitStruct.Pin = SSBall_Pin|SSLua1_Pin|SSLua2_Pin;
+  /*Configure GPIO pin : RB1SensorPushBallUp_Pin */
+  GPIO_InitStruct.Pin = RB1SensorPushBallUp_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(RB1SensorPushBallUp_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
+  GPIO_InitStruct.Pin = RB1SensorArmRight_Pin|RB1SensorArmLeft_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -823,23 +829,8 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	/* Infinite loop */
-
-
-
 	for (;;) {
 
-
-		if(((GamePad.Square == 1)&&(GamePad.Circle == 1))||stateRun == 50)
-		{
-			xaDay = 1;
-		}
-		if (gamepadRxIsBusy) {
-			gamepadRxIsBusy = 0;
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-		}
-		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
-			__HAL_UART_ENABLE(&huart3);
-		}
 		osDelay(50);
 	}
   /* USER CODE END 5 */
