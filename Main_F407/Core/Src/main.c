@@ -17,6 +17,7 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <RB1ActuatorValve.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -32,7 +33,6 @@
 #include "string.h"
 #include "Gamepad.h"
 #include "PIDPosition.h"
-#include "ActuatorValve.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -212,6 +212,10 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 	}
 
 }
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	while (1);
+}
 /*=============================== UART ===============================*/
 uint8_t YawHandle;
 uint8_t AngleData[5];
@@ -273,15 +277,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
-void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
-	while (1);
-}
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	__HAL_UART_CLEAR_OREFLAG(huart);
 	memset(UARTRX3_Buffer, 0, sizeof(UARTRX3_Buffer));
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	__HAL_UART_DISABLE(huart);
+}
+/*=============================== GPIO EXTI ===============================*/
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == RB1SensorArmLeft_Pin) {
+		__NOP();
+	}
+	if(GPIO_Pin == RB1SensorArmRight_Pin) {
+		__NOP();
+	}
+	if(GPIO_Pin == RB1SensorPushBallUp_Pin) {
+		__NOP();
+	}
 }
 /* USER CODE END 0 */
 
@@ -327,6 +340,7 @@ int main(void)
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -755,14 +769,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RB1SensorPushBallUp_Pin */
-  GPIO_InitStruct.Pin = RB1SensorPushBallUp_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(RB1SensorPushBallUp_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
-  GPIO_InitStruct.Pin = RB1SensorArmRight_Pin|RB1SensorArmLeft_Pin;
+  /*Configure GPIO pins : RB1SensorPushBallUp_Pin RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
+  GPIO_InitStruct.Pin = RB1SensorPushBallUp_Pin|RB1SensorArmRight_Pin|RB1SensorArmLeft_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -785,15 +793,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 uint8_t enableTestMode;
-CAN_SpeedBLDC_AngleDC Gun_Actuator;
-void setTestModeActuator(){
-	if(!enableTestMode) return;
-	Gun_Actuator.bldcSpeed = 17.7;
-	Gun_Actuator.dcAngle = 44.4;
-	canfunc_MotorPutSpeedAndAngle(Gun_Actuator);
-	canctrl_Send(&hcan1, CANCTRL_DEVICE_ACTUATOR_1);
-	enableTestMode = 0;
-}
 void TestBreakProtection() {
 	for (CAN_DEVICE_ID i = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; i <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3; i++) {
 		canfunc_SetBoolValue(1, CANCTRL_MODE_PID_BLDC_BREAKPROTECTION);
@@ -852,17 +851,16 @@ void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
 	swer_Init();
+	bool untangleBLDC = false;
 	/* Infinite loop */
 	for (;;) {
-		if(xaDay == 0) {
-			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		if(untangleBLDC == 0) {
+			for (ModuleID id = MODULE_ID_1; id < MODULE_ID_3; id++)
+				invkine_Implementation(id, 0, 0, 0, &InvCpltCallback);
 		}
 		else {
-			InvCpltCallback(MODULE_ID_3, 0, 0);
-			InvCpltCallback(MODULE_ID_1, 0, 0);
-			InvCpltCallback(MODULE_ID_2, 0, 0);
+			for (ModuleID id = MODULE_ID_1; id < MODULE_ID_3; id++)
+				InvCpltCallback(id, 0, 0);
 		}
 
 		osDelay(1);
@@ -912,7 +910,6 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-uint8_t BallSS,shoot;
 /* USER CODE END Header_Actuator */
 void Actuator(void const * argument)
 {
