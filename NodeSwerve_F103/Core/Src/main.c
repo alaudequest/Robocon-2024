@@ -326,7 +326,7 @@ int main(void)
 //	if (HAL_FLASHEx_Erase(&EraseInitStruct, &pageError) != HAL_OK){
 //	   return HAL_FLASH_GetError ();
 //	}
-//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x01) != HAL_OK){
+//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x03) != HAL_OK){
 //	return HAL_FLASH_GetError ();
 //	}
 //	HAL_FLASH_Lock();

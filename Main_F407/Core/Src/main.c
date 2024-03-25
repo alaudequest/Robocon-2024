@@ -1561,15 +1561,15 @@ void OdometerHandle(void const * argument)
 				Gamepad = 1;
 			}
 
-			if(Run == 1){
-				uControlX = 	process_GetCtrSignal(U_Control);
-				uControlY = 	process_GetCtrSignal(V_Control);
-				uControlTheta = process_GetCtrSignal(R_Control);
-			}else if(Run == 0 && Gamepad == 1) {
-				uControlX = 	-GamePad.XLeftCtr;
-				uControlY = 	GamePad.YLeftCtr;
-				uControlTheta = GamePad.XRightCtr;
-			}
+//			if(Run == 1){
+//				uControlX = 	process_GetCtrSignal(U_Control);
+//				uControlY = 	process_GetCtrSignal(V_Control);
+//				uControlTheta = process_GetCtrSignal(R_Control);
+//			}else if(Run == 0 && Gamepad == 1) {
+//				uControlX = 	-GamePad.XLeftCtr;
+//				uControlY = 	GamePad.YLeftCtr;
+//				uControlTheta = GamePad.XRightCtr;
+//			}
 
 			xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
 			osDelay(DELTA_T*1000 - IMU_Wait);

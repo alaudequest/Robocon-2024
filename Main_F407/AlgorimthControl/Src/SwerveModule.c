@@ -60,7 +60,7 @@ void swer1_CalVector(float u, float v, float r){
 
 void swer2_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 0*M_PI/180;
+	float alpha = 225*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY2*r) - sin(alpha)*(v + DX2*r);
 	vct.wheelVelY = sin(alpha)*(u - DY2*r) + cos(alpha)*(v + DX2*r);
 	swer_SetWheelVector(MODULE_ID_2, vct);
@@ -68,7 +68,7 @@ void swer2_CalVector(float u, float v, float r){
 
 void swer3_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 225*M_PI/180;
+	float alpha = 0*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY3*r) - sin(alpha)*(v + DX3*r);
 	vct.wheelVelY = sin(alpha)*(u - DY3*r) + cos(alpha)*(v + DX3*r);
 	swer_SetWheelVector(MODULE_ID_3, vct);
