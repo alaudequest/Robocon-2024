@@ -345,7 +345,7 @@ void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
 		process.chasis_Vector_TargetSpeed -= accel ;
 	}
 
-	if ((process.chasis_Vector_TargetSpeed<=0)||(process.floating_dis > s)||(process.ssCheck>30)){
+	if ((process.chasis_Vector_TargetSpeed<=0)||(process.floating_dis > s)){
 		process.chasis_Vector_TargetSpeed = 0;
 		process.Process_Running = 1;
 		PD_Disable(PD_Theta);

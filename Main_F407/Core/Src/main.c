@@ -1592,8 +1592,8 @@ void StartTaskSilo(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-//	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
-//	startPutBall(process_ReturnBallValue());
+	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
+	startPutBall(process_ReturnBallValue());
 //	  startPutBall(testSilo);
     osDelay(1);
   }
