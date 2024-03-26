@@ -23,7 +23,7 @@ void PD_Cal(pd_Param *pd, float Target,float Current)
 {
 	pd->e = Target - Current;
 	pd->uP = pd->kP*pd->e;
-	pd->uD = pd->kD*(pd->e - pd->pre)/DELTA_T;
+	pd->uD = pd->kD*(pd->e - pd->pre)/pd->DeltaT;
 	pd->uDf = (1-pd->Alpha)*pd->uDfpre+(pd->Alpha)*pd->uD;
 	pd->uDfpre = pd->uDf;
 	pd->pre = pd->e;

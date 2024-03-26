@@ -9,7 +9,7 @@
 #define INC_POSITIONCONTROL_H_
 
 #include "PID.h"
-#include "Odometry.h"
+
 
 
 typedef struct trajec_Param{
@@ -36,6 +36,7 @@ typedef struct pd_Param{
 	float u;
 	float uAbove;
 	float uBelow;
+	float DeltaT;
 }pd_Param;
 
 void PD_SetParameter(pd_Param *pd, float kp,float kd,float alpha);

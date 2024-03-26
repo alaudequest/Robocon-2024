@@ -56,7 +56,7 @@ void log_AddArgumentToBuffer(void *data, DataType type){
 		break;
 	case TYPE_UINT32:
 		uint32_t *u32Data = (uint32_t*)data;
-		sprintf(txLogBuffer+strlen(txLogBuffer),"%d,",*u32Data);
+		sprintf(txLogBuffer+strlen(txLogBuffer),"%ld,",*u32Data);
 		break;
 	}
 }

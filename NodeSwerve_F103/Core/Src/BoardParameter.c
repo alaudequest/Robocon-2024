@@ -23,7 +23,7 @@ void brd_Init()
 	HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 	encoder_Init(&brdParam.encDC, &htim3, DCEncoderPerRound*DCGearRatio, 0.002);
-	encoder_Init(&brdParam.encBLDC, &htim4, _BLDCEncoderPerRound*_BLDCGearRatio, 0.002);
+	encoder_Init(&brdParam.encBLDC, &htim4, _BLDCEncoderPerRound*_BLDCGearRatio, 0.02);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
@@ -35,14 +35,14 @@ void brd_Init()
 	MotorDC_Init(&brdParam.mdc, &htim2, MOTOR_PWM_INVERSE,
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
-	brdParam.pidBLDC_Speed.kP = 0.03;
-	brdParam.pidBLDC_Speed.kI = 2.5;
+	brdParam.pidBLDC_Speed.kP = 0.1;
+	brdParam.pidBLDC_Speed.kI = 20;
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
-	brdParam.pidBLDC_Speed.deltaT = 0.002;
+	brdParam.pidBLDC_Speed.deltaT = 0.02;
 	brdParam.pidBLDC_Speed.u_AboveLimit = 1000;
 	brdParam.pidBLDC_Speed.u_BelowLimit = -1000;
-	brdParam.pidBLDC_Speed.kB = 1/0.002;
+	brdParam.pidBLDC_Speed.kB = 1/0.02;
 
 	brdParam.pidDC_Angle.kP = 3.0;
 	brdParam.pidDC_Angle.kI = 0;

@@ -809,7 +809,7 @@ void StartTaskPIDSpeed(void const * argument)
 	}
 //	PID_BLDC_CalSpeed(test);
 	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-    osDelay(2);
+    osDelay(20);
   }
   /* USER CODE END StartTaskPIDSpeed */
 }

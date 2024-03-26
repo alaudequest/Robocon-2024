@@ -7,6 +7,7 @@
 
 #include "Encoder.h"
 #include "stdbool.h"
+#include "stdlib.h"
 
 
 void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT)

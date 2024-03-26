@@ -31,6 +31,8 @@ typedef struct PID_Param{
     float u_AboveLimit;
     float u_BelowLimit;
 
+    float SaiSoChoPhep ;
+
 }PID_Param;
 
 void PID_Init(PID_Param *pid);

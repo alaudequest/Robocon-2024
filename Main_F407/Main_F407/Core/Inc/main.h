@@ -67,16 +67,22 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
-#define Sesor_BatThanh_Pin GPIO_PIN_10
-#define Sesor_BatThanh_GPIO_Port GPIOE
-#define SSPutBall_Pin GPIO_PIN_11
-#define SSPutBall_GPIO_Port GPIOE
-#define SSBall_Pin GPIO_PIN_12
-#define SSBall_GPIO_Port GPIOE
-#define SSLua1_Pin GPIO_PIN_13
-#define SSLua1_GPIO_Port GPIOE
-#define SSLua2_Pin GPIO_PIN_14
-#define SSLua2_GPIO_Port GPIOE
+#define sensor_1_Pin GPIO_PIN_7
+#define sensor_1_GPIO_Port GPIOE
+#define sensor_2_Pin GPIO_PIN_8
+#define sensor_2_GPIO_Port GPIOE
+#define sensor_3_Pin GPIO_PIN_9
+#define sensor_3_GPIO_Port GPIOE
+#define sensor_4_Pin GPIO_PIN_10
+#define sensor_4_GPIO_Port GPIOE
+#define sensor_5_Pin GPIO_PIN_11
+#define sensor_5_GPIO_Port GPIOE
+#define sensor_6_Pin GPIO_PIN_12
+#define sensor_6_GPIO_Port GPIOE
+#define sensor_7_Pin GPIO_PIN_13
+#define sensor_7_GPIO_Port GPIOE
+#define sensor_8_Pin GPIO_PIN_14
+#define sensor_8_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

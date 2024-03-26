@@ -8,6 +8,10 @@
 #include "PID_SwerveModule.h"
 bool bldcEnablePID = false;
 bool dcEnablePID = true;
+float SaiSoChoPhep;
+float TocDoBLDC;
+float uHatTruocDo;
+
 
 void PID_DC_CalSpeed(float Target_set)
 {
@@ -43,7 +47,15 @@ void PID_BLDC_CalSpeed(float Target_set)
 		MotorBLDC_Drive(&mbldc, 0);
 	}else{
 //		float result = Target_set;
-		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
+		TocDoBLDC = encoder_GetSpeed(&encBLDC);
+		float result = PID_Cal(&pid, Target_set, encBLDC.deltaXung);
+		if ((pid.e>-SaiSoChoPhep)&&(pid.e<SaiSoChoPhep))
+		{
+
+			pid.uHat = uHatTruocDo;
+			result=uHatTruocDo;
+		}
+		uHatTruocDo = pid.uHat;
 		MotorBLDC_Drive(&mbldc, (int32_t)result);
 		brd_SetObjEncBLDC(encBLDC);
 		brd_SetPID(pid, PID_BLDC_SPEED);

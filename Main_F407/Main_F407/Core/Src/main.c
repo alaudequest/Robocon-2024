@@ -32,11 +32,13 @@
 #include "string.h"
 #include "Gamepad.h"
 #include "ActuatorValve.h"
-#include "Odometry.h"
+#include "Encoder.h"
 #include "PositionControl.h"
-#include "ProcessControl.h"
-#include "PutBall.h"
+
+
+
 #include "LogData.h"
+#include "PID.h"
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -66,6 +68,7 @@ CAN_HandleTypeDef hcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
@@ -82,9 +85,7 @@ osStaticThreadDef_t TaskInvKineControlBlock;
 osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
-osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
-osThreadId TaskSiloHandle;
 /* USER CODE BEGIN PV */
 
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -100,19 +101,6 @@ PID_Param targetPID = {
 		.alpha = 1,
 };
 PID_type pidType = PID_BLDC_SPEED;
-
-uint8_t UARTRX3_Buffer[9];
-uint8_t DataTayGame[9];
-
-float Xleft, Yleft;
-float Xright;
-
-_GamePad GamePad;
-uint32_t gamepadRxIsBusy = 0;
-float u, v, r;
-
-float DeltaYR, DeltaYL, DeltaX;
-//float TestTargetX = 0, TestTargetY = 0,  = 0;
 
 
 
@@ -144,6 +132,55 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 
 uint8_t encEnb,encDis;
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
+
+
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+float Xleft, Yleft;
+float Xright;
+
+_GamePad GamePad;
+uint32_t gamepadRxIsBusy = 0;
+
+float DeltaYR, DeltaYL, DeltaX;
+uint8_t Run,resetParam,breakProtect;
+float uControlX,uControlY,uControlTheta;
+uint8_t stateRun = 0 ,steadycheck;
+uint8_t xaDay;
+uint8_t ssCheck,stateChange,rst,Gamepad;
+
+char tx_buffer1[] = "rst\n";
+char tx_buffer2[] = "red\n";
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint8_t step = 0;
+uint8_t angle_PID_Cycle;
+////////////MPU//////////////
+uint8_t mpu[10];
+uint8_t send_mpu;
+int16_t angle;
+float a_Now;
+float angle_Rad;
+uint8_t reset_MPU;
+
+///////////PID///////////////
+PID_Param pid_Angle;
+uint8_t   use_pidTheta;
+float 	  TargetTheta;
+//////////Floating Enc///////
+uint8_t reset_ENC;
+Encoder_t FloatingEnc;
+int floatingEncCount;
+
+//////////Control Signal/////
+float u,v,r;
+
+//////////Process ///////////
+uint8_t RunProcess;
+float chasis_Vector_TargetSpeed;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -160,12 +197,11 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM4_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
-void Actuator(void const * argument);
 void OdometerHandle(void const * argument);
-void StartTaskSilo(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -231,34 +267,7 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 
 }
 /*=============================== UART ===============================*/
-uint8_t YawHandle;
-uint8_t AngleData[5];
-int CurrAngle;
 
-char ds[12];
-uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
-
-void Receive(uint8_t *DataArray){
-      uint8_t *pInt = NULL;
-      if(DataArray[4] == 13){
-           pInt = &CurrAngle;
-           for(uint8_t i = 0; i < 4; i++) {
-               *(pInt + i) = DataArray[i];
-            }
-      }
-      	  memset(DataArray,0,5);
-      	YawHandle = 1;
- }
-
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-	if(huart -> Instance == USART1)
-	{
-		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
-			Receive(uart2_ds);
-		  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
-	}
-}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART3) {
@@ -307,20 +316,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 void Send_Data(){
 
-	odo_Pose pose = odo_GetPose();
-	float Xtrajec = GetXtraject(TrajecX);
-	float Ytrajec = GetXtraject(TrajecY);
-	float ThetaTrajec = GetXtraject(TrajecTheta);
-
-	log_AddArgumentToBuffer((void*)&pose.poseX, TYPE_FLOAT);
-	log_AddArgumentToBuffer((void*)&pose.poseY, TYPE_FLOAT);
-	log_AddArgumentToBuffer((void*)&pose.poseTheta, TYPE_FLOAT);
-
-	log_AddArgumentToBuffer((void*)&Xtrajec, TYPE_FLOAT);
-	log_AddArgumentToBuffer((void*)&Ytrajec, TYPE_FLOAT);
-	log_AddArgumentToBuffer((void*)&ThetaTrajec, TYPE_FLOAT);
-
-
 	log_SendString();
 }
 
@@ -354,6 +349,86 @@ void readADC(){
 
 	HAL_ADC_Stop(&hadc1);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////MPU//////////////////////////
+#define DELTA_T 0.05
+void Get_MPU_Angle()
+{
+    send_mpu ='z';
+    HAL_UART_Transmit(&huart1,&send_mpu,1,1);
+    angle=mpu[0]<<8|mpu[1];
+    a_Now=angle/10;
+}
+
+void Reset_MPU_Angle()
+{
+    send_mpu ='a';
+    HAL_UART_Transmit(&huart1,&send_mpu,1,1);
+
+}
+/////////////////////Process///////////////////
+void process_Init()
+{
+	////////PID/////////
+	pid_Angle.kP = 1.2;
+	pid_Angle.kI = 0;
+	pid_Angle.kD = 0;
+	pid_Angle.alpha = 0;
+	pid_Angle.deltaT = DELTA_T;
+	pid_Angle.u_AboveLimit = 5;
+	pid_Angle.u_BelowLimit = -5;
+	pid_Angle.kB = 1/DELTA_T;
+
+	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
+}
+
+void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
+{
+	if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+	{
+		chasis_Vector_TargetSpeed += accel;
+	}
+
+	if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+	{
+		chasis_Vector_TargetSpeed = maxSpeed/2;
+	}
+
+	if (floatingEncCount > 400){
+		chasis_Vector_TargetSpeed -= accel ;
+	}
+
+	if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+	{
+		chasis_Vector_TargetSpeed = 0;
+		step += 1;
+	}
+
+	u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+	v = sin(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+}
+
+void process_SetFloatingEnc()
+{
+	floatingEncCount = encoder_GetFloatingDis(&FloatingEnc);
+}
+
+void process_ResetFloatingEnc()
+{
+	encoder_ResetCount(&FloatingEnc);
+}
+
+void process_Signal_RotationMatrixTransform(float u, float v ,float r)
+{
+	angle_Rad = a_Now*M_PI/180;
+	uControlX = u*cos(angle_Rad) - v*sin(angle_Rad);
+	uControlY = u*sin(angle_Rad) + v*cos(angle_Rad);
+	uControlTheta = r;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END 0 */
 
 /**
@@ -396,18 +471,25 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM5_Init();
   MX_ADC1_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 //  	log_Init(&huart2);
   	log_Init(&huart2);
   	Send_Header();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+
+
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
+	HAL_TIM_Base_Start_IT(&htim4);
+
+	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
+
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
@@ -444,17 +526,9 @@ int main(void)
   osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
   TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
-  /* definition and creation of TaskActuator */
-  osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
-  TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
-
   /* definition and creation of TaskOdometer */
   osThreadDef(TaskOdometer, OdometerHandle, osPriorityHigh, 0, 256);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
-
-  /* definition and creation of TaskSilo */
-  osThreadDef(TaskSilo, StartTaskSilo, osPriorityLow, 0, 64);
-  TaskSiloHandle = osThreadCreate(osThread(TaskSilo), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -773,6 +847,51 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 80-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 5000-1;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
   * @brief TIM5 Initialization Function
   * @param None
   * @retval None
@@ -1023,12 +1142,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Sesor_BatThanh_Pin SSPutBall_Pin SSBall_Pin SSLua1_Pin
-                           SSLua2_Pin */
-  GPIO_InitStruct.Pin = Sesor_BatThanh_Pin|SSPutBall_Pin|SSBall_Pin|SSLua1_Pin
-                          |SSLua2_Pin;
+  /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
+                           sensor_5_Pin sensor_6_Pin sensor_7_Pin sensor_8_Pin */
+  GPIO_InitStruct.Pin = sensor_1_Pin|sensor_2_Pin|sensor_3_Pin|sensor_4_Pin
+                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|sensor_8_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -1207,181 +1326,10 @@ void RTR_SpeedAngle(){
 //	HAL_TIM_Base_Stop(&htim10);
 }
 
-#define PulsePerRev 200*2.56
-
-//#define a 0.045
-typedef struct SpeedReadSlave{
-	float V;
-	float Vx;
-	float Vy;
-
-	float VxC;
-	float VyC;
-
-	float Offset;
-
-	float Vfilt;
-	float VfiltPre;
-	float filterAlpha;
-
-	int preCount;
-}SpeedReadSlave;
-
-typedef struct ForwardKine{
-	float uOut;
-	float vOut;
-	float thetaOut;
-}ForwardKine;
-
-typedef struct SwerveOdoHandle{
-	float dX;
-	float dY;
-	float dTheta;
-
-	float poseX;
-	float poseY;
-	float poseTheta;
-
-	float S;
-	float C;
-
-	float OffsetGyro;
-	float Suy;
-}SwerveOdoHandle;
-
-void omegaToZeta(ForwardKine *kine, float* VxA, float* VyA)
-{
-	kine->uOut 		= - 0.2357*VxA[0] + 0.2357*VyA[0] - 0.2357*VxA[1] - 0.2357*VyA[1] + 0.3333*VxA[2] + 0.0000*VyA[2] ;
-	kine->vOut 		= - 0.2467*VxA[0] - 0.3262*VyA[0] + 0.2467*VxA[1] - 0.3262*VyA[1] - 0.0000*VxA[2] + 0.1898*VyA[2] ;
-	kine->thetaOut 	=   0.1417*VxA[0] + 1.1707*VyA[0] - 0.1417*VxA[1] + 1.1707*VyA[1] + 0.0000*VxA[2] + 1.8560*VyA[2] ;
-}
-
-SwerveOdoHandle Odo;
-ForwardKine	Fkine;
-SpeedReadSlave Module[4];
-float Vx[4],Vy[4];
-float Gyro;
-
-#define UABOVE_X 	0.3
-#define UBELOW_X	-0.3
-
-#define UABOVE_Y 	0.3
-#define UBELOW_Y	-0.3
-
-#define UABOVE_THETA 	5
-#define UBELOW_THETA	-5
-
-#define ROBOT_RADIUS	0.25;
-
-typedef struct PDParam{
-	float e;
-	float pre;
-
-	float kP;
-	float kD;
-
-	float uP;
-	float uD;
-	float uDf;
-	float uDfpre;
-	float Alpha;
-
-	float u;
-	float uAbove;
-	float uBelow;
-}PDParam;
 
 
 
-void PD_setParam(PDParam *pd,float kP,float kD,float Alpha)
-{
-	pd->kP = kP;
-	pd->kD = kD;
-	pd->Alpha = Alpha;
-}
 
-void PD_setLimit(PDParam *pd,float uAbove,float uBelow)
-{
-	pd->uAbove = uAbove;
-	pd->uBelow = uBelow;
-}
-
-PDParam pDX;
-PDParam pDY;
-PDParam pDTheta;
-
-float TargetX;
-float TargetY;
-float TargetTheta;
-
-
-uint8_t Break;
-float absFloat(float num){
-	if (num<0.0){
-		return num*-1.0;
-	}
-	else
-	return num;
-}
-float min(float a,float b){
-	float min;
-	min = a;
-	if(b<=min){
-		min = b;
-	}
-	return min;
-}
-
-float max(float a,float b){
-	float max;
-	max = a;
-	if(b>=max){
-		max = b;
-	}
-	return max;
-}
-int Isteady(float e,float thresthold)
-{
-	if (absFloat(e)<thresthold){
-		return 1;
-	}
-
-	return 0;
-}
-
-
-uint8_t Run,resetParam,breakProtect;
-float kpX = 1 ,kpY = 1,kdX,kdY,kpTheta=0.6,kdTheta,alphaCtrol = 0.2;
-int testSpeed,testPos;
-float uControlX,uControlY,uControlTheta;
-uint8_t stateRun = 0 ,steadycheck;
-
-uint8_t xaDay;
-
-uint8_t ssCheck,stateChange,rst,Gamepad;
-#define PFxState10 -0.93
-#define PFyState10 -0.75
-#define PFxState20 -0.93
-#define PFyState20 0.05
-
-char tx_buffer1[] = "rst\n";
-char tx_buffer2[] = "red\n";
-
-float yaw;
-uint8_t red,rst;
-
-uint8_t StopUseXY,StopUsetheta;
-uint8_t StopUsePIDX,StopUsePIDY,StopUsePIDr;
-void ReadIMU(){
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer2, strlen(tx_buffer2), 100);
-	osDelay(6);
-//	yaw = CurrAngle*M_PI/180;
-}
-void ResetIMU(){
-	HAL_UART_Transmit(&huart1, (uint8_t *)tx_buffer1, strlen(tx_buffer1), 100);
-	osDelay(6);
-//	yaw = CurrAngle*M_PI/180;
-}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -1390,7 +1338,7 @@ void ResetIMU(){
  * @param  argument: Not used
  * @retval None
  */
-uint8_t useEuler;
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1412,10 +1360,7 @@ void StartDefaultTask(void const * argument)
 			 InvCpltCallback(MODULE_ID_2, 0, 0);
 		}
 
-		if(((GamePad.Square == 1)&&(GamePad.Right == 1))||stateRun == 50)
-		{
-			xaDay = 1;
-		}
+
 		if (gamepadRxIsBusy) {
 			gamepadRxIsBusy = 0;
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -1493,118 +1438,110 @@ void CAN_Bus(void const * argument)
   /* USER CODE END CAN_Bus */
 }
 
-/* USER CODE BEGIN Header_Actuator */
-/**
- * @brief Function implementing the TaskActuator thread.
- * @param argument: Not used
- * @retval None
- */
-uint8_t BallSS,shoot;
-/* USER CODE END Header_Actuator */
-void Actuator(void const * argument)
-{
-  /* USER CODE BEGIN Actuator */
-	/* Infinite loop */
-	for (;;) {
-		process_RunSSAndActuator(&TestBreakProtection);
-		readADC();
-		BallSS= HAL_GPIO_ReadPin(SSLua1_GPIO_Port, SSLua1_Pin);
-
-		osDelay(1);
-	}
-  /* USER CODE END Actuator */
-}
-
 /* USER CODE BEGIN Header_OdometerHandle */
 /**
  * @brief Function implementing the TaskOdometer thread.
  * @param argument: Not used
  * @retval None
  */
-float testX,testY,testTheta;
-void odo_SpeedAngleUpdate(){
-	for (int i = 0;i<3;i++){
-		odo_SetObj_SpAg(i,nodeSpeedAngle[i]);
-	}
-}
+
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
 	  /* USER CODE BEGIN OdometerHandle */
 
-//		valve_Init();
-//		osDelay(1000);
 		process_Init();
-//		process_ResetIMU();
 		/* Infinite loop */
 		for (;;) {
-			if(!shootFlag){
-				RTR_SpeedAngle();
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+/*---------------------------------------------------------------------------------------------------
+			if(step == 0)// Buoc khoi dong sethome
+			{// Reset co cau ve mac dinh
+				// if (dieu kien sethome da xong)step = 1;
+			}
+			else if(step == 2)//	Doi nhan nut de chay
+			{
+				// if (dieu kien nut nhan duoc nhan)step = 2;
+			}
+			else if(step == 3)//	Robot chay toi khu vuc lay banh
+			{
+				// if (s chua toi hoac s nho hon quang duong)process_Accel_FloatingEnc(Angle,maxSpeed,s,accel);
+				// if (da toi) DungRobot(); Step = 4;
+			}
+			else if(step == 4)// Doi Nhan nut de chay tiep
+			{
+				// if (dieu kien nut nhan duoc nhan)step = 5;
+			}
+--------------------------------------------CODE MAU--------------------------------------------------*/
+
+
+			  if (step == 0)
+				{
+					if (GamePad.Up)
+					{
+						osDelay(500);
+						if(GamePad.Up)
+						{
+							Reset_MPU_Angle();
+							process_ResetFloatingEnc();
+							step = 1;
+						}
+					}
+				}
+
+				else if (step == 1){
+					process_Accel_FloatingEnc(0, 0.8, 1000, 0.2);
+				}
+
+
+
+
+			process_SetFloatingEnc();
+			if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
+			{
+				osDelay(100);
+				if (GamePad.Down && GamePad.Cross)
+				{
+					Gamepad = 1;
+				}
 			}
 
-
-			odo_SpeedAngleUpdate();
-			odo_PosCal();
-
-			process_ReadIMU();
-			process_SetYaw(CurrAngle);
-
-			process_SetFloatingDis();
-			process_SetBallDis(distance);
-			process_Run(Run);
-
-			if(GamePad.Up==1 && GamePad.Triangle==1){
-				Run = 1;
-			}else if (GamePad.Down == 1 && GamePad.Cross == 1){
-				Run = 0;
-				Gamepad = 1;
+			if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
+			{
+				osDelay(100);
+				if((GamePad.Square == 1)&&(GamePad.Right == 1))
+				{
+					xaDay = 1;
+				}
 			}
 
-			if(Run == 1){
-				uControlX = 	process_GetCtrSignal(U_Control);
-				uControlY = 	process_GetCtrSignal(V_Control);
-				uControlTheta = process_GetCtrSignal(R_Control);
-			}else if(Run == 0 && Gamepad == 1) {
+			if (Gamepad == 1)
+			{
 				uControlX = 	-GamePad.XLeftCtr;
 				uControlY = 	GamePad.YLeftCtr;
 				uControlTheta = GamePad.XRightCtr;
 			}
-
+			else {
+				process_Signal_RotationMatrixTransform(u, v, r);
+			}
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 			xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
-			osDelay(DELTA_T*1000 - IMU_Wait);
+			osDelay(DELTA_T);
 
 		}
   /* USER CODE END OdometerHandle */
-}
-
-/* USER CODE BEGIN Header_StartTaskSilo */
-/**
-* @brief Function implementing the TaskSilo thread.
-* @param argument: Not used
-* @retval None
-*/
-uint8_t testSilo,testSS;
-/* USER CODE END Header_StartTaskSilo */
-void StartTaskSilo(void const * argument)
-{
-  /* USER CODE BEGIN StartTaskSilo */
-  /* Infinite loop */
-  for(;;)
-  {
-//	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
-//	startPutBall(process_ReturnBallValue());
-//	  startPutBall(testSilo);
-    osDelay(1);
-  }
-  /* USER CODE END StartTaskSilo */
 }
 
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM14 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
+  * a global variable "uwTick" us
+  *
+  *
+  *
+  * ed as application time base.
   * @param  htim : TIM handle
   * @retval None
   */
@@ -1615,6 +1552,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
+  }
+
+  if (htim->Instance == TIM4) {
+	Get_MPU_Angle();
+
+	if (use_pidTheta)
+	{
+		r = -PID_Cal(&pid_Angle, TargetTheta*M_PI/180, angle_Rad);
+	}
   }
   /* USER CODE BEGIN Callback 1 */
 
