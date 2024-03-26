@@ -1593,8 +1593,8 @@ void StartTaskSilo(void const * argument)
   for(;;)
   {
 	  testSS = HAL_GPIO_ReadPin(SSPutBall_GPIO_Port, SSPutBall_Pin);
-	startPutBall(process_ReturnBallValue());
-//	  startPutBall(testSilo);
+//	startPutBall(process_ReturnBallValue());
+	  startPutBall(testSilo);
     osDelay(1);
   }
   /* USER CODE END StartTaskSilo */
