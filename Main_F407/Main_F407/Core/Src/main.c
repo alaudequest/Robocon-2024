@@ -1448,7 +1448,6 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-uint8_t testSilo,testSS;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -1478,10 +1477,9 @@ void OdometerHandle(void const * argument)
 				// if (dieu kien nut nhan duoc nhan)step = 5;
 			}
 --------------------------------------------CODE MAU--------------------------------------------------*/
-			testSS = HAL_GPIO_ReadPin(sensor_5_GPIO_Port,sensor_5_Pin);
-			startPutBall(testSilo);
 			  if (step == 0)
 				{
+				  	startPutBall(1);
 					if (GamePad.Up)
 					{
 						osDelay(500);
@@ -1497,9 +1495,6 @@ void OdometerHandle(void const * argument)
 				else if (step == 1){
 					process_Accel_FloatingEnc(0, 0.8, 1000, 0.2);
 				}
-
-
-
 
 			process_SetFloatingEnc();
 			if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
