@@ -34,8 +34,7 @@
 #include "ActuatorValve.h"
 #include "Encoder.h"
 #include "PositionControl.h"
-
-
+#include "PutBall.h"
 
 #include "LogData.h"
 #include "PID.h"
@@ -180,6 +179,12 @@ float u,v,r;
 uint8_t RunProcess;
 float chasis_Vector_TargetSpeed;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
+float count,adc_val_Fil,sum;
+float adc_val = 0;
+float distance = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END PV */
 
@@ -330,27 +335,6 @@ void Send_Header(){
 
 	log_SendString();
 }
-float count,adc_val_Fil,sum;
-float adc_val = 0;
-float distance = 0;
-void readADC(){
-	HAL_ADC_Start(&hadc1);
-	HAL_ADC_PollForConversion(&hadc1, 1000);
-	adc_val = HAL_ADC_GetValue(&hadc1);
-	count++;
-	sum+=adc_val;
-	if(count>50)
-	{
-		adc_val_Fil=sum/50;
-		sum = 0;
-		count = 0;
-	}
-	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.28;
-
-	HAL_ADC_Stop(&hadc1);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////MPU//////////////////////////
 #define DELTA_T 0.05
@@ -429,6 +413,25 @@ void process_Signal_RotationMatrixTransform(float u, float v ,float r)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////CAM BIEN DO KHOANG CACH/////////////////////////////////////
+void readADC(){
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, 1000);
+	adc_val = HAL_ADC_GetValue(&hadc1);
+	count++;
+	sum+=adc_val;
+	if(count>50)
+	{
+		adc_val_Fil=sum/50;
+		sum = 0;
+		count = 0;
+	}
+	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.28;
+
+	HAL_ADC_Stop(&hadc1);
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
 /* USER CODE END 0 */
 
 /**
@@ -445,7 +448,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -1444,7 +1448,7 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-
+uint8_t testSilo,testSS;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -1474,8 +1478,8 @@ void OdometerHandle(void const * argument)
 				// if (dieu kien nut nhan duoc nhan)step = 5;
 			}
 --------------------------------------------CODE MAU--------------------------------------------------*/
-
-
+			testSS = HAL_GPIO_ReadPin(sensor_5_GPIO_Port,sensor_5_Pin);
+			startPutBall(testSilo);
 			  if (step == 0)
 				{
 					if (GamePad.Up)

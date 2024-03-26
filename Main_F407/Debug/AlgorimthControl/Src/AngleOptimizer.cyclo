@@ -1,0 +1,6 @@
+../AlgorimthControl/Src/AngleOptimizer.c:9:7:modulo360	1
+../AlgorimthControl/Src/AngleOptimizer.c:14:7:absf	2
+../AlgorimthControl/Src/AngleOptimizer.c:20:7:modulo180	1
+../AlgorimthControl/Src/AngleOptimizer.c:26:5:angopt_QuadrantCheckInput	19
+../AlgorimthControl/Src/AngleOptimizer.c:49:6:angopt_QuadRantCheckOutput	3
+../AlgorimthControl/Src/AngleOptimizer.c:107:6:angopt_Cal	14
