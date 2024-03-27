@@ -1,0 +1,2 @@
+../Core/Src/freertos.c:62:13:vApplicationStackOverflowHook	1
+../Core/Src/freertos.c:74:6:vApplicationGetIdleTaskMemory	1

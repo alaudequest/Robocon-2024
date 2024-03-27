@@ -1,0 +1,5 @@
+../Core/Src/Encoder.c:10:6:EncoderSetting	24	static
+../Core/Src/Encoder.c:16:6:SpeedReadOnly	24	static
+../Core/Src/Encoder.c:31:6:SpeedReadNonReset	24	static
+../Core/Src/Encoder.c:44:8:CountRead	16	static
+../Core/Src/Encoder.c:66:6:ResetCount	16	static

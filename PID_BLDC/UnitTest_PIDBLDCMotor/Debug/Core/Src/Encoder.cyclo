@@ -1,0 +1,5 @@
+../Core/Src/Encoder.c:10:6:EncoderSetting	1
+../Core/Src/Encoder.c:16:6:SpeedReadOnly	1
+../Core/Src/Encoder.c:31:6:SpeedReadNonReset	1
+../Core/Src/Encoder.c:44:8:CountRead	5
+../Core/Src/Encoder.c:66:6:ResetCount	2
