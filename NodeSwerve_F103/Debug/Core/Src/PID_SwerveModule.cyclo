@@ -1,5 +1,0 @@
-../Core/Src/PID_SwerveModule.c:16:6:PID_DC_CalSpeed	2
-../Core/Src/PID_SwerveModule.c:31:6:PID_DC_CalPos	1
-../Core/Src/PID_SwerveModule.c:41:6:PID_BLDC_CalSpeed	4
-../Core/Src/PID_SwerveModule.c:64:6:PID_ALL_Enable	1
-../Core/Src/PID_SwerveModule.c:69:6:PID_BLDC_BreakProtection	2
