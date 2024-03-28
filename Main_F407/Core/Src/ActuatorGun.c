@@ -5,7 +5,8 @@
  *      Author: namdhay
  */
 
-
+#include "PID.h"
+#include "Encoder.h"
 #include "ActuatorGun.h"
 extern TIM_HandleTypeDef htim5;
 void gun_Init() {

@@ -2433,7 +2433,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 * @retval None
 */
 bool testTick = true;
-uint16_t speed = 0;
+uint16_t speed = 50;
 
 HAL_StatusTypeDef Delay_tick(uint32_t delay) {
 	static TickType_t xStartTime = 0;
@@ -2467,16 +2467,20 @@ void GunHandle(void const * argument)
 	  }
 	  if(IsShoot){
 		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-		  if(xOccurredTime > 5000/portTICK_PERIOD_MS){
+		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
 //			  IsGetBall = 0;
 			  IsShoot = 0;
 			  xOccurredTime = 0;
 //			  xStartTime = xTaskGetTickCount();
 		  }else{
 			  gun_StartGetBall();
-			  gun_StartShootBall(speed);
-			  if(Delay_tick(500) == HAL_OK) {
-				  speed += 120;
+			  if(xOccurredTime > 4000/portTICK_PERIOD_MS){
+				  gun_StartShootBall(750);
+			  }else {
+				  gun_StartShootBall(speed);
+				  if(Delay_tick(200) == HAL_OK) {
+					  speed += 35;
+				  }
 			  }
 		  }
 //	  }else if(IsShoot) {
