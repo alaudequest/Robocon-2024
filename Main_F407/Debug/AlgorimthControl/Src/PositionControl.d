@@ -1,7 +1,7 @@
 AlgorimthControl/Src/PositionControl.o: \
  ../AlgorimthControl/Src/PositionControl.c \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/PositionControl.h \
- E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/PID.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/PositionControl.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/PID.h \
  ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -34,17 +34,9 @@ AlgorimthControl/Src/PositionControl.o: \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/LibraryConfig.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/Odometry.h \
- E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_FuncHandle.h \
- ../Core/Inc/BoardParameter.h ../Core/Inc/main.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h \
- E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_Control.h \
- E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/Flag.h
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/PositionControl.h:
-E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/PID.h:
+ ../Core/Inc/LibraryConfig.h
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/PositionControl.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/PID.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -79,12 +71,3 @@ E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/PID.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/LibraryConfig.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/Odometry.h:
-E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_FuncHandle.h:
-../Core/Inc/BoardParameter.h:
-../Core/Inc/main.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h:
-E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_Control.h:
-E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/Flag.h:

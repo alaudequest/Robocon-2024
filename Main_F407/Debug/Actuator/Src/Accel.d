@@ -1,6 +1,6 @@
 Actuator/Src/Accel.o: ../Actuator/Src/Accel.c \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Accel.h ../Core/Inc/main.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Accel.h \
+ ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -33,7 +33,7 @@ Actuator/Src/Accel.o: ../Actuator/Src/Accel.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/LibraryConfig.h
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Accel.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Accel.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:

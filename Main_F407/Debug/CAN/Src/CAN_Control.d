@@ -1,6 +1,6 @@
 CAN/Src/CAN_Control.o: ../CAN/Src/CAN_Control.c \
- E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_Control.h ../Core/Inc/main.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/CAN/Inc/CAN_Control.h \
+ ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -33,8 +33,8 @@ CAN/Src/CAN_Control.o: ../CAN/Src/CAN_Control.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/LibraryConfig.h \
- E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/Flag.h
-E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_Control.h:
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/Flag.h
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/CAN/Inc/CAN_Control.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -69,4 +69,4 @@ E:/LAB/Robocon-2024/Main_F407/CAN/Inc/CAN_Control.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/LibraryConfig.h:
-E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/Flag.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/Flag.h:

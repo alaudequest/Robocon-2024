@@ -33,11 +33,11 @@ Core/Src/BoardParameter.o: ../Core/Src/BoardParameter.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/LibraryConfig.h \
- E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/PID.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/PID.h \
  ../Core/Inc/main.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h \
- E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h
 ../Core/Inc/BoardParameter.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -73,8 +73,8 @@ Core/Src/BoardParameter.o: ../Core/Src/BoardParameter.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/LibraryConfig.h:
-E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/PID.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/PID.h:
 ../Core/Inc/main.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h:
-E:/LAB/Robocon-2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/AngleOptimizer.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/SwerveModule.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/AlgorimthControl/Inc/InverseKinematic.h:

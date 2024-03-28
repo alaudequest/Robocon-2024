@@ -118,12 +118,25 @@ void angopt_Cal(ModuleID ID,float input)
 	if(input != preAngle){
 		calInput = input;
 
-		if((currentAngle>=0)&&(calInput<0))calInput+=360;
-		else if ((currentAngle<0)&&(calInput>0))calInput-=360;
+		if((currentAngle>=0)&&(calInput<0))
+		{
+			calInput+=360;
+		}
+		else if ((currentAngle<0)&&(calInput>0))
+		{
+			calInput-=360;
+		}
 
 		deltaAngle = calInput - modulo360(currentAngle);
-		if(deltaAngle>180)deltaAngle+=-360;
-		else if(deltaAngle<-180)deltaAngle+=360;
+
+		if(deltaAngle>180)
+		{
+			deltaAngle+=-360;
+		}
+		else if(deltaAngle<-180)
+		{
+			deltaAngle+=360;
+		}
 
 		if((deltaAngle<=90)&&(deltaAngle>=-90))deltaAngle = deltaAngle;
 		else if ((deltaAngle>90)&&(deltaAngle<=180))deltaAngle += -180.0;
@@ -132,7 +145,7 @@ void angopt_Cal(ModuleID ID,float input)
 		preAngle = input;
 		preCal = calInput;
 		currentAngle += deltaAngle;
-//		if(currentAngle>=1080) currentAngle-=360;
+		if(currentAngle>=1080) currentAngle-=360;
 		swer_SetOptAngle(ID, opt);
 	}
 }

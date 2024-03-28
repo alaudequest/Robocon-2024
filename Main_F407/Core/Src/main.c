@@ -38,6 +38,7 @@
 
 #include "LogData.h"
 #include "PID.h"
+
 //#include "LogData.h"
 /* USER CODE END Includes */
 
@@ -178,7 +179,8 @@ float u,v,r;
 //////////Process ///////////
 uint8_t RunProcess;
 float chasis_Vector_TargetSpeed;
-
+uint8_t angle_Accel_Flag;
+float PreTargetAngle;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
@@ -343,7 +345,7 @@ void Get_MPU_Angle()
     send_mpu ='z';
     HAL_UART_Transmit(&huart1,&send_mpu,1,1);
     angle=mpu[0]<<8|mpu[1];
-    a_Now=angle/10;
+    a_Now=angle;
 }
 
 void Reset_MPU_Angle()
@@ -356,20 +358,42 @@ void Reset_MPU_Angle()
 void process_Init()
 {
 	////////PID/////////
-	pid_Angle.kP = 1.2;
+	pid_Angle.kP = 0.5;
 	pid_Angle.kI = 0;
 	pid_Angle.kD = 0;
 	pid_Angle.alpha = 0;
 	pid_Angle.deltaT = DELTA_T;
-	pid_Angle.u_AboveLimit = 5;
-	pid_Angle.u_BelowLimit = -5;
+	pid_Angle.u_AboveLimit = 50;
+	pid_Angle.u_BelowLimit = -50;
 	pid_Angle.kB = 1/DELTA_T;
 
 	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
 }
 
-void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
+void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float accelAngle)
 {
+	if (TargetAngle != PreTargetAngle)
+	{
+		if (TargetAngle > PreTargetAngle)
+		{
+			angle_Accel_Flag = 0;
+		}
+		if (TargetAngle < PreTargetAngle)
+		{
+			angle_Accel_Flag = 1;
+		}
+	}
+
+	if (angle_Accel_Flag == 0)
+	{
+		TargetTheta += accelAngle;
+		if (TargetTheta>TargetAngle)TargetTheta = TargetAngle;
+	}else{
+		TargetTheta -= accelAngle;
+		if (TargetTheta<TargetAngle)TargetTheta = TargetAngle;
+	}
+
+	PreTargetAngle = TargetAngle;
 	if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
 	{
 		chasis_Vector_TargetSpeed += accel;
@@ -387,7 +411,7 @@ void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel)
 	if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
 	{
 		chasis_Vector_TargetSpeed = 0;
-		step += 1;
+//		step += 1;
 	}
 
 	u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
@@ -406,7 +430,7 @@ void process_ResetFloatingEnc()
 
 void process_Signal_RotationMatrixTransform(float u, float v ,float r)
 {
-	angle_Rad = a_Now*M_PI/180;
+	angle_Rad = (a_Now/10)*M_PI/180;
 	uControlX = u*cos(angle_Rad) - v*sin(angle_Rad);
 	uControlY = u*sin(angle_Rad) + v*cos(angle_Rad);
 	uControlTheta = r;
@@ -1342,7 +1366,11 @@ void RTR_SpeedAngle(){
  * @param  argument: Not used
  * @retval None
  */
-
+float GocXaDay1,GocXaDay2,GocXaDay3;
+uint8_t XaDayFlag1,XaDayFlag2,XaDayFlag3;
+float GocXa = 10;
+int AngleSignalOffset = 60;
+float SaiSoChoPhep_A = 10;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1352,16 +1380,72 @@ void StartDefaultTask(void const * argument)
 	swer_Init();
 
 	for (;;) {
+		Get_MPU_Angle();
 
+		if (use_pidTheta)
+		{
+			r = -PID_Cal(&pid_Angle, TargetTheta, a_Now);
+			if (abs(pid_Angle.e)<SaiSoChoPhep_A)
+			{
+				pid_Angle.uI = 0;
+				pid_Angle.e = 0;
+				pid_Angle.e_Pre = 0;
+				r = 0;
+			}
+			if (r > 0)r += AngleSignalOffset;
+			else if (r < 0){ r -= AngleSignalOffset;}
+			else r = 0;
+		}
 		if(xaDay == 0 )
 		{
 			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			Angle_Opt_Param angopt1 = swer_GetOptAngle(MODULE_ID_1);
+			Angle_Opt_Param angopt2 = swer_GetOptAngle(MODULE_ID_2);
+			Angle_Opt_Param angopt3 = swer_GetOptAngle(MODULE_ID_3);
+			GocXaDay1 = angopt1.currentAngle;
+			GocXaDay2 = angopt2.currentAngle;
+			GocXaDay3 = angopt3.currentAngle;
+
+			if (GocXaDay1 > 0)XaDayFlag1=1;
+			else XaDayFlag1 = 0;
+
+			if (GocXaDay2 > 0)XaDayFlag2=1;
+			else XaDayFlag2 = 0;
+
+			if (GocXaDay3 > 0)XaDayFlag3=1;
+			else XaDayFlag3 = 0;
+
 		}else {
-			 InvCpltCallback(MODULE_ID_3, 0, 0);
-			 InvCpltCallback(MODULE_ID_1, 0, 0);
-			 InvCpltCallback(MODULE_ID_2, 0, 0);
+
+			if(XaDayFlag1){
+				GocXaDay1 -= GocXa;
+				if(GocXaDay1 < 0)GocXaDay1 = 0;
+			}else{
+				GocXaDay1 += GocXa;
+				if(GocXaDay1 > 0)GocXaDay1 = 0;
+			}
+
+			if(XaDayFlag2){
+				GocXaDay2 -= GocXa;
+				if(GocXaDay2 < 0)GocXaDay2 = 0;
+			}else{
+				GocXaDay2 += GocXa;
+				if(GocXaDay2 > 0)GocXaDay2 = 0;
+			}
+
+			if(XaDayFlag3){
+				GocXaDay3 -= GocXa;
+				if(GocXaDay3 < 0)GocXaDay3 = 0;
+			}else{
+				GocXaDay3 += GocXa;
+				if(GocXaDay3 > 0)GocXaDay3 = 0;
+			}
+
+			 InvCpltCallback(MODULE_ID_3, 0, GocXaDay1);
+			 InvCpltCallback(MODULE_ID_1, 0, GocXaDay2);
+			 InvCpltCallback(MODULE_ID_2, 0, GocXaDay3);
 		}
 
 
@@ -1448,6 +1532,8 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
+float TargetAngleTrajec,TargetAngleTrajecAccel;
+uint8_t CB5;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -1457,6 +1543,7 @@ void OdometerHandle(void const * argument)
 		process_Init();
 		/* Infinite loop */
 		for (;;) {
+			CB5 = HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 /*---------------------------------------------------------------------------------------------------
 			if(step == 0)// Buoc khoi dong sethome
@@ -1479,7 +1566,9 @@ void OdometerHandle(void const * argument)
 --------------------------------------------CODE MAU--------------------------------------------------*/
 			  if (step == 0)
 				{
-				  	startPutBall(1);
+				  	startPutBall(0);
+
+
 					if (GamePad.Up)
 					{
 						osDelay(500);
@@ -1493,7 +1582,23 @@ void OdometerHandle(void const * argument)
 				}
 
 				else if (step == 1){
-					process_Accel_FloatingEnc(0, 0.8, 1000, 0.2);
+//					process_Accel_FloatingEnc(0, 0.8, 1000, 0.2);
+					startPutBall(1);
+
+					if (GamePad.Up)
+					{
+						osDelay(500);
+						if(GamePad.Up)
+						{
+							Reset_MPU_Angle();
+							process_ResetFloatingEnc();
+							step = 2;
+						}
+					}
+				}
+				else if (step == 2){
+					use_pidTheta = 1;
+					process_Accel_FloatingEnc(0,300,3000,0.1,900,10);
 				}
 
 			process_SetFloatingEnc();
@@ -1518,8 +1623,8 @@ void OdometerHandle(void const * argument)
 			if (Gamepad == 1)
 			{
 				uControlX = 	-GamePad.XLeftCtr;
-				uControlY = 	GamePad.YLeftCtr;
-				uControlTheta = GamePad.XRightCtr;
+//				uControlY = 	GamePad.YLeftCtr;
+//				uControlTheta = GamePad.XRightCtr;
 			}
 			else {
 				process_Signal_RotationMatrixTransform(u, v, r);
@@ -1544,6 +1649,7 @@ void OdometerHandle(void const * argument)
   * @param  htim : TIM handle
   * @retval None
   */
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
@@ -1554,12 +1660,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 
   if (htim->Instance == TIM4) {
-	Get_MPU_Angle();
 
-	if (use_pidTheta)
-	{
-		r = -PID_Cal(&pid_Angle, TargetTheta*M_PI/180, angle_Rad);
-	}
   }
   /* USER CODE BEGIN Callback 1 */
 

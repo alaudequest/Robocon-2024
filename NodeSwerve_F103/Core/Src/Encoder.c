@@ -48,6 +48,8 @@ void encoder_ResetCount(Encoder_t *enc)
 	enc->count_X4 = 0;
 	enc->vel_Pre = 0;
 	enc->vel_Real = 0;
+	enc->deltaXung = 0;
+	enc->count_Pre = 0;
 }
 
 float encoder_GetFilterSpeedVal(Encoder_t *enc){return enc->vel_Fil;}

@@ -68,8 +68,8 @@ all: main-build
 main-build: Main_F407.elf secondary-outputs
 
 # Tool invocations
-Main_F407.elf Main_F407.map: $(OBJS) $(USER_OBJS) E:\LAB\Robocon-2024\Main_F407\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Main_F407.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\LAB\Robocon-2024\Main_F407\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Main_F407.map" -Wl,--gc-sections -static -u_printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Main_F407.elf Main_F407.map: $(OBJS) $(USER_OBJS) C:\Users\Admin\Desktop\Robocon2024\Main_F407\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Main_F407.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Admin\Desktop\Robocon2024\Main_F407\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Main_F407.map" -Wl,--gc-sections -static -u_printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -35,5 +35,6 @@ typedef struct PID_Param{
 
 void PID_Init(PID_Param *pid);
 float PID_Cal(PID_Param *pid,float Target_set,float CurrVal_set);
+float PID_Cal_BLDC(PID_Param *pid,float Target_set,float CurrVal_set);
 #endif
 #endif

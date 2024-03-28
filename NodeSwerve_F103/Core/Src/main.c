@@ -789,7 +789,7 @@ void StartCANbus(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskPIDSpeed */
-float test;
+float test,TocDoTest;
 void StartTaskPIDSpeed(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPIDSpeed */
@@ -808,8 +808,30 @@ void StartTaskPIDSpeed(void const * argument)
 		goto SET_HOME_PID_SPEED;
 	}
 //	PID_BLDC_CalSpeed(test);
-	PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-    osDelay(20);
+	if (abs(brd_GetSpeedBLDC()) < 20)
+	{
+		PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+		Encoder_t encBLDC = brd_GetObjEncBLDC();
+		MotorBLDC mbldc = brd_GetObjMotorBLDC();
+		MotorBLDC_Drive(&mbldc, 0);
+
+
+		pid.uI = 0;
+		pid.e = 0;
+		pid.u = 0;
+		pid.uHat = 0;
+		encoder_ResetCount(&encBLDC);
+		brd_SetPID(pid, PID_BLDC_SPEED);
+		brd_SetObjEncBLDC(encBLDC);
+
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
+
+	}else{
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
+		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
+	}
+
+    osDelay(50);
   }
   /* USER CODE END StartTaskPIDSpeed */
 }
@@ -820,6 +842,12 @@ void StartTaskPIDSpeed(void const * argument)
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
+  *
+  *
+  *
+  *
+  *
+  *
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

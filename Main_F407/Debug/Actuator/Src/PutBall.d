@@ -1,6 +1,6 @@
 Actuator/Src/PutBall.o: ../Actuator/Src/PutBall.c \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/PutBall.h ../Core/Inc/main.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/PutBall.h \
+ ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -33,9 +33,9 @@ Actuator/Src/PutBall.o: ../Actuator/Src/PutBall.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/LibraryConfig.h \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Encoder.h \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Motor.h \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Accel.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Encoder.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Motor.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Accel.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  ../Core/Inc/FreeRTOSConfig.h \
@@ -53,7 +53,7 @@ Actuator/Src/PutBall.o: ../Actuator/Src/PutBall.c \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/PutBall.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/PutBall.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -88,9 +88,9 @@ E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/PutBall.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/LibraryConfig.h:
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Encoder.h:
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Motor.h:
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Accel.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Encoder.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Motor.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Accel.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:

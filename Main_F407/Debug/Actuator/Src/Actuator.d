@@ -1,6 +1,6 @@
 Actuator/Src/Actuator.o: ../Actuator/Src/Actuator.c \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Actuator.h ../Core/Inc/main.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Actuator.h \
+ ../Core/Inc/main.h ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h \
@@ -33,9 +33,9 @@ Actuator/Src/Actuator.o: ../Actuator/Src/Actuator.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/LibraryConfig.h \
- E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/74HC595.h \
- E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Encoder.h
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Actuator.h:
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/74HC595.h \
+ C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Encoder.h
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Actuator.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -70,5 +70,5 @@ E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Actuator.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/LibraryConfig.h:
-E:/LAB/Robocon-2024/Main_F407/IoTVisionLibrary/Inc/74HC595.h:
-E:/LAB/Robocon-2024/Main_F407/Actuator/Inc/Encoder.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary/Inc/74HC595.h:
+C:/Users/Admin/Desktop/Robocon2024/Main_F407/Actuator/Inc/Encoder.h:
