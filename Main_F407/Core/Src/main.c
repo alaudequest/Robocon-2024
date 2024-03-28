@@ -167,7 +167,7 @@ uint8_t reset_MPU;
 ///////////PID///////////////
 PID_Param pid_Angle;
 uint8_t   use_pidTheta;
-float 	  TargetTheta;
+float 	  TargetTheta,TargetTheta_Degree;
 //////////Floating Enc///////
 uint8_t reset_ENC;
 Encoder_t FloatingEnc;
@@ -358,13 +358,13 @@ void Reset_MPU_Angle()
 void process_Init()
 {
 	////////PID/////////
-	pid_Angle.kP = 0.5;
+	pid_Angle.kP = 2;
 	pid_Angle.kI = 0;
 	pid_Angle.kD = 0;
 	pid_Angle.alpha = 0;
 	pid_Angle.deltaT = DELTA_T;
-	pid_Angle.u_AboveLimit = 50;
-	pid_Angle.u_BelowLimit = -50;
+	pid_Angle.u_AboveLimit = 5;
+	pid_Angle.u_BelowLimit = -5;
 	pid_Angle.kB = 1/DELTA_T;
 
 	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
@@ -386,14 +386,15 @@ void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel,fl
 
 	if (angle_Accel_Flag == 0)
 	{
-		TargetTheta += accelAngle;
-		if (TargetTheta>TargetAngle)TargetTheta = TargetAngle;
+		TargetTheta_Degree += accelAngle;
+		if (TargetTheta_Degree>TargetAngle)TargetTheta_Degree = TargetAngle;
 	}else{
-		TargetTheta -= accelAngle;
-		if (TargetTheta<TargetAngle)TargetTheta = TargetAngle;
+		TargetTheta_Degree -= accelAngle;
+		if (TargetTheta_Degree<TargetAngle)TargetTheta_Degree = TargetAngle;
 	}
 
 	PreTargetAngle = TargetAngle;
+	TargetTheta = TargetTheta_Degree*M_PI/180;
 	if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
 	{
 		chasis_Vector_TargetSpeed += accel;
@@ -430,7 +431,6 @@ void process_ResetFloatingEnc()
 
 void process_Signal_RotationMatrixTransform(float u, float v ,float r)
 {
-	angle_Rad = (a_Now/10)*M_PI/180;
 	uControlX = u*cos(angle_Rad) - v*sin(angle_Rad);
 	uControlY = u*sin(angle_Rad) + v*cos(angle_Rad);
 	uControlTheta = r;
@@ -1384,17 +1384,8 @@ void StartDefaultTask(void const * argument)
 
 		if (use_pidTheta)
 		{
-			r = -PID_Cal(&pid_Angle, TargetTheta, a_Now);
-			if (abs(pid_Angle.e)<SaiSoChoPhep_A)
-			{
-				pid_Angle.uI = 0;
-				pid_Angle.e = 0;
-				pid_Angle.e_Pre = 0;
-				r = 0;
-			}
-			if (r > 0)r += AngleSignalOffset;
-			else if (r < 0){ r -= AngleSignalOffset;}
-			else r = 0;
+			r = -PID_Cal(&pid_Angle, TargetTheta, angle_Rad);
+
 		}
 		if(xaDay == 0 )
 		{
@@ -1456,7 +1447,7 @@ void StartDefaultTask(void const * argument)
 		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
 			__HAL_UART_ENABLE(&huart3);
 		}
-		osDelay(50);
+		osDelay(30);
 	}
   /* USER CODE END 5 */
 }
@@ -1564,7 +1555,9 @@ void OdometerHandle(void const * argument)
 				// if (dieu kien nut nhan duoc nhan)step = 5;
 			}
 --------------------------------------------CODE MAU--------------------------------------------------*/
-			  if (step == 0)
+			angle_Rad = (a_Now/10)*M_PI/180;
+
+			if (step == 0)
 				{
 				  	startPutBall(0);
 
@@ -1598,7 +1591,7 @@ void OdometerHandle(void const * argument)
 				}
 				else if (step == 2){
 					use_pidTheta = 1;
-					process_Accel_FloatingEnc(0,300,3000,0.1,900,10);
+					process_Accel_FloatingEnc(0,0.8,3000,0.05,90,0.05);
 				}
 
 			process_SetFloatingEnc();

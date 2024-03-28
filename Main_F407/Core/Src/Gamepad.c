@@ -38,9 +38,9 @@ void GamepPadHandle(_GamePad *pad,uint8_t *DataTayGame){
 
 	pad->Battery = DataTayGame[7];
 
-	pad->XLeftCtr = ((pad->XLeft-125))*110/125;
-	pad->YLeftCtr = ((pad->YLeft-125))*110/125;
-	pad->XRightCtr =(((pad->XRight-125))*300/125);
+	pad->XLeftCtr = ((pad->XLeft-125))*0.5/125;
+	pad->YLeftCtr = ((pad->YLeft-125))*0.5/125;
+	pad->XRightCtr =(((pad->XRight-125))*1/125);
 
 	if ((pad->XLeftCtr > -20)&&(pad->XLeftCtr < 20))pad->XLeftCtr = 0;
 	if ((pad->YLeftCtr > -20)&&(pad->YLeftCtr < 20))pad->YLeftCtr = 0;
