@@ -12,31 +12,43 @@
 #include "stdbool.h"
 #include "CRC16.h"
 
+typedef enum CommandList {
+	CMD_Start = 0, //not use
+	CMD_IdentifyBoard,
+	CMD_GetPID,
+	CMD_SetPID,
+	CMD_SavePID,
+	CMD_RelayCommand,
+	CMD_SetSpeedBLDC,
+	CMD_SetSpeedDC,
+	CMD_SetAngleDC,
+	CMD_NotFound,
+	CMD_Busy,
+	CMD_End,	//not use
+} CommandList;
+
+typedef enum NodeSwerveRelayCommand {
+	RunBLDC = 1,
+	RunDC,
+	InverseDirection,
+};
+
+typedef enum BoardID {
+	BOARD_MainF4 = 1,
+	BOARD_NodeSwerve1,
+	BOARD_NodeSwerve2,
+	BOARD_NodeSwerve3,
+} BoardID;
 
 #define APP_COMMAND_LIST_LENGTH 1
 #define APP_CRC_LENGTH	2
 #define APP_DATA_LENGTH 1
 #define APP_BUFFER_SIZE 30
 
-typedef enum Argument_XYTheta {
-	APPINTF_ARG_X,
-	APPINTF_ARG_Y,
-	APPINTF_ARG_THETA,
-} Argument_XYTheta;
-
-typedef enum CommandList {
-	CMD_Start = 0, //not use
-	// each point in TrajectoryPlanning contains one TrajectoryPlanningParameter
-	CMD_TrajectoryPlanningPoint = 1,
-	// PD algorithm for MainF407
-	CMD_MainPD,
-	CMD_CurrentXYTheta,
-	CMD_Busy,
-	CMD_End,	//not use
-} CommandList;
 
 typedef enum AppErrorCode {
 	APPERR_OK,
+	APPERR_NOT_FOUND_COMMAND,
 	APPERR_OUT_OF_COMMAND_LIST,
 	APPERR_NULL_CALLBACK_FUNCTION,
 	APPERR_CRC_FAIL,
@@ -49,13 +61,15 @@ typedef enum AppErrorCode {
 	APPERR_END,
 } AppErrorCode;
 
-typedef struct MainF407_ParamPD {
+typedef struct AppInterfaceParamPID {
 	float kp;
+	float ki;
 	float kd;
 	float alpha;
+	float deltaT;
 	float limitHigh;
 	float limitLow;
-} MainF407_ParamPD;
+} AppInterfaceParamPID;
 
 typedef struct FrameData {
 	uint8_t payloadLength;
@@ -66,33 +80,14 @@ typedef struct FrameData {
 	CommandList cmdList;
 } FrameData;
 
-typedef struct CoordinateCurrent {
-	float currentX;
-	float currentY;
-	float currentTheta;
-} CoordinateCurrent;
-
-typedef struct TrajectoryPlanningParameter {
-	float setpointX;
-	float setpointY;
-	float setpointTheta;
-	float tStableX;
-	float tStableY;
-	float tStableTheta;
-	uint8_t currentState;
-} TrajectoryPlanningParameter;
-
-typedef struct DataContainer {
-	MainF407_ParamPD mpd;
-	TrajectoryPlanningParameter traject;
-} DataContainer;
-
 typedef void (*pCpltCallback)(CommandList cmdlist);
+typedef void (*pErrorCallback)(AppErrorCode err);
 
 void appintf_Init(UART_HandleTypeDef *huart);
 void appintf_HandleReceive(UART_HandleTypeDef *huart);
 void appintf_ErrorHandler(AppErrorCode err);
-void appintf_RegisterCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
+void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
+void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err));
 void appintf_SendFrame();
 AppErrorCode appintf_MakeFrame(CommandList cmdlist);
 void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmdlist);

@@ -180,6 +180,8 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 		case CANCTRL_MODE_START:
 			case CANCTRL_MODE_END:
 			break;
+		default:
+			break;
 	}
 }
 

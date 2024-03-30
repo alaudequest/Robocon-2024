@@ -6,6 +6,7 @@
  */
 #include "AppInterface.h"
 
+
 char uartRxData[APP_BUFFER_SIZE] = {0};
 char uartTxData[APP_BUFFER_SIZE] = {0};
 UART_HandleTypeDef *pAppUART;
@@ -16,10 +17,11 @@ void *pArg[CMD_End - 1] = {0};
 uint8_t sizeArgument[CMD_End - 1] = {0};
 
 pCpltCallback pCallback;
-static void resetFrameData();
+pErrorCallback pErr;
+static void ResetFrameData();
 static bool IsPassCRC();
 AppErrorCode ProcessCommandList();
-void appintf_Init(UART_HandleTypeDef *huart) {
+void appintf_Init(UART_HandleTypeDef *huart, BoardID boardID) {
 	HAL_UART_Receive_IT(huart, (uint8_t*) uartRxData, APP_DATA_LENGTH);
 	pAppUART = huart;
 }
@@ -30,13 +32,18 @@ void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmd
 	sizeArgument[cmdlist] = sizeOfArgument;
 }
 
-void appintf_RegisterCallbackEvent(void (*pCpltCallback)(CommandList cmdlist)) {
+void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist)) {
 	pCallback = pCpltCallback;
+}
+
+void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err)) {
+	pErr = pErrorCallback;
 }
 
 static void GetValueFromPayload() {
 	if(fd.payloadLength != sizeArgument[fd.cmdList])
-		appintf_ErrorHandler(APPERR_PAYLOAD_NOT_RECOGNIZE);
+		if(pErr != NULL)
+			pErr(APPERR_PAYLOAD_NOT_RECOGNIZE);
 	uint32_t payloadField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
 	if(pArg[fd.cmdList] != NULL)
 		memcpy(pArg[fd.cmdList], uartRxData + payloadField, fd.payloadLength); //offset to payloadField in uartRxData
@@ -49,7 +56,9 @@ static void DecodeFrameData() {
 	uint32_t crcNibbleByteLSB = uartRxData[crcField + 1];
 	fd.cmdList = uartRxData[1];
 	fd.crc16 = crcNibbleByteMSB | crcNibbleByteLSB;
-	if(!IsPassCRC()) appintf_ErrorHandler(APPERR_CRC_FAIL);
+	if(!IsPassCRC())
+		if(pErr != NULL)
+			pErr(APPERR_CRC_FAIL);
 
 }
 
@@ -62,7 +71,9 @@ static void DecodeFrameData() {
  * @param huart
  */
 void appintf_HandleReceive(UART_HandleTypeDef *huart) {
-	if (huart != pAppUART) appintf_ErrorHandler(APPERR_UART_PORT_NULL);
+	if(huart != pAppUART)
+		if(pErr != NULL)
+			pErr(APPERR_UART_PORT_NULL);
 	static bool isOnFrameReceived = false;
 	if(fd.isOnProcess) return;
 	if(!isOnFrameReceived) {
@@ -72,7 +83,7 @@ void appintf_HandleReceive(UART_HandleTypeDef *huart) {
 		if(totalLength < sizeof(uartRxData))
 			HAL_UART_Receive_IT(pAppUART, (uint8_t*) uartRxData + APP_DATA_LENGTH, totalLength - APP_DATA_LENGTH);
 		else
-			appintf_ErrorHandler(APPERR_OUT_OF_BUFFER_SIZE);
+		if(pErr != NULL) pErr(APPERR_OUT_OF_BUFFER_SIZE);
 		isOnFrameReceived = true;
 		fd.isOnProcess = false;
 	}
@@ -84,7 +95,7 @@ void appintf_HandleReceive(UART_HandleTypeDef *huart) {
 		HAL_UART_Receive_IT(pAppUART, (uint8_t*) uartRxData, APP_DATA_LENGTH);
 		memset(uartRxData, 0, sizeof(uartRxData));
 		fd.isOnProcess = false;
-		resetFrameData();
+		ResetFrameData();
 		if(pCallback != NULL) pCallback(fd.cmdList);
 	}
 
@@ -121,10 +132,10 @@ void appintf_SendFrame() {
 	HAL_UART_Transmit(pAppUART, (uint8_t*) uartTxData, fd.totalLength, 10);
 	memset(uartTxData, 0, sizeof(uartTxData));
 	isTxBufferEmpty = true;
-	resetFrameData();
+	ResetFrameData();
 }
 
-static void resetFrameData() {
+static void ResetFrameData() {
 	FrameData fdTemp = {0};
 	fd = fdTemp;
 }
@@ -138,6 +149,3 @@ static bool IsPassCRC() {
 	return true;
 }
 
-void appintf_ErrorHandler(AppErrorCode err) {
-	while (1);
-}
