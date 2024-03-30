@@ -28,6 +28,7 @@
 #include "BoardParameter.h"
 #include "PID_SwerveModule.h"
 #include "SetHome.h"
+#include "NodeSwerve_AppInterface.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,9 +66,9 @@ uint32_t TaskHandleCANBuffer[ 128 ];
 osStaticThreadDef_t TaskHandleCANControlBlock;
 osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
-uint8_t TestMode = 0;
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
+uint8_t a[1] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -161,9 +162,6 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 			uint8_t Break = canfunc_GetBoolValue();
 			PID_BLDC_BreakProtection(Break);
-		case CANCTRL_MODE_TEST:
-			TestMode = canfunc_GetBoolValue();
-		break;
 		case CANCTRL_MODE_LED_BLUE:
 			break;
 		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
@@ -251,6 +249,11 @@ void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
 	__NOP();
 //	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	appintf_ReceiveDataInterrupt(huart);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -291,7 +294,8 @@ int main(void)
 	brd_Init();
 	qPID = xQueueCreate(2, sizeof(float));
 	qHome = xQueueCreate(1, sizeof(bool));
-
+	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
+	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
 

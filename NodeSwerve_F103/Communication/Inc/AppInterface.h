@@ -12,6 +12,7 @@
 #include "stdbool.h"
 #include "CRC16.h"
 
+#ifdef BOARD_SWERVE
 typedef enum CommandList {
 	CMD_Start = 0, //not use
 	CMD_IdentifyBoard,
@@ -22,8 +23,6 @@ typedef enum CommandList {
 	CMD_SetSpeedBLDC,
 	CMD_SetSpeedDC,
 	CMD_SetAngleDC,
-	CMD_NotFound,
-	CMD_Busy,
 	CMD_End,	//not use
 } CommandList;
 
@@ -32,9 +31,38 @@ typedef enum NodeSwerveRelayCommand {
 	RunDC,
 	InverseDirection,
 } NodeSwerveRelayCommand;
+#elif BOARD_MAIN
+typedef enum CommandList {
+	CMD_Start = 0, //not use
+	CMD_IdentifyBoard,
+	CMD_GetPID,
+	CMD_SetPID,
+	CMD_SavePID,
+	CMD_TriggerValve,
+	CMD_RelayCommand,
+	CMD_Process_SetProcessStep,
+	CMD_Process_SetVelocity,
+	CMD_Process_SetDistance,
+	CMD_Process_SetAngle,
+	CMD_NotFound,
+	CMD_Busy,
+	CMD_End,	//not use
+} CommandList;
+
+typedef enum MainRelayCommand {
+	RB1_Arm1Catch= 1,
+	RB1_Arm2Catch,
+	RB1_CollectBallLeft,
+	RB1_CollectBallRight,
+} NodeSwerveRelayCommand;
+#else
+#error "You must define which board should use"
+#endif
+
 
 typedef enum BoardID {
-	BOARD_MainF4 = 1,
+	BOARD_MainF4_RB1 = 1,
+	BOARD_MainF4_RB2,
 	BOARD_NodeSwerve1,
 	BOARD_NodeSwerve2,
 	BOARD_NodeSwerve3,
@@ -48,7 +76,8 @@ typedef enum BoardID {
 
 typedef enum AppErrorCode {
 	APPERR_OK,
-	APPERR_NOT_FOUND_COMMAND,
+	APPERR_BOARD_NOT_FOUND,
+	APPERR_COMMAND_NOT_FOUND,
 	APPERR_OUT_OF_COMMAND_LIST,
 	APPERR_NULL_CALLBACK_FUNCTION,
 	APPERR_CRC_FAIL,
@@ -87,13 +116,14 @@ typedef struct ArgumentOfCommandList_t {
 typedef void (*pCpltCallback)(CommandList cmdlist);
 typedef void (*pErrorCallback)(AppErrorCode err);
 
-void appintf_Init(UART_HandleTypeDef *huart, BoardID boardID, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize);
+void appintf_Init(UART_HandleTypeDef *huart, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize);
 void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart);
 void appintf_ErrorHandler(AppErrorCode err);
 void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
 void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err));
 void appintf_SendFrame();
 AppErrorCode appintf_MakeFrame(CommandList cmdlist);
+void appintf_GetValueFromPayload();
 void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmdlist);
 
 #endif /* INC_APPINTERFACE_H_ */
