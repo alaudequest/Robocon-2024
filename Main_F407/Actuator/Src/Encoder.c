@@ -50,4 +50,10 @@ void encoder_ResetCount(Encoder_t *enc)
 }
 
 float encoder_GetFilterSpeedVal(Encoder_t *enc){return enc->vel_Fil;}
-
+void VelCal(Encoder_t *enc,int count_X1,uint32_t count_PerRevol, float deltaT )
+{
+		enc->vel_Real = ((count_X1 - enc->count_Pre)/deltaT)/(count_PerRevol)*60;
+		enc->vel_Fil = 0.854 *	enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
+		enc->vel_Pre = enc->vel_Real;
+		enc->count_Pre = count_X1;
+}

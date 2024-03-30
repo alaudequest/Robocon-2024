@@ -81,6 +81,16 @@ void Error_Handler(void);
 #define SSLua1_GPIO_Port GPIOE
 #define SSLua2_Pin GPIO_PIN_14
 #define SSLua2_GPIO_Port GPIOE
+#define ENC_3A_Pin GPIO_PIN_14
+#define ENC_3A_GPIO_Port GPIOD
+#define ENC_3A_EXTI_IRQn EXTI15_10_IRQn
+#define ENC_3B_Pin GPIO_PIN_15
+#define ENC_3B_GPIO_Port GPIOD
+#define ENC_1A_Pin GPIO_PIN_8
+#define ENC_1A_GPIO_Port GPIOC
+#define ENC_1A_EXTI_IRQn EXTI9_5_IRQn
+#define ENC_1B_Pin GPIO_PIN_9
+#define ENC_1B_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 

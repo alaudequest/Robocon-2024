@@ -162,6 +162,25 @@ void GunHandle(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int gunCount1, gunCount2;
+float gunTarget1, gunTarget2;
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == ENC_3A_Pin){
+		if(HAL_GPIO_ReadPin(ENC_3B_GPIO_Port, ENC_3B_Pin)){
+			gunCount1++;
+		}
+		else
+			gunCount1--;
+	}
+	if(GPIO_Pin == ENC_1A_Pin){
+		if(HAL_GPIO_ReadPin(ENC_1B_GPIO_Port, ENC_1B_Pin)){
+			gunCount2--;
+		}
+		else
+			gunCount2++;
+	}
+}
 
 /*=============================== CAN ===============================*/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
@@ -826,6 +845,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, MotorGetB1_Pin|MotorGetB2_Pin, GPIO_PIN_RESET);
@@ -852,6 +873,37 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENC_3A_Pin */
+  GPIO_InitStruct.Pin = ENC_3A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ENC_3A_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENC_3B_Pin */
+  GPIO_InitStruct.Pin = ENC_3B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ENC_3B_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENC_1A_Pin */
+  GPIO_InitStruct.Pin = ENC_1A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ENC_1A_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENC_1B_Pin */
+  GPIO_InitStruct.Pin = ENC_1B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ENC_1B_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -2466,18 +2518,25 @@ void GunHandle(void const * argument)
 		  xStartTime = xTaskGetTickCount();
 	  }
 	  if(IsShoot){
+		  gun_PIDSpeed1(gunTarget1);
+		  gun_PIDSpeed2(gunTarget2);
+		  gun_VelCal(gunCount1, gunCount2);
 		  xOccurredTime = xTaskGetTickCount() - xStartTime;
 		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
 //			  IsGetBall = 0;
-			  IsShoot = 0;
+// SẼ UNCOMMENT HÀNG NÀY SAU KHI CODE XONG	IsShoot = 0;
 			  xOccurredTime = 0;
 //			  xStartTime = xTaskGetTickCount();
 		  }else{
-			  gun_StartGetBall();
+//			  gun_StartGetBall();
 			  if(xOccurredTime > 4000/portTICK_PERIOD_MS){
-				  gun_StartShootBall(750);
+//				  gun_PIDSpeed1(gunTarget1);
+//				  gun_PIDSpeed2(gunTarget2);
+//				  gun_VelCal(gunCount1, gunCount2);
+//				  gun_StartShootBall(750);
+
 			  }else {
-				  gun_StartShootBall(speed);
+//				  gun_StartShootBall(speed);
 				  if(Delay_tick(200) == HAL_OK) {
 					  speed += 35;
 				  }
@@ -2501,7 +2560,7 @@ void GunHandle(void const * argument)
 		  gun_StopAll();
 	  }
 
-    osDelay(1);
+    osDelay(5);
   }
   /* USER CODE END GunHandle */
 }
