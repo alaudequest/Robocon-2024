@@ -31,7 +31,7 @@ typedef enum NodeSwerveRelayCommand {
 	RunBLDC = 1,
 	RunDC,
 	InverseDirection,
-};
+} NodeSwerveRelayCommand;
 
 typedef enum BoardID {
 	BOARD_MainF4 = 1,
@@ -80,11 +80,15 @@ typedef struct FrameData {
 	CommandList cmdList;
 } FrameData;
 
+typedef struct ArgumentOfCommandList_t {
+	void *pArg;
+	uint8_t sizeArgument;
+} ArgumentOfCommandList_t;
 typedef void (*pCpltCallback)(CommandList cmdlist);
 typedef void (*pErrorCallback)(AppErrorCode err);
 
-void appintf_Init(UART_HandleTypeDef *huart);
-void appintf_HandleReceive(UART_HandleTypeDef *huart);
+void appintf_Init(UART_HandleTypeDef *huart, BoardID boardID, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize);
+void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart);
 void appintf_ErrorHandler(AppErrorCode err);
 void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
 void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err));
