@@ -20,6 +20,8 @@ uint8_t _txBufSize;
 ArgumentOfCommandList_t argCmd[CMD_End - 1];
 static void ResetFrameData();
 static bool IsPassCRC();
+static void DecodeFrameDataAndCheckCRC();
+
 void appintf_Init(UART_HandleTypeDef *huart, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize) {
 	pAppUART = huart;
 	_pTxBuffer = pTxBuffer;
@@ -52,16 +54,37 @@ void appintf_GetValueFromPayload() {
 		memcpy(argCmd[fd.cmdList].pArg, _pRxBuffer + payloadField, fd.payloadLength); //offset to payloadField in receive buffer
 }
 
+void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData) {
+	if(fd.payloadLength != sizeData) {
+		if(pAppErr != NULL)
+			pAppErr(APPERR_PAYLOAD_NOT_RECOGNIZE);
+		else
+			return;
+	}
+	uint32_t payloadField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
+	if(outData != NULL)
+		memcpy(outData, _pRxBuffer + payloadField, fd.payloadLength); //offset to payloadField in receive buffer
+	else {
+		if(pAppErr != NULL)
+			pAppErr(APPERR_STORE_BUFFER_IS_NULL);
+		else
+			return;
+	}
+}
 
-static void DecodeFrameData() {
+
+static void DecodeFrameDataAndCheckCRC() {
 	uint32_t crcField = APP_DATA_LENGTH + APP_COMMAND_LIST_LENGTH + fd.payloadLength;
 	uint32_t crcNibbleByteMSB = *(_pRxBuffer + crcField) << 8;
 	uint32_t crcNibbleByteLSB = *(_pRxBuffer + crcField + 1);
 	fd.cmdList = *(_pRxBuffer + 1);
 	fd.crc16 = crcNibbleByteMSB | crcNibbleByteLSB;
-	if(!IsPassCRC())
+	if(!IsPassCRC()) {
 		if(pAppErr != NULL)
 			pAppErr(APPERR_CRC_FAIL);
+		else
+			while (1);
+	}
 
 }
 
@@ -75,8 +98,12 @@ static void DecodeFrameData() {
  */
 void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 	if(huart != pAppUART) return;
-	if(pAppErr != NULL && pAppUART == NULL)
+	if(pAppUART == NULL) {
+		if(pAppErr != NULL)
 			pAppErr(APPERR_UART_PORT_NULL);
+		else
+			while (1);
+	}
 	static bool isOnFrameReceived = false;
 	if(fd.isOnProcess) return;
 	// if this is a new frame data, extract data length and receive all remain data in interrupt indicated by data length
@@ -86,25 +113,32 @@ void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 		uint32_t totalLength = fd.totalLength = fd.payloadLength + APP_CRC_LENGTH + APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
 		if(totalLength < _rxBufSize)
 			HAL_UART_Receive_IT(pAppUART, (uint8_t*) _pRxBuffer + APP_DATA_LENGTH, totalLength - APP_DATA_LENGTH);
-		else
-		if(pAppErr != NULL) pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
+		else {
+			if(pAppErr != NULL)
+				pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
+			else
+				while (1);
+		}
 		isOnFrameReceived = true;
 		fd.isOnProcess = false;
 	}
 	else { // if all data of the frame have been received, begin to extract data and reset to receive new frame, and calling to user callback function
 		fd.isOnProcess = true;
 		isOnFrameReceived = false;
-		DecodeFrameData();
+		DecodeFrameDataAndCheckCRC();
 		if(pCallback != NULL)
 			pCallback(fd.cmdList);
-		else
-			pAppErr(APPERR_NULL_CALLBACK_FUNCTION);
+		else {
+			if(pAppErr != NULL)
+				pAppErr(APPERR_NULL_CALLBACK_FUNCTION);
+			else
+				return;
+		}
 		HAL_UART_Receive_IT(pAppUART, (uint8_t*) _pRxBuffer, APP_DATA_LENGTH);
 		memset(_pRxBuffer, 0, _rxBufSize);
 		fd.isOnProcess = false;
 		ResetFrameData();
 	}
-
 }
 
 
@@ -114,8 +148,12 @@ AppErrorCode appintf_MakeFrame(CommandList cmdlist) {
 			+ APP_COMMAND_LIST_LENGTH
 			+ argCmd[cmdlist].sizeArgument
 			+ APP_CRC_LENGTH;
-	if(totalLength > _txBufSize)
-		return APPERR_OUT_OF_BUFFER_SIZE;
+	if(totalLength > _txBufSize) {
+		if(pAppErr != NULL)
+			pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
+		else
+			while (1);
+	}
 	if(!argCmd[cmdlist].pArg) return APPERR_STORE_BUFFER_IS_NULL;
 	if(!isTxBufferEmpty) memset(_pTxBuffer, 0, _txBufSize);
 	fd.isOnProcess = true;

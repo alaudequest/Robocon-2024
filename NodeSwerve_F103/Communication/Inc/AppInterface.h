@@ -23,14 +23,9 @@ typedef enum CommandList {
 	CMD_SetSpeedBLDC,
 	CMD_SetSpeedDC,
 	CMD_SetAngleDC,
+	CMD_SetHome,
 	CMD_End,	//not use
 } CommandList;
-
-typedef enum NodeSwerveRelayCommand {
-	RunBLDC = 1,
-	RunDC,
-	InverseDirection,
-} NodeSwerveRelayCommand;
 #elif BOARD_MAIN
 typedef enum CommandList {
 	CMD_Start = 0, //not use
@@ -44,8 +39,7 @@ typedef enum CommandList {
 	CMD_Process_SetVelocity,
 	CMD_Process_SetDistance,
 	CMD_Process_SetAngle,
-	CMD_NotFound,
-	CMD_Busy,
+	CMD_SetHome
 	CMD_End,	//not use
 } CommandList;
 
@@ -124,6 +118,7 @@ void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err)
 void appintf_SendFrame();
 AppErrorCode appintf_MakeFrame(CommandList cmdlist);
 void appintf_GetValueFromPayload();
+void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData);
 void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmdlist);
 
 #endif /* INC_APPINTERFACE_H_ */

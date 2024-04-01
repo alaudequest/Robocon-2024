@@ -10,6 +10,23 @@
 
 #include "main.h"
 #include "AppInterface.h"
+#include "BoardParameter.h"
+
+typedef enum NodeSwerveRelayCommand {
+	RunMotorBLDC = 1,
+	RunMotorDC,
+} NodeSwerveRelayCommand;
+
+typedef struct AppPararmPID_t {
+	PID_type type;
+	float kp;
+	float ki;
+	float kd;
+	float alpha;
+	float deltaT;
+	float limitHigh;
+	float limitLow;
+} AppPararmPID_t;
 
 void SwerveApp_Init();
 

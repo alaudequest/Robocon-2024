@@ -7,9 +7,14 @@
 
 #include "NodeSwerve_AppInterface.h"
 extern UART_HandleTypeDef huart1;
-uint8_t txBuffer[30] = {0};
-uint8_t rxBuffer[30] = {0};
+uint8_t txBuffer[80] = {0};
+uint8_t rxBuffer[80] = {0};
 BoardID brdID = 0;
+AppPararmPID_t _appPID;
+
+static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Param *pid);
+static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_Param pid);
+
 void SwerveApp_ErrorHandler(AppErrorCode err);
 void SwerveApp_ReceiveCommandHandler(CommandList cmdlist);
 
@@ -36,10 +41,9 @@ void SwerveApp_Init()
 	appintf_RegisterErrorCallbackEvent(&SwerveApp_ErrorHandler);
 	// After receiving data from app, calling to this function to handle command list
 	appintf_RegisterReceivedCallbackEvent(&SwerveApp_ReceiveCommandHandler);
-
 	appintf_RegisterArgument((void*) &brdID, sizeof(brdID), CMD_IdentifyBoard);
-	appintf_MakeFrame(CMD_IdentifyBoard);
-	appintf_SendFrame();
+	appintf_RegisterArgument((void*) &_appPID, sizeof(_appPID), CMD_GetPID);
+	appintf_RegisterArgument((void*) &_appPID, sizeof(_appPID), CMD_SetPID);
 }
 
 void SwerveApp_ErrorHandler(AppErrorCode err)
@@ -52,22 +56,69 @@ static void SendArgumentToApp(CommandList cmdlist) {
 	appintf_SendFrame();
 }
 
+static void HandleCommandSetPID() {
+	appintf_GetValueFromPayload();
+	PID_Param pid;
+	Convert_AppParamPID_to_PIDParam(_appPID, &pid);
+	brd_SetPID(pid, _appPID.type);
+}
+
+static void HandleCommandGetPID() {
+
+	// vì trên app truyền giá trị byte xuống đại diện cho enum PID_type, nên khi lấy ra cũng phải khớp kiểu uint8_t
+	uint8_t temp;
+	appintf_GetValueFromPayload_2((void*) &temp, sizeof(temp));
+	PID_type typePID = temp;
+	PID_Param pid = brd_GetPID(typePID);
+	Convert_PIDParam_to_AppParamPID(&_appPID, pid);
+	appintf_MakeFrame(CMD_GetPID);
+	appintf_SendFrame();
+}
+
+
 void SwerveApp_ReceiveCommandHandler(CommandList cmdlist)
 {
 	switch (cmdlist) {
 		case CMD_IdentifyBoard:
-		case CMD_GetPID:
-			SendArgumentToApp(cmdlist);
-			break;
+		SendArgumentToApp(cmdlist);
+		break;
+		case CMD_SetSpeedBLDC:
+		case CMD_SetSpeedDC:
+		case CMD_SetAngleDC:
+		appintf_GetValueFromPayload();
+		break;
 		case CMD_SetPID:
-			case CMD_SetSpeedBLDC:
-			case CMD_SetSpeedDC:
-			case CMD_SetAngleDC:
-			appintf_GetValueFromPayload();
-			break;
+		HandleCommandSetPID();
+		break;
+		case CMD_GetPID:
+		HandleCommandGetPID();
+		break;
 		case CMD_RelayCommand:
-			break;
+		break;
 		default:
-			break;
+		break;
 	}
+}
+
+static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Param *pid)
+{
+	pid->kP = appPID.kp;
+	pid->kI = appPID.ki;
+	pid->kD = appPID.kd;
+	pid->alpha = appPID.alpha;
+	pid->deltaT = appPID.deltaT;
+	pid->u_AboveLimit = appPID.limitHigh;
+	pid->u_BelowLimit = appPID.limitLow;
+}
+
+static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_Param pid)
+{
+	appPID->kp = pid.kP;
+	appPID->ki = pid.kI;
+	appPID->kd = pid.kD;
+	appPID->alpha = pid.alpha;
+	appPID->deltaT = pid.deltaT;
+	appPID->limitHigh = pid.u_AboveLimit;
+	appPID->limitLow = pid.u_BelowLimit;
+
 }
