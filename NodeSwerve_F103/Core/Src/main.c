@@ -68,7 +68,8 @@ uint8_t TestMode = 0;
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
 
-
+uint8_t XaDay = 0;
+float test1;
 
 uint32_t pageError = 0;
 /* USER CODE END PV */
@@ -115,7 +116,7 @@ void CAN_Init() {
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_LED_BLUE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			deviceID | CANCTRL_MODE_UNTANGLE_WIRE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
 			deviceID | CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
 			0, CAN_RX_FIFO0);
@@ -199,6 +200,11 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			case CANCTRL_MODE_PID_BLDC_SPEED:
 			canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
+			case CANCTRL_MODE_UNTANGLE_WIRE:
+				if(canfunc_GetBoolValue())
+					XaDay = 1;
+				else XaDay = 0;
+				break;
 		case CANCTRL_MODE_START:
 			case CANCTRL_MODE_END:
 			break;
@@ -729,6 +735,7 @@ void StartDefaultTask(void const * argument)
  * @retval None
  */
 float test1;
+
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const * argument)
 {
@@ -745,8 +752,15 @@ void StartTaskPID(void const * argument)
 			osDelay(1);
 			goto SET_HOME_PID_TASK;
 		}
-//		PID_DC_CalPos(test1);
-		PID_DC_CalPos(brd_GetTargetAngleDC());
+		if (XaDay == 0){
+//			PID_DC_CalPos(test1);
+			PID_DC_CalPos(brd_GetTargetAngleDC());
+		}
+		else{
+
+			PID_DC_XaDay();
+//			PID_DC_CalPos(0);
+		}
 
 		osDelay(2);
 	}
@@ -789,7 +803,21 @@ void StartCANbus(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskPIDSpeed */
-float test,TocDoTest;
+float test;
+void SetPIDonSlowVel()
+{
+	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+	pid.kP = 0.03;
+	pid.kI = 2.5;
+	brd_SetPID(pid, PID_BLDC_SPEED);
+}
+void SetPIDonFastVel()
+{
+	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+	pid.kP = 0.03;
+	pid.kI = 5;
+	brd_SetPID(pid, PID_BLDC_SPEED);
+}
 void StartTaskPIDSpeed(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPIDSpeed */
@@ -807,9 +835,10 @@ void StartTaskPIDSpeed(void const * argument)
 	if (IsSetHome) {
 		goto SET_HOME_PID_SPEED;
 	}
-//	PID_BLDC_CalSpeed(test);
-	if (abs(brd_GetSpeedBLDC()) < 20)
+	Encoder_t encBLDC1 = brd_GetObjEncBLDC();
+	if ((abs(brd_GetSpeedBLDC()) < 0.5&&abs(encBLDC1.vel_Real)<0.5)||XaDay == 1)
 	{
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
 		PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
 		Encoder_t encBLDC = brd_GetObjEncBLDC();
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
@@ -824,14 +853,20 @@ void StartTaskPIDSpeed(void const * argument)
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		brd_SetObjEncBLDC(encBLDC);
 
-		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
+
 
 	}else{
+
 		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
+//		if (abs(brd_GetSpeedBLDC())>100)
+//		{
+//			SetPIDonFastVel();
+//		}else{
+//			SetPIDonSlowVel();
+//		}
 		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
 	}
-
-    osDelay(50);
+    osDelay(2);
   }
   /* USER CODE END StartTaskPIDSpeed */
 }
@@ -842,12 +877,6 @@ void StartTaskPIDSpeed(void const * argument)
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
-  *
-  *
-  *
-  *
-  *
-  *
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

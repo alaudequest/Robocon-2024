@@ -25,7 +25,6 @@ typedef struct Encoder_t{
 	int32_t count_X1;
 	int32_t count_Pre;
 	uint32_t count_PerRevol;
-	int32_t deltaXung;
 //------------------------Speed Val-----------------//
 	float vel_Real;
 	float vel_Pre;

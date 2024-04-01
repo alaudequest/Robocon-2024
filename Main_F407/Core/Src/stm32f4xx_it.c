@@ -64,7 +64,7 @@ extern DMA_HandleTypeDef hdma_usart2_tx;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
-extern TIM_HandleTypeDef htim14;
+extern TIM_HandleTypeDef htim13;
 
 /* USER CODE BEGIN EV */
 
@@ -281,17 +281,17 @@ void USART3_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM8 trigger and commutation interrupts and TIM14 global interrupt.
+  * @brief This function handles TIM8 update interrupt and TIM13 global interrupt.
   */
-void TIM8_TRG_COM_TIM14_IRQHandler(void)
+void TIM8_UP_TIM13_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM8_TRG_COM_TIM14_IRQn 0 */
+  /* USER CODE BEGIN TIM8_UP_TIM13_IRQn 0 */
 
-  /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim14);
-  /* USER CODE BEGIN TIM8_TRG_COM_TIM14_IRQn 1 */
+  /* USER CODE END TIM8_UP_TIM13_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim13);
+  /* USER CODE BEGIN TIM8_UP_TIM13_IRQn 1 */
 
-  /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 1 */
+  /* USER CODE END TIM8_UP_TIM13_IRQn 1 */
 }
 
 /**

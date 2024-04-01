@@ -11,6 +11,7 @@
 #include "math.h"
 #include "SwerveModule.h"
 
+float absf(float num);
 float modulo360(float angle);
 float modulo180(float angle);
 void angopt_Cal(ModuleID ID,float input);

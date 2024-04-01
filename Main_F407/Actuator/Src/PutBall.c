@@ -21,12 +21,11 @@ void startPutBall(uint8_t state)
 	encoder_Init(&putBall.enc, &htim2, 19200, 0.001);
 	if(state == 0)
 	{
-		putBall.count = 0;
+		putBall.count += 1;
 		putBall.StopPutFlag = 0;
-		if(putBall.accel.vel_controller > -600)
+		if(putBall.count < 50)
 		{
-			Accel_Cal(&putBall.accel, -600, 2.25);
-			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
+			MotorDC_Drive(&putBall.mdc, -200);
 			putBall.flag = 0;
 		}
 		else
@@ -42,13 +41,16 @@ void startPutBall(uint8_t state)
 		putBall.flag = 0;
 		putBall.accel.vel_controller = 0;
 		getBall.accel.vel_controller = 0;
-		if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
+		if(putBall.StopPutFlag == 0)
 		{
-			osDelay(5);
-			if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin)){
-				putBall.StopPutFlag = 1;
-			}
+			if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
+			{
+				osDelay(5);
+				if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin)){
+					putBall.StopPutFlag = 1;
+				}
 
+			}
 		}
 		if (putBall.StopPutFlag)
 		{
@@ -64,24 +66,14 @@ void startPutBall(uint8_t state)
 	{
 		putBall.StopPutFlag = 0;
 		putBall.count += 1;
-		if(putBall.count >= 1000)
+
+		if (putBall.count<25)
 		{
-			putBall.StopPutFlag = 2;
-		}
-		if (putBall.StopPutFlag == 2)
-		{
-			putBall.StopPutFlag = 0;
-			Accel_Cal(&putBall.accel, 0, 0.75);
-			Accel_Cal(&getBall.accel, 0, 2);
-			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
-			MotorDC_Drive(&getBall.mdc, getBall.accel.vel_controller);
-		}
-		else
-		{
-			Accel_Cal(&putBall.accel, 450, 1);
-			Accel_Cal(&getBall.accel, -1000, 0.5);
-			MotorDC_Drive(&putBall.mdc, putBall.accel.vel_controller);
-			MotorDC_Drive(&getBall.mdc, getBall.accel.vel_controller);
+			MotorDC_Drive(&putBall.mdc,400);
+			MotorDC_Drive(&getBall.mdc, -1000);
+		}else {
+			MotorDC_Drive(&putBall.mdc,0);
+			MotorDC_Drive(&getBall.mdc, 0);
 		}
 	}
 	else if(state == 3)

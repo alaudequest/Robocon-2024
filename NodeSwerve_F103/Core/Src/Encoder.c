@@ -22,7 +22,6 @@ float encoder_GetSpeed(Encoder_t *enc)
 {
 	enc->count_X4 += (int16_t)__HAL_TIM_GET_COUNTER(enc->htim);
 	__HAL_TIM_SET_COUNTER(enc->htim,0);
-	enc->deltaXung = enc->count_X4 - enc->count_Pre;
 	enc->vel_Real = ((enc->count_X4 - enc->count_Pre)/enc->deltaT)/(enc->count_PerRevol*4)*60;
 	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real+ 0.0728 * enc->vel_Pre;
 	enc->vel_Pre = enc->vel_Real;
@@ -48,7 +47,6 @@ void encoder_ResetCount(Encoder_t *enc)
 	enc->count_X4 = 0;
 	enc->vel_Pre = 0;
 	enc->vel_Real = 0;
-	enc->deltaXung = 0;
 	enc->count_Pre = 0;
 }
 

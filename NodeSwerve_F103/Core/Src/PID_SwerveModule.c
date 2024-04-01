@@ -8,9 +8,6 @@
 #include "PID_SwerveModule.h"
 bool bldcEnablePID = false;
 bool dcEnablePID = true;
-float TocDoBLDC;
-float uHatTruocDo;
-
 
 void PID_DC_CalSpeed(float Target_set)
 {
@@ -37,6 +34,18 @@ void PID_DC_CalPos(float Target_set)
 	PID_DC_CalSpeed(result);
 }
 
+void PID_DC_XaDay()
+{
+	Encoder_t encDC = brd_GetObjEncDC();
+	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
+	pid.u_AboveLimit = 20;
+	pid.u_BelowLimit = -20;
+	float result = PID_Cal(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
+	brd_SetPID(pid, PID_DC_ANGLE);
+	brd_SetObjEncDC(encDC);
+	PID_DC_CalSpeed(result);
+}
+
 void PID_BLDC_CalSpeed(float Target_set)
 {
 	MotorBLDC mbldc = brd_GetObjMotorBLDC();
@@ -46,9 +55,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 		MotorBLDC_Drive(&mbldc, 0);
 	}else{
 //		float result = Target_set;
-		TocDoBLDC = encoder_GetSpeed(&encBLDC);
-		float result = PID_Cal_BLDC(&pid, Target_set, encBLDC.deltaXung);
-		uHatTruocDo = pid.uHat;
+		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
 		MotorBLDC_Drive(&mbldc, (int32_t)result);
 		brd_SetObjEncBLDC(encBLDC);
 		brd_SetPID(pid, PID_BLDC_SPEED);

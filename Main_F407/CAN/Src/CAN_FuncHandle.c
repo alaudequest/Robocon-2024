@@ -53,6 +53,7 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 	&& modeID != CANCTRL_MODE_PID_BLDC_BREAKPROTECTION
 	&& modeID != CANCTRL_MODE_SET_HOME
 	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
+	&& modeID != CANCTRL_MODE_UNTANGLE_WIRE
 	) return;
 	canctrl_SetID(modeID);
 	uint8_t temp = (uint8_t)bVal + 1;
