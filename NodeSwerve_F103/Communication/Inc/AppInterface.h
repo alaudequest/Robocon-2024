@@ -21,9 +21,9 @@ typedef enum CommandList {
 	CMD_SavePID,
 	CMD_RelayCommand,
 	CMD_SetSpeedBLDC,
-	CMD_SetSpeedDC,
 	CMD_SetAngleDC,
 	CMD_SetHome,
+	CMD_ErrorCode,
 	CMD_End,	//not use
 } CommandList;
 #elif BOARD_MAIN
@@ -71,6 +71,7 @@ typedef enum BoardID {
 typedef enum AppErrorCode {
 	APPERR_OK,
 	APPERR_BOARD_NOT_FOUND,
+	APPERR_BOARD_FEATURE_NOT_SUPPORT,
 	APPERR_COMMAND_NOT_FOUND,
 	APPERR_OUT_OF_COMMAND_LIST,
 	APPERR_NULL_CALLBACK_FUNCTION,

@@ -122,8 +122,6 @@ void brd_SetHomeCompleteCallback()
 }
 
 
-float brd_GetTargetAngleDC(){return brdParam.targetAngleDC;}
-void brd_SetTargetAngleDC(float angle){brdParam.targetAngleDC = angle;}
 
 MotorDC brd_GetObjMotorDC(){return brdParam.mdc;}
 void brd_SetObjMotorDC(MotorDC mdc){brdParam.mdc = mdc;}
@@ -131,8 +129,11 @@ void brd_SetObjMotorDC(MotorDC mdc){brdParam.mdc = mdc;}
 MotorBLDC brd_GetObjMotorBLDC(){return brdParam.mbldc;}
 void brd_SetObjMotorBLDC(MotorBLDC mbldc){brdParam.mbldc = mbldc;}
 
-void brd_SetSpeedBLDC(float speed){brdParam.targetSpeedBLDC = speed;}
-float brd_GetSpeedBLDC(){return brdParam.targetSpeedBLDC;}
+float brd_GetTargetAngleDC(){return brdParam.targetAngleDC;}
+void brd_SetTargetAngleDC(float angle){brdParam.targetAngleDC = angle;}
+
+void brd_SetTargetSpeedBLDC(float speed){brdParam.targetSpeedBLDC = speed;}
+float brd_GetTargetSpeedBLDC(){return brdParam.targetSpeedBLDC;}
 
 void brd_SetObjEncDC(Encoder_t encDC){brdParam.encDC = encDC;}
 Encoder_t brd_GetObjEncDC(){return brdParam.encDC;}

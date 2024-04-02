@@ -68,7 +68,8 @@ osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
-uint8_t a[1] = {0};
+bool BLDC_IsEnablePID = true;
+bool DC_IsEnablePID = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -168,7 +169,7 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			CAN_SpeedBLDC_AngleDC speedAngle;
 			speedAngle = canfunc_MotorGetSpeedAndAngle();
 			brd_SetTargetAngleDC(speedAngle.dcAngle);
-			brd_SetSpeedBLDC(speedAngle.bldcSpeed);
+			brd_SetTargetSpeedBLDC(speedAngle.bldcSpeed);
 		break;
 		case CANCTRL_MODE_PID_DC_SPEED:
 			case CANCTRL_MODE_PID_DC_ANGLE:
@@ -290,10 +291,10 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-	__HAL_DBGMCU_FREEZE_TIM2();
 	brd_Init();
 	qPID = xQueueCreate(2, sizeof(float));
 	qHome = xQueueCreate(1, sizeof(bool));
+
 	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
 	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
@@ -669,7 +670,7 @@ static void MX_GPIO_Init(void)
 void SethomeHandle() {
 	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 		brd_SetTargetAngleDC(0);
-		brd_SetSpeedBLDC(0);
+		brd_SetTargetSpeedBLDC(0);
 	}
 }
 
@@ -685,25 +686,25 @@ void SethomeHandle() {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-	SET_HOME_DEFAULT_TASK:
-	sethome_Begin();
-	while (!sethome_IsComplete()) {
-		sethome_Procedure();
-		float speed = sethome_GetSpeed();
-		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-		osDelay(1);
-	}
-	SetHomeCompleteCallback();
-	IsSetHome = 0;
+//	SET_HOME_DEFAULT_TASK:
+//	sethome_Begin();
+//	while (!sethome_IsComplete()) {
+//		sethome_Procedure();
+//		float speed = sethome_GetSpeed();
+//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+//		osDelay(1);
+//	}
+//	SetHomeCompleteCallback();
+//	IsSetHome = 0;
 	/* Infinite loop */
 
 	for (;;) {
-		SethomeHandle();
-		if (IsSetHome) {
-			osDelay(1);
-			goto SET_HOME_DEFAULT_TASK;
-		}
-		osDelay(1);
+//		SethomeHandle();
+//		if (IsSetHome) {
+//			osDelay(1);
+//			goto SET_HOME_DEFAULT_TASK;
+//		}
+		osDelay(10);
 	}
   /* USER CODE END 5 */
 }
@@ -714,30 +715,33 @@ void StartDefaultTask(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-int TestTarget;
+int EncoderCount = 0;
+float EncoderAngle = 0;
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const * argument)
 {
   /* USER CODE BEGIN StartTaskPID */
-	SET_HOME_PID_TASK: float TargetValue = 0;
-	while (!sethome_IsComplete()) {
-		xQueueReceive(qPID, &TargetValue, 0);
-		PID_DC_CalSpeed((float) TargetValue);
-		osDelay(5);
-	}
+//	SET_HOME_PID_TASK: float TargetValue = 0;
+//	while (!sethome_IsComplete()) {
+//		xQueueReceive(qPID, &TargetValue, 0);
+//		PID_DC_CalSpeed((float) TargetValue);
+//		osDelay(5);
+//	}
 	/* Infinite loop */
 	for (;;) {
-		if (IsSetHome) {
-			PID_BLDC_BreakProtection(1);
-			osDelay(1000);
-			PID_BLDC_BreakProtection(0);
-			goto SET_HOME_PID_TASK;
-		}
+//		if (IsSetHome) {
+//			PID_BLDC_BreakProtection(1);
+//			osDelay(1000);
+//			PID_BLDC_BreakProtection(0);
+//			goto SET_HOME_PID_TASK;
+//		}
 
-		PID_DC_CalPos(brd_GetTargetAngleDC());
-		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-//		PID_DC_CalPos(TestTarget);
-
+		if(DC_IsEnablePID)
+			PID_DC_CalPos(brd_GetTargetAngleDC());
+		if(BLDC_IsEnablePID)
+			PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
+		EncoderAngle = brd_GetCurrentAngleDC();
+		EncoderCount = brd_GetCurrentCountBLDC();
 		osDelay(5);
 	}
   /* USER CODE END StartTaskPID */

@@ -13,8 +13,10 @@
 #include "BoardParameter.h"
 
 typedef enum NodeSwerveRelayCommand {
-	RunMotorBLDC = 1,
-	RunMotorDC,
+	RelayCmd_RunMotorBLDC,
+	RelayCmd_RunMotorDC,
+	RelayCmd_EnablePID_BLDC,
+	RelayCmd_EnablePID_DC,
 } NodeSwerveRelayCommand;
 
 typedef struct AppPararmPID_t {
