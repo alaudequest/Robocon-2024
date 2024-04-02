@@ -6,7 +6,7 @@
  */
 
 #include "PID_SwerveModule.h"
-bool bldcEnablePID = false;
+bool bldcEnablePID = true;
 
 void PID_DC_CalSpeed(float Target_set)
 {
@@ -16,7 +16,7 @@ void PID_DC_CalSpeed(float Target_set)
 	float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encDC));
 	brd_SetPID(pid, PID_DC_SPEED);
 	brd_SetObjEncDC(encDC);
-	MotorDC_Drive(&mdc, (int32_t)result);
+	MotorDC_Drive(&mdc, (int32_t) result);
 }
 
 void PID_DC_CalPos(float Target_set)
@@ -34,9 +34,9 @@ void PID_BLDC_CalSpeed(float Target_set)
 	MotorBLDC mbldc = brd_GetObjMotorBLDC();
 	Encoder_t encBLDC = brd_GetObjEncBLDC();
 	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
-	if(!bldcEnablePID){
+	if(!bldcEnablePID) {
 		MotorBLDC_Drive(&mbldc, 0);
-	}else{
+	} else {
 		float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encBLDC));
 		MotorBLDC_Drive(&mbldc, (int32_t) result);
 		brd_SetObjEncBLDC(encBLDC);
@@ -54,6 +54,7 @@ void PID_BLDC_BreakProtection(bool Mode)
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		MotorBLDC_Drive(&mbldc, 0);
 		return;
-	}else bldcEnablePID = true;
+	} else
+		bldcEnablePID = true;
 }
 
