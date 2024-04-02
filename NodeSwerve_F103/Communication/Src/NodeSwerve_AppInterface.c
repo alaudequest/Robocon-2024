@@ -49,7 +49,7 @@ void SwerveApp_Init()
 	 */
 	appTargetAngleDC = brd_GetTargetAngleDC();
 	appTargetSpeedBLDC = brd_GetTargetSpeedBLDC();
-	
+
 	appintf_Init(&huart1, txBuffer, sizeof(txBuffer), rxBuffer, sizeof(rxBuffer));
 	// If any error happen, calling to this function
 	appintf_RegisterErrorCallbackEvent(&SwerveApp_ErrorHandler);
@@ -60,6 +60,7 @@ void SwerveApp_Init()
 	appintf_RegisterArgument((void*) &_appPID, sizeof(_appPID), CMD_SetPID);
 	appintf_RegisterArgument((void*) &appTargetSpeedBLDC, sizeof(appTargetSpeedBLDC), CMD_SetSpeedBLDC);
 	appintf_RegisterArgument((void*) &appTargetAngleDC, sizeof(appTargetAngleDC), CMD_SetAngleDC);
+	appintf_RegisterArgument((void*) &relayCommand, sizeof(relayCommand), CMD_RelayCommand);
 }
 
 void SwerveApp_ErrorHandler(AppErrorCode err)
@@ -82,7 +83,7 @@ static void HandleCommandSetPID() {
 }
 
 static void HandleCommandGetPID() {
-	
+
 	// vì trên app truyền giá trị byte xuống đại diện cho enum PID_type, nên khi lấy ra cũng phải khớp kiểu uint8_t
 	uint8_t temp;
 	appintf_GetValueFromPayload_2((void*) &temp, sizeof(temp));
@@ -96,7 +97,7 @@ static void HandleCommandGetPID() {
 }
 
 static void SelectRunMotorInManualOrPID() {
-	
+
 	// Điều khiển chạy động cơ BLDC
 	if(CHECKFLAG(relayCommand, RelayCmd_EnablePID_BLDC)) {
 		// Cho phép tính toán PID và khởi chạy encoder
@@ -119,16 +120,19 @@ static void SelectRunMotorInManualOrPID() {
 		else
 			MotorBLDC_Drive(&mbldc, 0);
 	}
-	
+
 	// Điều khiển chạy động cơ DC
 	if(CHECKFLAG(relayCommand, RelayCmd_EnablePID_DC)) {
 		HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 		DC_IsEnablePID = true;
+		// PID ở đây là của vị trí góc quay động cơ nên setpoint là góc quay
+		// không phải tốc độ động cơ, do đó không thể nhập góc 0 để dừng động cơ được
 		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
 			brd_SetTargetAngleDC(appTargetAngleDC);
 		}
-		else
-			brd_SetTargetAngleDC(0);
+//		else{
+//			PID_Param pidSpeedDC = brd_GetPID(PID_DC_SPEED)
+//		}
 	}
 	else {		// Nếu không bật PID
 		// Tắt tính toán PID và tắt đọc encoder
@@ -148,12 +152,25 @@ static void SelectRunMotorInManualOrPID() {
 	}
 }
 
-static void HandleCommandRelayCommand() {
-	
-	// vì trên app truyền giá trị byte xuống đại diện cho enum PID_type, nên khi lấy ra cũng phải khớp kiểu uint8_t
-	appintf_GetValueFromPayload_2((void*) &relayCommand, sizeof(relayCommand));
-	SelectRunMotorInManualOrPID();
-	
+/**
+ * Gửi lên app trạng thái ban đầu của board, để đồng bộ trạng thái
+ */
+static void SendBoardInitStateToApp()
+{
+	// gửi trạng thái cờ bật PID của BLDC
+	if(BLDC_IsEnablePID)
+		SETFLAG(relayCommand, RelayCmd_EnablePID_BLDC);
+	else
+		CLEARFLAG(relayCommand, RelayCmd_EnablePID_BLDC);
+
+	// gửi trạng thái cờ bật PID của BLDC
+	if(DC_IsEnablePID)
+		SETFLAG(relayCommand, RelayCmd_EnablePID_DC);
+	else
+		CLEARFLAG(relayCommand, RelayCmd_EnablePID_DC);
+	appintf_MakeFrame(CMD_RelayCommand);
+	appintf_SendFrame();
+
 }
 
 static void ReceiveCommandHandler(CommandList cmdlist)
@@ -161,6 +178,9 @@ static void ReceiveCommandHandler(CommandList cmdlist)
 	switch (cmdlist) {
 		case CMD_IdentifyBoard:
 		SendArgumentToApp(cmdlist);
+		for (uint16_t i = 0; i < 20000; i++)		// delay để app phân biệt 2 gói tin gửi liền nhau
+			__NOP();
+		SendBoardInitStateToApp();
 		break;
 		case CMD_SetSpeedBLDC:
 		case CMD_SetAngleDC:
@@ -177,7 +197,8 @@ static void ReceiveCommandHandler(CommandList cmdlist)
 		HandleCommandGetPID();
 		break;
 		case CMD_RelayCommand:
-		HandleCommandRelayCommand();
+		appintf_GetValueFromPayload();
+		SelectRunMotorInManualOrPID();
 		break;
 		case CMD_SetHome:
 		IsSetHome = true;
@@ -206,5 +227,5 @@ static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_P
 	appPID->deltaT = pid.deltaT;
 	appPID->limitHigh = pid.u_AboveLimit;
 	appPID->limitLow = pid.u_BelowLimit;
-	
+
 }
