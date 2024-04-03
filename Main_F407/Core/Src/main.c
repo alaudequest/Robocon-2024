@@ -190,7 +190,17 @@ uint8_t process_SSCheck;
 uint8_t process_Count;
 
 //////////LineFollow////////
-uint8_t LineSensor;
+uint8_t LineSensor[8];
+uint8_t DataLineX;
+uint8_t DataLineY;
+int8_t LineX;
+int8_t LineY;
+int KtLineX=0;
+int KtLineY=0;
+uint8_t SendLine='a';
+int v_line=30;
+int v_Line;
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
@@ -595,14 +605,39 @@ void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,f
 
 }
 void process_LineFollow(){
-
-//	if()
+//    KtLineY=0;
+//   for(int i=0;i<=7;i++)
+//      {
+//         if((DataLineY&(1<<i))==0)
+//        {  KtLineY++;
+//           LineY =(int)((i+1)*2);
+//           if(((DataLineY&(1<<i-1))==0)&&(i!=0))
+//                {
+//                  LineY--;
+//                }
+//         }
+//      }
 }
+
 void process_RunByAngle(float Angle,float speed)
 {
 	u = cos(Angle*M_PI/180)*speed ;
 	v = sin(Angle*M_PI/180)*speed ;
 }
+void process_LineApproach()
+{
+	if(process_SubState == 1)
+		{
+			process_RunByAngle(45,0.1);
+			use_pidTheta = 1;
+			if (distance<0.3)
+			{
+				process_ResetFloatingEnc();
+				process_SubState = 2;
+			}
+		}
+}
+
 
 void process_Signal_RotationMatrixTransform(float u, float v ,float r)
 {
@@ -735,6 +770,66 @@ void process_Ball_Approach2()
 
 		}
 	}
+}
+
+void process_Ball_Approach3(uint8_t Ball)
+{
+	float dis;
+
+	if (Ball == 0){
+		dis = 140;
+	}
+	if (process_SubState == 0)
+	{	process_Count ++;
+		if (process_Count > 10)
+		{
+			process_Count = 0;
+			process_SubState = 1;
+		}
+	}
+	else if (process_SubState == 1)
+	{
+		process_RunByAngle(45,0.1);
+		if (floatingEncCount>dis)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 2;
+		}
+	}
+	else if (process_SubState == 3)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,-0.08);
+		if(distance < 0.21)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 4;
+		}
+	}
+
+	else if (process_SubState == 4)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,0.08);
+		if(distance > 0.15)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+
+		}
+	}
+
+
 }
 
 void process_ApproachWall()
