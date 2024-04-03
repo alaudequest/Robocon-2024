@@ -32,6 +32,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LibraryConfig.h"
+#define BOARD_SWERVE
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
