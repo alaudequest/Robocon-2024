@@ -3,4 +3,4 @@
 ../AlgorimthControl/Src/AngleOptimizer.c:20:7:modulo180	32	static
 ../AlgorimthControl/Src/AngleOptimizer.c:26:5:angopt_QuadrantCheckInput	24	static
 ../AlgorimthControl/Src/AngleOptimizer.c:49:6:angopt_QuadRantCheckOutput	128	static
-../AlgorimthControl/Src/AngleOptimizer.c:107:6:angopt_Cal	128	static
+../AlgorimthControl/Src/AngleOptimizer.c:74:6:angopt_Cal	128	static

@@ -28,6 +28,7 @@
 #include "BoardParameter.h"
 #include "PID_SwerveModule.h"
 #include "SetHome.h"
+#include "AngleOptimizer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -754,7 +755,10 @@ void StartTaskPID(void const * argument)
 		}
 		if (XaDay == 0){
 //			PID_DC_CalPos(test1);
-			PID_DC_CalPos(brd_GetTargetAngleDC());
+			float rawAngle = brd_GetTargetAngleDC();
+//			float rawAngle = test1;
+			angopt_Cal(rawAngle);
+			PID_DC_CalPos(angopt_GetOptAngle());
 		}
 		else{
 
@@ -835,6 +839,8 @@ void StartTaskPIDSpeed(void const * argument)
 	if (IsSetHome) {
 		goto SET_HOME_PID_SPEED;
 	}
+	int direct = angopt_QuadRantCheckOutput2(brd_GetTargetAngleDC(),angopt_GetOptAngle());
+//	int direct = angopt_QuadRantCheckOutput2(test1,angopt_GetOptAngle());
 	Encoder_t encBLDC1 = brd_GetObjEncBLDC();
 	if ((abs(brd_GetSpeedBLDC()) < 0.5&&abs(encBLDC1.vel_Real)<0.5)||XaDay == 1)
 	{
@@ -853,8 +859,6 @@ void StartTaskPIDSpeed(void const * argument)
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		brd_SetObjEncBLDC(encBLDC);
 
-
-
 	}else{
 
 		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
@@ -864,7 +868,7 @@ void StartTaskPIDSpeed(void const * argument)
 //		}else{
 //			SetPIDonSlowVel();
 //		}
-		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
+		PID_BLDC_CalSpeed(direct*brd_GetSpeedBLDC());
 	}
     osDelay(2);
   }

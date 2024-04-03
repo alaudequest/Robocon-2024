@@ -2,8 +2,8 @@
 ../AlgorimthControl/Src/InverseKinematic.c:19:6:invkine_CalOptAngle	1
 ../AlgorimthControl/Src/InverseKinematic.c:32:7:invkine_CalSpeedVectorControl	1
 ../AlgorimthControl/Src/InverseKinematic.c:42:20:invkine_Implementation	7
-../AlgorimthControl/Src/InverseKinematic.c:64:6:invkine_Begin	1
-../AlgorimthControl/Src/InverseKinematic.c:65:27:invkine_GetStep	1
-../AlgorimthControl/Src/InverseKinematic.c:67:6:invkine_Test	1
-../AlgorimthControl/Src/InverseKinematic.c:75:27:invkine_GetInvCalStep	1
-../AlgorimthControl/Src/InverseKinematic.c:76:6:invkine_SetInvCalStep	1
+../AlgorimthControl/Src/InverseKinematic.c:58:6:invkine_Begin	1
+../AlgorimthControl/Src/InverseKinematic.c:59:27:invkine_GetStep	1
+../AlgorimthControl/Src/InverseKinematic.c:61:6:invkine_Test	1
+../AlgorimthControl/Src/InverseKinematic.c:69:27:invkine_GetInvCalStep	1
+../AlgorimthControl/Src/InverseKinematic.c:70:6:invkine_SetInvCalStep	1

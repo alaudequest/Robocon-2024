@@ -26,6 +26,7 @@ typedef enum ModuleID{
 typedef struct WheelVector{
 	float wheelVelX;
 	float wheelVelY;
+	float PreAngle;
 }WheelVector;
 
 typedef struct Angle_Opt_Param{

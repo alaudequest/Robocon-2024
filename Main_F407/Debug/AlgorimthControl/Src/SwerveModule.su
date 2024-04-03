@@ -4,7 +4,7 @@
 ../AlgorimthControl/Src/SwerveModule.c:69:6:swer3_CalVector	64	static
 ../AlgorimthControl/Src/SwerveModule.c:77:6:swer_Init	4	static
 ../AlgorimthControl/Src/SwerveModule.c:90:6:swer_SetWheelVector	24	static
-../AlgorimthControl/Src/SwerveModule.c:91:13:swer_GetWheelVector	32	static
+../AlgorimthControl/Src/SwerveModule.c:91:13:swer_GetWheelVector	48	static
 ../AlgorimthControl/Src/SwerveModule.c:92:6:swer_SetOptAngle	24	static
 ../AlgorimthControl/Src/SwerveModule.c:93:17:swer_GetOptAngle	24	static
 ../AlgorimthControl/Src/SwerveModule.c:94:14:swer_GetFuncHandle	16	static

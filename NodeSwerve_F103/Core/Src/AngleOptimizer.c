@@ -1,20 +1,22 @@
 /*
  * AngleOptimizer.c
  *
- *  Created on: Oct 12, 2023
+ *  Created on: Apr 1, 2024
  *      Author: Admin
  */
+#include"AngleOptimizer.h"
+Angle_Opt_Param opt;
 
-#include "AngleOptimizer.h"
-float modulo360(float Angle){
-	int Result = (int)Angle/360.0;
-	return Angle-Result*360.0;
-}
 
 float absf(float num)
 {
 	if (num>=0)return num;
 	else return num*-1;
+}
+
+float modulo360(float Angle){
+	int Result = (int)Angle/360.0;
+	return Angle-Result*360.0;
 }
 
 float modulo180(float Angle)
@@ -41,14 +43,9 @@ int angopt_QuadrantCheckInput(float x, float y)
 	return 0;
 }
 
-//void angopt_QuadrantCheckAdvance(float InPut)
-//{
-//
-//}
-
-void angopt_QuadRantCheckOutput(ModuleID ID,float Input)
+void angopt_QuadRantCheckOutput(float Input)
 {
-	Angle_Opt_Param opt = swer_GetOptAngle(ID);
+
 #define Case1		opt.Case1
 #define Case2		opt.Case2
 #define Direc 		opt.direct
@@ -66,14 +63,35 @@ void angopt_QuadRantCheckOutput(ModuleID ID,float Input)
 			if(Case2 == Case1)Direc = 1;
 			else Direc = -1;
 		}
-//	}
-	swer_SetOptAngle(ID, opt);
 }
 
-
-void angopt_Cal(ModuleID ID,float input)
+int angopt_QuadRantCheckOutput2(float Input1,float Input2)
 {
-	Angle_Opt_Param opt = swer_GetOptAngle(ID);
+#define Case1		opt.Case1
+#define Case2		opt.Case2
+#define Direc 		opt.direct
+
+	float XCurr1 = cos(Input1);
+	float YCurr1 = sin(Input1);
+
+	float XCurr2 = cos(Input2);
+	float YCurr2 = sin(Input2);
+
+
+	Case1 = angopt_QuadrantCheckInput(XCurr1, YCurr1);
+	Case2 = angopt_QuadrantCheckInput(XCurr2, YCurr2);
+
+	if (Case1 == 0)Direc = 0;
+
+		else {
+			if(Case2 == Case1)Direc = 1;
+			else Direc = -1;
+		}
+	return Direc;
+}
+
+void angopt_Cal(float input)
+{
 #define direct 			opt.direct
 #define currentAngle 	opt.currentAngle
 #define deltaAngle 		opt.deltaAngle
@@ -113,7 +131,11 @@ void angopt_Cal(ModuleID ID,float input)
 		preCal = calInput;
 		currentAngle += deltaAngle;
 		if(currentAngle>=1080) currentAngle-=360;
-		swer_SetOptAngle(ID, opt);
 	}
 }
 
+float angopt_GetOptAngle()
+{
+#define currentAngle 	opt.currentAngle
+	return currentAngle;
+}

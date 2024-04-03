@@ -188,6 +188,9 @@ float process_SubState;
 uint8_t process_GetBall_State;
 uint8_t process_SSCheck;
 uint8_t process_Count;
+
+//////////LineFollow////////
+uint8_t LineSensor;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
@@ -547,6 +550,54 @@ void process_Accel_FloatingEnc2(float Angle,float maxSpeed,float s,float accel)
 	}
 }
 
+void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime)
+{
+	if (process_SubState == 0)
+	{
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_SubState = 1;
+	}else{
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
+			chasis_Vector_TargetSpeed += accel;
+		}
+
+		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+		{
+			chasis_Vector_TargetSpeed = maxSpeed/2;
+		}
+
+		if (floatingEncCount > (s - 400)){
+			chasis_Vector_TargetSpeed -= accel ;
+		}
+	//	if (floatingEncCount > (s - 300)){
+	//		use_pidTheta = 0;
+	//		r = 0;
+	//	}
+
+		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+		{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			u = 0;
+			v = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+		}else{
+			u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+
+		}
+	}
+
+}
+void process_LineFollow(){
+
+//	if()
+}
 void process_RunByAngle(float Angle,float speed)
 {
 	u = cos(Angle*M_PI/180)*speed ;
