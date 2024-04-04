@@ -32,6 +32,7 @@
 #include "string.h"
 #include "Gamepad.h"
 #include "RB1ActuatorValve.h"
+#include "MainF4Robot1App.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -217,7 +218,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-
+	appintf_ReceiveDataInterrupt(huart);
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
@@ -280,6 +281,7 @@ int main(void) {
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
 	CAN_Init();
 	valve_Init();
+	MainF4Robot1App_Init();
 	/* USER CODE END 2 */
 
 	/* USER CODE END 2 */

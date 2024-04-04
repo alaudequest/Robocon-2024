@@ -18,7 +18,8 @@ extern UART_HandleTypeDef huart2;
 static void MainF4Robot1App_ErrorHandler(AppErrorCode err);
 static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist);
 
-void MainF4Robot1App_Init() {
+void MainF4Robot1App_Init()
+{
 	appintf_Init(&huart2, txBuffer, sizeof(txBuffer), rxBuffer, sizeof(rxBuffer));
 	appintf_RegisterErrorCallbackEvent(&MainF4Robot1App_ErrorHandler);
 	appintf_RegisterReceivedCallbackEvent(&MainF4Robot1App_ReceiveCommandHandler);
