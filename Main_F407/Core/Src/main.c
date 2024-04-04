@@ -278,7 +278,8 @@ int main(void) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-
+	CAN_Init();
+	valve_Init();
 	/* USER CODE END 2 */
 
 	/* USER CODE END 2 */
@@ -756,6 +757,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const *argument) {
 	/* USER CODE BEGIN 5 */
+
 	/* Infinite loop */
 	for (;;) {
 		osDelay(50);
@@ -791,7 +793,7 @@ void InverseKinematic(void const *argument) {
 /* USER CODE END Header_CAN_Bus */
 void CAN_Bus(void const *argument) {
 	/* USER CODE BEGIN CAN_Bus */
-//	CAN_Init();
+
 //	osDelay(500);
 //	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_SET_HOME);
 //	osDelay(1);

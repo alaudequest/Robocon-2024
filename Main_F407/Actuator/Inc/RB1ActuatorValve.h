@@ -18,17 +18,12 @@
 #define VALVE_ARM_RIGHT_HC595_PIN 4
 #define VALVE_HAND_RIGHT_HC595_PIN 5
 
-
 void valve_TestPin(pinName pin);
 void valve_TestBlinkAll();
 void valve_Output(uint8_t outputPort, bool on);
-void valve_Gap1();
-void valve_Tha1();
-void valve_Gap2();
-void valve_Tha2();
 void valve_BothCatch();
 void valve_BothRelease();
 void valve_Init();
 void valve_BothHold();
-
+void valve_OutputAllPin(uint8_t valveArrayOutput);
 #endif /* INC_RB1ACTUATORVALVE_H_ */

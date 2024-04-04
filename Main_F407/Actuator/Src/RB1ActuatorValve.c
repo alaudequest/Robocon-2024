@@ -17,7 +17,13 @@ void valve_Init() {
 	HC595_AssignPin(&valve, HC595_OE_GPIO_Port, HC595_OE_Pin, HC595_OE);
 	HC595_ClearByteOutput(0xff);
 	HC595_ShiftOut(NULL, 1, 1);
+}
 
+void valve_OutputAllPin(uint8_t valveArrayOutput)
+{
+	HC595_ClearByteOutput(0xff);
+	HC595_SetByteOutput(valveArrayOutput);
+	HC595_ShiftOut(NULL, 1, 1);
 }
 
 void valve_Output(uint8_t outputPort, bool on) {
@@ -96,7 +102,6 @@ void valve_RightWaitCollectBall() {
 	HC595_SetBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
-
 
 void valve_TestPin(pinName pin) {
 	HC595_TestPin(pin);
