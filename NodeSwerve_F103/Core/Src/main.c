@@ -711,9 +711,7 @@ void SethomeHandle() {
 		brd_SetSpeedBLDC(0);
 	}
 }
-
 /* USER CODE END 4 */
-
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
  * @brief  Function implementing the defaultTask thread.
