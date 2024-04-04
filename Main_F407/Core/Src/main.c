@@ -34,7 +34,7 @@
 #include "Encoder.h"
 #include "PositionControl.h"
 #include "ActuatorValve.h"
-#include "AppInterface.h"
+//#include "AppInterface.h"
 #include "PutBall.h"
 #include "LogData.h"
 /* USER CODE END Includes */
@@ -1662,18 +1662,19 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+	swer_Init();
 	/* Infinite loop */
 	for (;;) {
 		if(xaDay == 0 )
 		{
-			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+//			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 		}else if (xaDay == 1){
 			process_WireRelease();
 		}
-
-
+//
+//
 		if (gamepadRxIsBusy) {
 			gamepadRxIsBusy = 0;
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -1933,7 +1934,7 @@ void OdometerHandle(void const * argument)
 					process_Signal_RotationMatrixTransform(u, v, r);
 				}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
+//				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
 				osDelay(DELTA_T*1000);
 
 			}

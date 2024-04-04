@@ -27,12 +27,16 @@ float invkine_CalSpeedVectorControl(ModuleID ID)
 HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r,void (*ptnCpltCallback)(ModuleID,float, float))
 {
 	static float velocity = 0;
+
 	invkine_CalWheelVector(ID, u, v, r);
 	WheelVector vect = swer_GetWheelVector(ID);
+
 	float rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
 	velocity = invkine_CalSpeedVectorControl(ID);
+
 	if(u == 0&&v==0&&r==0)rawAngle= vect.PreAngle;
 	ptnCpltCallback(ID,velocity,rawAngle);
+
 	vect.PreAngle = rawAngle;
 	swer_SetWheelVector(ID,vect);
 	return HAL_OK;
