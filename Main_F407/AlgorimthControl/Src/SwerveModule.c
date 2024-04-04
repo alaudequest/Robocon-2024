@@ -79,17 +79,10 @@ void swer_Init(){
 	swerParam[MODULE_ID_1].pVctXY = &swer1_CalVector;
 	swerParam[MODULE_ID_2].pVctXY = &swer2_CalVector;
 	swerParam[MODULE_ID_3].pVctXY = &swer3_CalVector;
-
-	swerParam[MODULE_ID_1].angleOpt.direct =
-	swerParam[MODULE_ID_2].angleOpt.direct =
-	swerParam[MODULE_ID_3].angleOpt.direct = 1;
-
 }
 
 
 void swer_SetWheelVector(ModuleID ID,WheelVector vct){swerParam[ID].vct = vct;}
 WheelVector swer_GetWheelVector(ModuleID ID){return swerParam[ID].vct;}
-void swer_SetOptAngle(ModuleID ID,Angle_Opt_Param angleOpt){swerParam[ID].angleOpt = angleOpt;}
-Angle_Opt_Param swer_GetOptAngle(ModuleID ID){return swerParam[ID].angleOpt;}
 pVectorCalXY swer_GetFuncHandle(ModuleID ID){return *swerParam[ID].pVctXY;}
 

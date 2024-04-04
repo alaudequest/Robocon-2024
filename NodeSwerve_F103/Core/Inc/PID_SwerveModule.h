@@ -19,6 +19,7 @@
 void PID_BLDC_CalSpeed(float Target_set);
 void PID_DC_CalSpeed(float Target_set);
 void PID_DC_CalPos(float Target_set);
-
+void PID_ALL_Enable(bool Mode);
 void PID_BLDC_BreakProtection(bool Mode);
+void PID_DC_XaDay();
 #endif /* INC_PID_SWERVEMODULE_H_ */

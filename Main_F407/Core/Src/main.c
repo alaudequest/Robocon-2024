@@ -31,9 +31,12 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
-#include "PIDPosition.h"
+#include "Encoder.h"
+#include "PositionControl.h"
 #include "ActuatorValve.h"
 #include "AppInterface.h"
+#include "PutBall.h"
+#include "LogData.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,25 +57,30 @@ typedef enum MainEvent {
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 CAN_HandleTypeDef hcan1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
-uint32_t TaskInvKineBuffer[256];
+uint32_t TaskInvKineBuffer[ 256 ];
 osStaticThreadDef_t TaskInvKineControlBlock;
 osThreadId TaskCANHandle;
-uint32_t TaskCANBuffer[128];
+uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
-osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
@@ -85,19 +93,8 @@ PID_Param targetPID =
 		{ .deltaT = 0.001, .kP = 10, .kI = 10, .kD = 1, .alpha = 1, };
 PID_type pidType = PID_BLDC_SPEED;
 
-uint8_t UARTRX3_Buffer[9];
-uint8_t DataTayGame[9];
 
-float Xleft, Yleft;
-float Xright;
 
-_GamePad GamePad;
-uint32_t gamepadRxIsBusy = 0;
-float u, v, r;
-
-float DeltaYR, DeltaYL, DeltaX;
-//float TestTargetX = 0, TestTargetY = 0,  = 0;
-CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
 
 uint32_t flagMain = 0;
 #define MAIN_FLAG_GROUP flagMain
@@ -123,6 +120,87 @@ void nodeHome_ClearFlag(CAN_DEVICE_ID e) {
 	CLEARFLAG(SETHOME_FLAG_GROUP, e);
 }
 
+
+
+
+
+uint8_t encEnb,encDis;
+CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
+
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
+float Xleft, Yleft;
+float Xright;
+
+_GamePad GamePad;
+uint32_t gamepadRxIsBusy = 0;
+
+float DeltaYR, DeltaYL, DeltaX;
+uint8_t Run,resetParam,breakProtect;
+float uControlX,uControlY,uControlTheta;
+uint8_t stateRun = 0 ,steadycheck;
+uint8_t xaDay;
+uint8_t ssCheck,stateChange,rst,Gamepad;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint8_t step = 0;
+uint8_t angle_PID_Cycle;
+////////////MPU//////////////
+uint8_t mpu[10];
+uint8_t send_mpu;
+int16_t angle;
+float a_Now;
+float angle_Rad;
+uint8_t reset_MPU;
+
+///////////PID MPU///////////////
+PID_Param pid_Angle;
+uint8_t   use_pidTheta;
+float 	  TargetTheta,TargetTheta_Degree;
+//////////Floating Enc///////
+uint8_t reset_ENC;
+Encoder_t FloatingEnc;
+int floatingEncCount;
+
+//////////Control Signal/////
+float u,v,r;
+
+//////////Process ///////////
+uint8_t RunProcess;
+float chasis_Vector_TargetSpeed;
+uint8_t angle_Accel_Flag;
+float PreTargetAngle;
+float process_AutoChose;
+float process_AutoChose_Count;
+float process_SubState;
+uint8_t process_GetBall_State;
+uint8_t process_SSCheck;
+uint8_t process_Count;
+
+//////////LineFollow////////
+uint8_t LineSensor[8];
+uint8_t DataLineX;
+uint8_t DataLineY;
+int8_t LineX;
+int8_t LineY;
+int KtLineX=0;
+int KtLineY=0;
+uint8_t SendLine='a';
+int v_line=30;
+int v_Line;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
+float count,adc_val_Fil,sum;
+float adc_val = 0;
+float distance = 0;
+
+///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
+trajec_Param trajecTheta;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,11 +214,14 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
-void StartDefaultTask(void const *argument);
-void InverseKinematic(void const *argument);
-void CAN_Bus(void const *argument);
-void Actuator(void const *argument);
-void OdometerHandle(void const *argument);
+static void MX_ADC1_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_TIM5_Init(void);
+static void MX_USART2_UART_Init(void);
+void StartDefaultTask(void const * argument);
+void InverseKinematic(void const * argument);
+void CAN_Bus(void const * argument);
+void OdometerHandle(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -205,36 +286,9 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 
 }
 /*=============================== UART ===============================*/
-uint8_t YawHandle;
-uint8_t AngleData[5];
-int CurrAngle;
 
-char ds[12];
-uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
-
-void Receive(uint8_t *DataArray) {
-	uint8_t *pInt = NULL;
-	if (DataArray[4] == 13) {
-		pInt = (uint8_t*) &CurrAngle;
-		for (uint8_t i = 0; i < 4; i++) {
-			*(pInt + i) = DataArray[i];
-		}
-	}
-	memset(DataArray, 0, 5);
-	YawHandle = 1;
-}
-
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-	if (huart->Instance == USART1) {
-		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
-		Receive(uart2_ds);
-		__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-	}
-}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-
-	appinf_HandleReceive(huart);
 	if (huart->Instance == USART3) {
 		gamepadRxIsBusy = 1;
 		int ViTriData = -1;
@@ -265,6 +319,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
+
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 	while (1)
 		;
@@ -276,476 +331,1311 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	__HAL_UART_DISABLE(huart);
 }
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
+	log_TransmitCompleteHandle(huart);
+}
+
+void Send_Data(){
+
+	log_SendString();
+}
+
+void Send_Header(){
+	log_AddHeaderArgumentToBuffer("PoseX");
+	log_AddHeaderArgumentToBuffer("PoseY");
+	log_AddHeaderArgumentToBuffer("PoseTheta");
+
+	log_AddHeaderArgumentToBuffer("TrajecPlanX");
+	log_AddHeaderArgumentToBuffer("TrajecPlanY");
+	log_AddHeaderArgumentToBuffer("TrajecPlanTheta");
+
+	log_SendString();
+}
+
+
+float absf(float num)
+{
+	if (num>=0)return num;
+	else return num*-1;
+}
+///////////////////////////MPU//////////////////////////
+#define DELTA_T 0.05
+void Get_MPU_Angle()
+{
+    send_mpu ='z';
+    HAL_UART_Transmit(&huart1,&send_mpu,1,1);
+    angle=mpu[0]<<8|mpu[1];
+    a_Now=angle;
+}
+
+void Reset_MPU_Angle()
+{
+    send_mpu ='a';
+    HAL_UART_Transmit(&huart1,&send_mpu,1,1);
+
+}
+/////////////////////Process///////////////////
+
+
+
+void process_Init()
+{
+	////////PID/////////
+	pid_Angle.kP = 1.2;
+	pid_Angle.kI = 0;
+	pid_Angle.kD = 0;
+	pid_Angle.alpha = 0;
+	pid_Angle.deltaT = DELTA_T;
+	pid_Angle.u_AboveLimit = 5;
+	pid_Angle.u_BelowLimit = -5;
+	pid_Angle.kB = 1/DELTA_T;
+
+	process_AutoChose = 0;
+	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
+}
+
+void process_PD_OnStrainghtPath()
+{
+	pid_Angle.kP = 2.5;
+	pid_Angle.kI = 0;
+	pid_Angle.kD = 0;
+	pid_Angle.alpha = 0;
+	pid_Angle.deltaT = DELTA_T;
+	pid_Angle.u_AboveLimit = 5;
+	pid_Angle.u_BelowLimit = -5;
+	pid_Angle.kB = 1/DELTA_T;
+}
+
+void process_PD_OnTrajecPath()
+{
+	pid_Angle.kP = 1.2;
+	pid_Angle.kI = 0;
+	pid_Angle.kD = 0;
+	pid_Angle.alpha = 0;
+	pid_Angle.deltaT = DELTA_T;
+	pid_Angle.u_AboveLimit = 5;
+	pid_Angle.u_BelowLimit = -5;
+	pid_Angle.kB = 1/DELTA_T;
+}
+
+void process_PD_Auto_Chose(float Target,float Current)
+{
+	if(process_AutoChose == 0)
+	{
+		if(absf(Target - Current)<5*M_PI/180)
+		{
+			process_AutoChose_Count++;
+		}else{
+			process_AutoChose_Count = 0;
+		}
+	}
+
+	if (process_AutoChose_Count>15)
+	{
+		process_AutoChose_Count = 0;
+		process_AutoChose = 1;
+	}
+
+	if (process_AutoChose == 1)
+	{
+		process_PD_OnStrainghtPath();
+	}else{
+		process_PD_OnTrajecPath();
+	}
+}
+void process_SetFloatingEnc()
+{
+	floatingEncCount = encoder_GetFloatingDis(&FloatingEnc);
+}
+
+void process_ResetFloatingEnc()
+{
+	encoder_ResetCount(&FloatingEnc);
+	floatingEncCount = 0;
+}
+void process_Accel_FloatingEnc(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float accelAngle)
+{
+	if (TargetAngle != PreTargetAngle)
+	{
+		if (TargetAngle > PreTargetAngle)
+		{
+			angle_Accel_Flag = 0;
+		}
+		if (TargetAngle < PreTargetAngle)
+		{
+			angle_Accel_Flag = 1;
+		}
+	}
+
+	if (angle_Accel_Flag == 0)
+	{
+		TargetTheta_Degree += accelAngle;
+		if (TargetTheta_Degree>TargetAngle)TargetTheta_Degree = TargetAngle;
+	}else{
+		TargetTheta_Degree -= accelAngle;
+		if (TargetTheta_Degree<TargetAngle)TargetTheta_Degree = TargetAngle;
+	}
+
+	PreTargetAngle = TargetAngle;
+
+
+	TargetTheta = TargetTheta_Degree*M_PI/180;
+
+
+	if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+	{
+		chasis_Vector_TargetSpeed += accel;
+	}
+
+	if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+	{
+		chasis_Vector_TargetSpeed = maxSpeed/2;
+	}
+
+	if (floatingEncCount > (s - 400)){
+		chasis_Vector_TargetSpeed -= accel ;
+	}
+	if (floatingEncCount > (s - 300)){
+		use_pidTheta = 0;
+		r = 0;
+	}
+
+	if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+	{
+		chasis_Vector_TargetSpeed = 0;
+		process_ResetFloatingEnc();
+		floatingEncCount = 0;
+		use_pidTheta = 0;
+		process_AutoChose = 0;
+		r = 0;
+		angle_Accel_Flag = 2;
+		step += 1;
+	}
+
+	u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+	v = sin(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+}
+
+void process_Accel_FloatingEnc2(float Angle,float maxSpeed,float s,float accel)
+{
+	use_pidTheta = 1;
+	if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+	{
+		chasis_Vector_TargetSpeed += accel;
+	}
+
+	if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+	{
+		chasis_Vector_TargetSpeed = maxSpeed/2;
+	}
+
+	if (floatingEncCount > (s - 400)){
+		chasis_Vector_TargetSpeed -= accel ;
+	}
+//	if (floatingEncCount > (s - 300)){
+//		use_pidTheta = 0;
+//		r = 0;
+//	}
+
+	if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+	{
+		chasis_Vector_TargetSpeed = 0;
+		process_ResetFloatingEnc();
+		r = 0;
+		u = 0;
+		v = 0;
+		use_pidTheta = 0;
+		step += 1;
+	}else{
+		u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+		v = sin(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+
+	}
+}
+
+void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime)
+{
+	if (process_SubState == 0)
+	{
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_SubState = 1;
+	}else{
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
+			chasis_Vector_TargetSpeed += accel;
+		}
+
+		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+		{
+			chasis_Vector_TargetSpeed = maxSpeed/2;
+		}
+
+		if (floatingEncCount > (s - 400)){
+			chasis_Vector_TargetSpeed -= accel ;
+		}
+	//	if (floatingEncCount > (s - 300)){
+	//		use_pidTheta = 0;
+	//		r = 0;
+	//	}
+
+		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+		{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			u = 0;
+			v = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+		}else{
+			u = cos(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(Angle*M_PI/180)*chasis_Vector_TargetSpeed ;
+
+		}
+	}
+
+}
+void process_LineFollow(){
+//    KtLineY=0;
+//   for(int i=0;i<=7;i++)
+//      {
+//         if((DataLineY&(1<<i))==0)
+//        {  KtLineY++;
+//           LineY =(int)((i+1)*2);
+//           if(((DataLineY&(1<<i-1))==0)&&(i!=0))
+//                {
+//                  LineY--;
+//                }
+//         }
+//      }
+}
+
+void process_RunByAngle(float Angle,float speed)
+{
+	u = cos(Angle*M_PI/180)*speed ;
+	v = sin(Angle*M_PI/180)*speed ;
+}
+void process_LineApproach()
+{
+	if(process_SubState == 1)
+		{
+			process_RunByAngle(45,0.1);
+			use_pidTheta = 1;
+			if (distance<0.3)
+			{
+				process_ResetFloatingEnc();
+				process_SubState = 2;
+			}
+		}
+}
+
+
+void process_Signal_RotationMatrixTransform(float u, float v ,float r)
+{
+	uControlX = u*cos(angle_Rad) - v*sin(angle_Rad);
+	uControlY = u*sin(angle_Rad) + v*cos(angle_Rad);
+	uControlTheta = r;
+}
+
+void process_Ball_Approach()
+{
+	if (process_SubState == 0)
+	{	process_Count ++;
+		if (process_Count > 10)
+		{
+			process_Count = 0;
+			process_SubState = 1;
+		}
+	}
+	else if(process_SubState == 1)
+	{
+		process_RunByAngle(45,0.1);
+		use_pidTheta = 1;
+		if (distance<0.3)
+		{
+			process_ResetFloatingEnc();
+			process_SubState = 2;
+		}
+	}
+	else if (process_SubState == 2)
+	{
+		process_RunByAngle(45,0.1);
+		if (floatingEncCount>140)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 3;
+		}
+	}
+	else if (process_SubState == 3)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,-0.08);
+		if(distance < 0.21)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 4;
+		}
+	}
+
+	else if (process_SubState == 4)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,0.08);
+		if(distance > 0.15)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+
+		}
+	}
+}
+
+void process_Ball_Approach2()
+{
+	if (process_SubState == 0)
+	{	process_Count ++;
+		if (process_Count > 10)
+		{
+			process_Count = 0;
+			process_SubState = 1;
+		}
+	}
+	else if(process_SubState == 1)
+	{
+		process_RunByAngle(-135,0.1);
+		use_pidTheta = 1;
+		if (distance<0.3)
+		{
+			process_ResetFloatingEnc();
+			process_SubState = 2;
+		}
+	}
+	else if (process_SubState == 2)
+	{
+		process_RunByAngle(-135,0.1);
+		if (floatingEncCount>100)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 3;
+		}
+	}
+	else if (process_SubState == 3)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,-0.08);
+		if(distance < 0.21)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 4;
+		}
+	}
+
+	else if (process_SubState == 4)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,0.08);
+		if(distance > 0.15)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+
+		}
+	}
+}
+
+void process_Ball_Approach3(uint8_t Ball)
+{
+	float dis;
+
+	if (Ball == 0){
+		dis = 140;
+	}
+	if (process_SubState == 0)
+	{	process_Count ++;
+		if (process_Count > 10)
+		{
+			process_Count = 0;
+			process_SubState = 1;
+		}
+	}
+	else if (process_SubState == 1)
+	{
+		process_RunByAngle(45,0.1);
+		if (floatingEncCount>dis)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 2;
+		}
+	}
+	else if (process_SubState == 3)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,-0.08);
+		if(distance < 0.21)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 4;
+		}
+	}
+
+	else if (process_SubState == 4)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(135,0.08);
+		if(distance > 0.15)
+		{
+			u = 0;
+			v = 0;
+			r = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+
+		}
+	}
+
+
+}
+
+void process_ApproachWall()
+{
+	if(process_SubState == 0)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(45,0.1);
+		if (HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
+		{
+			process_SSCheck ++;
+		}else{
+			process_SSCheck = 0;
+		}
+		if (process_SSCheck > 5)
+		{
+			process_SSCheck = 0;
+			process_SubState = 1;
+
+		}
+	}
+	else if(process_SubState == 1)
+		{
+			process_Count++;
+			if (process_Count > 40)
+			{
+				process_Count = 0;
+				process_SubState = 2;
+				process_RunByAngle(-28,0.1);
+			}
+		}
+	else if(process_SubState == 2)
+		{
+			if (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin))
+			{
+				process_SSCheck ++;
+			}else{
+				process_SSCheck = 0;
+			}
+			if (process_SSCheck >= 1)
+				{
+					process_SSCheck = 0;
+					process_SubState = 1;
+					use_pidTheta = 0;
+					r = 0;
+					process_RunByAngle(45,0.05);
+					step++;
+				}
+		}
+}
+void process_setVal_PutBall(uint8_t value)
+{
+	process_GetBall_State =  value;
+}
+
+void process_ReleaseBall()
+{
+	process_RunByAngle(45,0);
+	process_setVal_PutBall(2);
+	process_Count++;
+	if (process_Count>50){
+		process_Count = 0;
+		process_setVal_PutBall(3);
+		step++;
+	}
+}
+void process_getBall()
+{
+	process_setVal_PutBall(0);
+	if (PutBall_getFlag()){
+		process_setVal_PutBall(1);
+		process_ResetFloatingEnc();
+		step += 1;
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////CAM BIEN DO KHOANG CACH/////////////////////////////////////
+void readADC(){
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, 1000);
+	adc_val = HAL_ADC_GetValue(&hadc1);
+	count++;
+	sum+=adc_val;
+	if(count>50)
+	{
+		adc_val_Fil=sum/50;
+		sum = 0;
+		count = 0;
+	}
+	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.28;
+
+	HAL_ADC_Stop(&hadc1);
+}
+
+void process_WireRelease(){
+	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
+	osDelay(1);
+	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
+	osDelay(1);
+	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
+	osDelay(1);
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
-	/* USER CODE BEGIN 1 */
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_CAN1_Init();
-	MX_TIM2_Init();
-	MX_TIM3_Init();
-	MX_USART3_UART_Init();
-	MX_TIM1_Init();
-	MX_TIM10_Init();
-	MX_USART1_UART_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_CAN1_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_USART3_UART_Init();
+  MX_TIM1_Init();
+  MX_TIM10_Init();
+  MX_USART1_UART_Init();
+  MX_ADC1_Init();
+  MX_TIM4_Init();
+  MX_TIM5_Init();
+  MX_USART2_UART_Init();
+  /* USER CODE BEGIN 2 */
 
+	log_Init(&huart2);
+	Send_Header();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
-	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
+	HAL_TIM_Base_Start_IT(&htim4);
+
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
+	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
 	pid.alpha = 5.31;
 	pid.deltaT = 0.001;
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* USER CODE BEGIN RTOS_MUTEX */
+  /* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
-	/* USER CODE END RTOS_MUTEX */
+  /* USER CODE END RTOS_MUTEX */
 
-	/* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
-	/* USER CODE END RTOS_SEMAPHORES */
+  /* USER CODE END RTOS_SEMAPHORES */
 
-	/* USER CODE BEGIN RTOS_TIMERS */
+  /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
-	/* USER CODE END RTOS_TIMERS */
+  /* USER CODE END RTOS_TIMERS */
 
-	/* USER CODE BEGIN RTOS_QUEUES */
+  /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	/* USER CODE END RTOS_QUEUES */
+  /* USER CODE END RTOS_QUEUES */
 
-	/* Create the thread(s) */
-	/* definition and creation of defaultTask */
-	osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 256);
-	defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 256);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
-	/* definition and creation of TaskInvKine */
-	osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256,
-			TaskInvKineBuffer, &TaskInvKineControlBlock);
-	TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
+  /* definition and creation of TaskInvKine */
+  osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
+  TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
-	/* definition and creation of TaskCAN */
-	osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128,
-			TaskCANBuffer, &TaskCANControlBlock);
-	TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
+  /* definition and creation of TaskCAN */
+  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
+  TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
-	/* definition and creation of TaskActuator */
-	osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
-	TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
+  /* definition and creation of TaskOdometer */
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityHigh, 0, 256);
+  TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
-	/* definition and creation of TaskOdometer */
-	osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
-	TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
-
-	/* USER CODE BEGIN RTOS_THREADS */
+  /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
-	/* USER CODE END RTOS_THREADS */
+  /* USER CODE END RTOS_THREADS */
 
-	/* Start scheduler */
-	osKernelStart();
+  /* Start scheduler */
+  osKernelStart();
 
-	/* We should never get here as control is now taken by the scheduler */
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* We should never get here as control is now taken by the scheduler */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
 
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-	RCC_OscInitStruct.PLL.PLLM = 8;
-	RCC_OscInitStruct.PLL.PLLN = 160;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 4;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 160;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief CAN1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_CAN1_Init(void) {
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
 
-	/* USER CODE BEGIN CAN1_Init 0 */
+  /* USER CODE BEGIN ADC1_Init 0 */
 
-	/* USER CODE END CAN1_Init 0 */
+  /* USER CODE END ADC1_Init 0 */
 
-	/* USER CODE BEGIN CAN1_Init 1 */
+  ADC_ChannelConfTypeDef sConfig = {0};
 
-	/* USER CODE END CAN1_Init 1 */
-	hcan1.Instance = CAN1;
-	hcan1.Init.Prescaler = 10;
-	hcan1.Init.Mode = CAN_MODE_NORMAL;
-	hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-	hcan1.Init.TimeSeg1 = CAN_BS1_2TQ;
-	hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
-	hcan1.Init.TimeTriggeredMode = DISABLE;
-	hcan1.Init.AutoBusOff = DISABLE;
-	hcan1.Init.AutoWakeUp = DISABLE;
-	hcan1.Init.AutoRetransmission = DISABLE;
-	hcan1.Init.ReceiveFifoLocked = DISABLE;
-	hcan1.Init.TransmitFifoPriority = DISABLE;
-	if (HAL_CAN_Init(&hcan1) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN CAN1_Init 2 */
+  /* USER CODE BEGIN ADC1_Init 1 */
 
-	/* USER CODE END CAN1_Init 2 */
+  /* USER CODE END ADC1_Init 1 */
 
-}
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-/**
- * @brief TIM1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM1_Init(void) {
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
 
-	/* USER CODE BEGIN TIM1_Init 0 */
-
-	/* USER CODE END TIM1_Init 0 */
-
-	TIM_Encoder_InitTypeDef sConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
-
-	/* USER CODE BEGIN TIM1_Init 1 */
-
-	/* USER CODE END TIM1_Init 1 */
-	htim1.Instance = TIM1;
-	htim1.Init.Prescaler = 0;
-	htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim1.Init.Period = 65535;
-	htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim1.Init.RepetitionCounter = 0;
-	htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-	sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC1Filter = 0;
-	sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC2Filter = 0;
-	if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM1_Init 2 */
-
-	/* USER CODE END TIM1_Init 2 */
+  /* USER CODE END ADC1_Init 2 */
 
 }
 
 /**
- * @brief TIM2 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM2_Init(void) {
+  * @brief CAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN1_Init(void)
+{
 
-	/* USER CODE BEGIN TIM2_Init 0 */
+  /* USER CODE BEGIN CAN1_Init 0 */
 
-	/* USER CODE END TIM2_Init 0 */
+  /* USER CODE END CAN1_Init 0 */
 
-	TIM_Encoder_InitTypeDef sConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+  /* USER CODE BEGIN CAN1_Init 1 */
 
-	/* USER CODE BEGIN TIM2_Init 1 */
+  /* USER CODE END CAN1_Init 1 */
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 10;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_2TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CAN1_Init 2 */
 
-	/* USER CODE END TIM2_Init 1 */
-	htim2.Instance = TIM2;
-	htim2.Init.Prescaler = 0;
-	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim2.Init.Period = 4294967295;
-	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-	sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC1Filter = 0;
-	sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC2Filter = 0;
-	if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM2_Init 2 */
-
-	/* USER CODE END TIM2_Init 2 */
+  /* USER CODE END CAN1_Init 2 */
 
 }
 
 /**
- * @brief TIM3 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM3_Init(void) {
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
 
-	/* USER CODE BEGIN TIM3_Init 0 */
+  /* USER CODE BEGIN TIM1_Init 0 */
 
-	/* USER CODE END TIM3_Init 0 */
+  /* USER CODE END TIM1_Init 0 */
 
-	TIM_Encoder_InitTypeDef sConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-	/* USER CODE BEGIN TIM3_Init 1 */
+  /* USER CODE BEGIN TIM1_Init 1 */
 
-	/* USER CODE END TIM3_Init 1 */
-	htim3.Instance = TIM3;
-	htim3.Init.Prescaler = 0;
-	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim3.Init.Period = 65535;
-	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-	sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC1Filter = 0;
-	sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-	sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-	sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-	sConfig.IC2Filter = 0;
-	if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM3_Init 2 */
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
 
-	/* USER CODE END TIM3_Init 2 */
-
-}
-
-/**
- * @brief TIM10 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM10_Init(void) {
-
-	/* USER CODE BEGIN TIM10_Init 0 */
-
-	/* USER CODE END TIM10_Init 0 */
-
-	/* USER CODE BEGIN TIM10_Init 1 */
-
-	/* USER CODE END TIM10_Init 1 */
-	htim10.Instance = TIM10;
-	htim10.Init.Prescaler = 160 - 1;
-	htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim10.Init.Period = 65000;
-	htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_Base_Init(&htim10) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM10_Init 2 */
-
-	/* USER CODE END TIM10_Init 2 */
+  /* USER CODE END TIM1_Init 2 */
 
 }
 
 /**
- * @brief USART1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_USART1_UART_Init(void) {
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
 
-	/* USER CODE BEGIN USART1_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-	/* USER CODE END USART1_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
-	/* USER CODE BEGIN USART1_Init 1 */
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-	/* USER CODE END USART1_Init 1 */
-	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 115200;
-	huart1.Init.WordLength = UART_WORDLENGTH_8B;
-	huart1.Init.StopBits = UART_STOPBITS_1;
-	huart1.Init.Parity = UART_PARITY_NONE;
-	huart1.Init.Mode = UART_MODE_TX_RX;
-	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	if (HAL_UART_Init(&huart1) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN USART1_Init 2 */
+  /* USER CODE BEGIN TIM2_Init 1 */
 
-	/* USER CODE END USART1_Init 2 */
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4294967295;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
 
-}
-
-/**
- * @brief USART3 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_USART3_UART_Init(void) {
-
-	/* USER CODE BEGIN USART3_Init 0 */
-
-	/* USER CODE END USART3_Init 0 */
-
-	/* USER CODE BEGIN USART3_Init 1 */
-
-	/* USER CODE END USART3_Init 1 */
-	huart3.Instance = USART3;
-	huart3.Init.BaudRate = 115200;
-	huart3.Init.WordLength = UART_WORDLENGTH_8B;
-	huart3.Init.StopBits = UART_STOPBITS_1;
-	huart3.Init.Parity = UART_PARITY_NONE;
-	huart3.Init.Mode = UART_MODE_TX_RX;
-	huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-	if (HAL_UART_Init(&huart3) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN USART3_Init 2 */
-
-	/* USER CODE END USART3_Init 2 */
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
 /**
- * Enable DMA controller clock
- */
-static void MX_DMA_Init(void) {
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
 
-	/* DMA controller clock enable */
-	__HAL_RCC_DMA2_CLK_ENABLE();
+  /* USER CODE BEGIN TIM3_Init 0 */
 
-	/* DMA interrupt init */
-	/* DMA2_Stream2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
-	HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 80-1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1000-1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
-static void MX_GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
-	/* USER CODE BEGIN MX_GPIO_Init_1 */
-	/* USER CODE END MX_GPIO_Init_1 */
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
 
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOE_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-	__HAL_RCC_GPIOD_CLK_ENABLE();
+  /* USER CODE BEGIN TIM4_Init 0 */
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOA,
-			HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin | HC595_DATA_Pin,
-			GPIO_PIN_RESET);
+  /* USER CODE END TIM4_Init 0 */
 
-	/*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
-	GPIO_InitStruct.Pin = HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin
-			| HC595_DATA_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-	/*Configure GPIO pins : SSBall_Pin SSLua1_Pin SSLua2_Pin */
-	GPIO_InitStruct.Pin = SSBall_Pin | SSLua1_Pin | SSLua2_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  /* USER CODE BEGIN TIM4_Init 1 */
 
-	/* USER CODE BEGIN MX_GPIO_Init_2 */
-	/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 80-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 1000-1;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 80-1;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 1000-1;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+  HAL_TIM_MspPostInit(&htim5);
+
+}
+
+/**
+  * @brief TIM10 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM10_Init(void)
+{
+
+  /* USER CODE BEGIN TIM10_Init 0 */
+
+  /* USER CODE END TIM10_Init 0 */
+
+  /* USER CODE BEGIN TIM10_Init 1 */
+
+  /* USER CODE END TIM10_Init 1 */
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 160-1;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 65000;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim10.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM10_Init 2 */
+
+  /* USER CODE END TIM10_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
+  GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
+                           sensor_5_Pin sensor_6_Pin sensor_7_Pin sensor_8_Pin */
+  GPIO_InitStruct.Pin = sensor_1_Pin|sensor_2_Pin|sensor_3_Pin|sensor_4_Pin
+                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|sensor_8_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -769,14 +1659,31 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  */
 
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const *argument) {
-	/* USER CODE BEGIN 5 */
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
+		if(xaDay == 0 )
+		{
+			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+		}else if (xaDay == 1){
+			process_WireRelease();
+		}
 
+
+		if (gamepadRxIsBusy) {
+			gamepadRxIsBusy = 0;
+			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+		}
+		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
+			__HAL_UART_ENABLE(&huart3);
+		}
 		osDelay(50);
 	}
-	/* USER CODE END 5 */
+  /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_InverseKinematic */
@@ -787,15 +1694,18 @@ void StartDefaultTask(void const *argument) {
  */
 
 /* USER CODE END Header_InverseKinematic */
-void InverseKinematic(void const *argument) {
-	/* USER CODE BEGIN InverseKinematic */
-
+void InverseKinematic(void const * argument)
+{
+  /* USER CODE BEGIN InverseKinematic */
+	uint32_t value = 0;
 	/* Infinite loop */
 	for (;;) {
-
+		if(xTaskNotifyWait(pdFALSE, pdFALSE, &value, portMAX_DELAY)){
+			Send_Data();
+		}
 		osDelay(1);
 	}
-	/* USER CODE END InverseKinematic */
+  /* USER CODE END InverseKinematic */
 }
 
 /* USER CODE BEGIN Header_CAN_Bus */
@@ -805,8 +1715,9 @@ void InverseKinematic(void const *argument) {
  * @retval None
  */
 /* USER CODE END Header_CAN_Bus */
-void CAN_Bus(void const *argument) {
-	/* USER CODE BEGIN CAN_Bus */
+void CAN_Bus(void const * argument)
+{
+  /* USER CODE BEGIN CAN_Bus */
 	CAN_Init();
 	osDelay(500);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1,
@@ -835,24 +1746,7 @@ void CAN_Bus(void const *argument) {
 			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 		}
 	}
-	/* USER CODE END CAN_Bus */
-}
-
-/* USER CODE BEGIN Header_Actuator */
-/**
- * @brief Function implementing the TaskActuator thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_Actuator */
-void Actuator(void const *argument) {
-	/* USER CODE BEGIN Actuator */
-	/* Infinite loop */
-	for (;;) {
-
-		osDelay(10);
-	}
-	/* USER CODE END Actuator */
+  /* USER CODE END CAN_Bus */
 }
 
 /* USER CODE BEGIN Header_OdometerHandle */
@@ -862,48 +1756,226 @@ void Actuator(void const *argument) {
  * @retval None
  */
 /* USER CODE END Header_OdometerHandle */
-void OdometerHandle(void const *argument) {
-	/* USER CODE BEGIN OdometerHandle */
+void OdometerHandle(void const * argument)
+{
+	  /* USER CODE BEGIN OdometerHandle */
+		  /* USER CODE BEGIN OdometerHandle */
 
-	/* Infinite loop */
-	for (;;) {
-		osDelay(10);
+			process_Init();
 
-	}
-	/* USER CODE END OdometerHandle */
+			/* Infinite loop */
+			for (;;) {
+	///////////////////////////////////////////////////////////////////////////////////////////////////////
+	/*---------------------------------------------------------------------------------------------------
+				if(step == 0)// Buoc khoi dong sethome
+				{// Reset co cau ve mac dinh
+					// if (dieu kien sethome da xong)step = 1;
+				}
+				else if(step == 2)//	Doi nhan nut de chay
+				{
+					// if (dieu kien nut nhan duoc nhan)step = 2;
+				}
+				else if(step == 3)//	Robot chay toi khu vuc lay banh
+				{
+					// if (s chua toi hoac s nho hon quang duong)process_Accel_FloatingEnc(Angle,maxSpeed,s,accel);
+					// if (da toi) DungRobot(); Step = 4;
+				}
+				else if(step == 4)// Doi Nhan nut de chay tiep
+				{
+					// if (dieu kien nut nhan duoc nhan)step = 5;
+				}
+	--------------------------------------------CODE MAU--------------------------------------------------*/
+				angle_Rad = (a_Now/10)*M_PI/180;
+				trajecTheta.t += DELTA_T;
+				startPutBall(process_GetBall_State);
+				Get_MPU_Angle();
+				process_SetFloatingEnc();
+				trajecPlan_Cal(&trajecTheta);
+				if (use_pidTheta)
+				{
+					r = -(PID_Cal(&pid_Angle, trajecTheta.xTrajec, angle_Rad)+trajecTheta.xdottraject);
+
+				}
+	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
+
+					if (step == 0)
+						{	// Ra lenh cho co Cau lay bong di xuong
+							process_getBall();
+						}
+
+					else if (step == 1)
+						{	//Ra lenh cho co Cau lay bong di len cham chu U
+							process_setVal_PutBall(1);
+
+							if (GamePad.Down)
+							{
+								osDelay(500);
+								if(GamePad.Down)
+								{	//Reset thong so enc tha troi va la ban :
+									Reset_MPU_Angle();
+									process_ResetFloatingEnc();
+									// Set thong so quy hoach quy dao :
+									trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 5, 0, 0);
+									step = 2;
+								}
+							}
+						}
+
+					else if (step == 2)
+						{
+							//Cho phep PID giu goc
+							use_pidTheta = 1;
+							//Set thong so khi vua chay vua xoay
+							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+							//Set chu trinh chay theo enc
+							process_Accel_FloatingEnc2(-22, 1.2, 4400, 0.08);
+						}
+					else if (step == 3)
+						{
+							process_Ball_Approach();
+						}
+					else if (step == 4)
+						{
+							process_getBall();
+						}
+					else if (step == 5)
+						{
+							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 4, 0, 0);
+							step += 1;
+						}
+					else if(step == 6)
+						{
+							process_Accel_FloatingEnc2(75, 1.2, 3000, 0.05);
+						}
+					else if(step == 7)
+						{
+							process_PD_OnStrainghtPath();
+							process_ApproachWall();
+						}
+					else if(step == 8)
+						{
+							process_ReleaseBall();
+						}
+					else if (step == 9)
+						{
+							trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 4, 0, 0);
+							step += 1;
+						}
+					else if (step == 10)
+						{
+							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+							process_Accel_FloatingEnc2(-115, 1.2, 3200, 0.05);
+						}
+					else if (step == 11)
+						{
+							process_Ball_Approach2();
+						}
+					else if (step == 12)
+						{
+							process_getBall();
+						}
+					else if (step == 13)
+						{
+							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 3, 0, 0);
+							step += 1;
+						}
+					else if (step == 14)
+						{
+							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+							process_Accel_FloatingEnc2(78, 1.2, 2800, 0.05);
+						}
+					else if (step == 15)
+						{
+							process_PD_OnStrainghtPath();
+							process_ApproachWall();
+						}
+					else if (step == 16)
+						{
+							process_ReleaseBall();
+						}
+					else if (step == 17)
+						{
+							trajecPlan_SetParam(&trajecTheta, angle_Rad, 0*M_PI/180, 1, 0, 0);
+							step += 1;
+						}
+					else if (step == 18)
+						{
+							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+							process_Accel_FloatingEnc2(200, 1.2, 6000, 0.05);
+						}
+
+	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
+				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
+				{
+					osDelay(100);
+					if (GamePad.Down && GamePad.Cross)
+					{
+						Gamepad = 1;
+					}
+				}
+
+				if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
+				{
+					osDelay(100);
+					if((GamePad.Square == 1)&&(GamePad.Right == 1))
+					{
+						xaDay = 1;
+					}
+				}
+
+				if (Gamepad == 1)
+				{
+					uControlX = 	-GamePad.XLeftCtr;
+					uControlY = 	GamePad.YLeftCtr;
+					uControlTheta = GamePad.XRightCtr;
+				}
+				else {
+					process_Signal_RotationMatrixTransform(u, v, r);
+				}
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
+				osDelay(DELTA_T*1000);
+
+			}
+  /* USER CODE END OdometerHandle */
 }
 
 /**
- * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM14 interrupt took place, inside
- * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
- * a global variable "uwTick" used as application time base.
- * @param  htim : TIM handle
- * @retval None
- */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	/* USER CODE BEGIN Callback 0 */
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM14 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM14) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM14) {
+    HAL_IncTick();
+  }
+  if (htim->Instance == TIM4) {
+    readADC();
+  }
+  /* USER CODE BEGIN Callback 1 */
 
-	/* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1) {
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT

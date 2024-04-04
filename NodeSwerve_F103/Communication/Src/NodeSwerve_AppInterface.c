@@ -48,7 +48,7 @@ void SwerveApp_Init()
 	 * Setpoint(vì app sẽ thay đổi giá trị của brdParam.targetSpeedBLDC và brdParam.targetAngleDC
 	 */
 	appTargetAngleDC = brd_GetTargetAngleDC();
-	appTargetSpeedBLDC = brd_GetTargetSpeedBLDC();
+	appTargetSpeedBLDC = brd_GetSpeedBLDC();
 
 	appintf_Init(&huart1, txBuffer, sizeof(txBuffer), rxBuffer, sizeof(rxBuffer));
 	// If any error happen, calling to this function
@@ -104,10 +104,10 @@ static void SelectRunMotorInManualOrPID() {
 		HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 		BLDC_IsEnablePID = true;
 		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
-			brd_SetTargetSpeedBLDC(appTargetSpeedBLDC);
+			brd_SetSpeedBLDC(appTargetSpeedBLDC);
 		}
 		else
-			brd_SetTargetSpeedBLDC(0);
+			brd_SetSpeedBLDC(0);
 	}
 	else { // Nếu không bật PID
 		// Tắt tính toán PID và tắt đọc encoder

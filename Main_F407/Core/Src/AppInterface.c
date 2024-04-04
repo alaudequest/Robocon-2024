@@ -5,6 +5,7 @@
  *      Author: SpiritBoi
  */
 #include "AppInterface.h"
+#include "stdbool.h"
 
 char tempBuffer[1] = {0};
 char uartRxData[30] = {0};

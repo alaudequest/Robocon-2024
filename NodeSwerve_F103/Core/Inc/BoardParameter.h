@@ -68,8 +68,8 @@ void brd_SetObjEncBLDC(Encoder_t encBLDC);
 int32_t brd_GetEncX4BLDC();
 void brd_SetEncX4BLDC(int32_t countX4);
 
-float brd_GetTargetSpeedBLDC();
-void brd_SetTargetSpeedBLDC(float speed);
+float brd_GetSpeedBLDC();
+void brd_SetSpeedBLDC(float speed);
 
 float brd_GetTargetAngleDC();
 void brd_SetTargetAngleDC(float angle);
