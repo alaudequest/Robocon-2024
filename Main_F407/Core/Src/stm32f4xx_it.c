@@ -221,6 +221,22 @@ void USART3_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles EXTI line[15:10] interrupts.
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(RB1SensorLiftBallUp_Pin);
+  HAL_GPIO_EXTI_IRQHandler(RB1SensorArmRight_Pin);
+  HAL_GPIO_EXTI_IRQHandler(RB1SensorArmLeft_Pin);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM8 trigger and commutation interrupts and TIM14 global interrupt.
   */
 void TIM8_TRG_COM_TIM14_IRQHandler(void)

@@ -11,16 +11,10 @@
 #include "PID.h"
 #include "InverseKinematic.h"
 
-//typedef enum PID_type{
-//	PID_DC_SPEED = 1,
-//	PID_DC_ANGLE,
-//	PID_BLDC_SPEED,
-//}PID_type;
-//
-//
-//
-//void brd_Init();
-//PID_Param brd_GetPID(PID_type type);
-//void brd_SetPID(PID_Param pid,PID_type type);
+typedef enum MainF4Robot1TypePID {
+	PID_RULO_1 = 1,
+	PID_RULO_2,
+	PID_ROBOT_THETA,
+} MainF4Robot1TypePID;
 
 #endif /* INC_BOARDPARAMETER_H_ */

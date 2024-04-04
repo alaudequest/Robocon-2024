@@ -6,12 +6,15 @@
  */
 
 #include <MainF4Robot1App.h>
+#include "RB1ActuatorValve.h"
 
 BoardID brdID = BOARD_MainF4_RB1;
 uint8_t txBuffer[80] = { 0 };
 uint8_t rxBuffer[80] = { 0 };
 uint8_t relayCommand = 0;
 extern UART_HandleTypeDef huart2;
+static void MainF4Robot1App_ErrorHandler(AppErrorCode err);
+static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist);
 
 void MainF4Robot1App_Init() {
 	appintf_Init(&huart2, txBuffer, sizeof(txBuffer), rxBuffer, sizeof(rxBuffer));

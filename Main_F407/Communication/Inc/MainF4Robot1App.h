@@ -10,6 +10,8 @@
 
 #include "main.h"
 #include "AppInterface.h"
+#include "BoardParameter.h"
+#include "PID.h"
 
 typedef enum MainF4Robot1RelayCommand {
 	RelayCmd_RunRuloCollectBall1,
@@ -19,7 +21,7 @@ typedef enum MainF4Robot1RelayCommand {
 } MainF4Robot1RelayCommand;
 
 typedef struct AppPararmPID_t {
-	PID_type type;
+	MainF4Robot1TypePID typePID;
 	float kp;
 	float ki;
 	float kd;

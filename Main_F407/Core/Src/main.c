@@ -31,7 +31,7 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
-#include "ActuatorValve.h"
+#include "RB1ActuatorValve.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,9 +75,24 @@ osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
+CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
+PID_Param pid;
+PID_type type = PID_BLDC_SPEED;
+
+CAN_MODE_ID Mode_ID = CANCTRL_MODE_MOTOR_SPEED_ANGLE;
+PID_Param targetPID = {
+		.deltaT = 0.001,
+		.kP = 10,
+		.kI = 10,
+		.kD = 1,
+		.alpha = 1,
+};
+PID_type pidType = PID_BLDC_SPEED;
+
+uint8_t UARTRX3_Buffer[9];
+uint8_t DataTayGame[9];
+
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
-uint8_t a[20] = { 0 };
-uint8_t i = 0;
 
 uint32_t nodeSwerveSetHomeComplete = 0;
 #define SETHOME_FLAG_GROUP nodeSwerveSetHomeComplete
@@ -169,6 +184,10 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 	}
 
 }
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	while (1);
+}
 /*=============================== UART ===============================*/
 uint8_t YawHandle;
 uint8_t AngleData[5];
@@ -198,23 +217,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	i++;
-	if (i >= sizeof(a))
-		i = 0;
-	HAL_UART_Receive_IT(&huart2, a, 1);
-	HAL_UART_Transmit(&huart2, (uint8_t*) "OK\n", strlen("OK\n"), HAL_MAX_DELAY);
-}
 
-void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
-	while (1)
-		;
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-	if (huart->Instance == huart2.Instance) {
-		memset(a, 0, sizeof(a));
-		HAL_UART_Receive_IT(huart, (uint8_t*) a, 2);
 
+}
+/*=============================== GPIO EXTI ===============================*/
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == RB1SensorArmLeft_Pin) {
+		__NOP();
+	}
+	if (GPIO_Pin == RB1SensorArmRight_Pin) {
+		__NOP();
+	}
+	if (GPIO_Pin == RB1SensorLiftBallUp_Pin) {
+		__NOP();
 	}
 }
 /* USER CODE END 0 */
@@ -258,9 +276,10 @@ int main(void) {
 	/* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-//	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-	HAL_UART_Receive_IT(&huart2, a, 1);
+
+	/* USER CODE END 2 */
 
 	/* USER CODE END 2 */
 
@@ -699,11 +718,17 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : SSBall_Pin SSLua1_Pin SSLua2_Pin */
-	GPIO_InitStruct.Pin = SSBall_Pin | SSLua1_Pin | SSLua2_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	/* USER CODE BEGIN MX_GPIO_Init_2 */
+	/* USER CODE END MX_GPIO_Init_2 */
+	/*Configure GPIO pins : RB1SensorLiftBallUp_Pin RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
+	GPIO_InitStruct.Pin = RB1SensorLiftBallUp_Pin | RB1SensorArmRight_Pin | RB1SensorArmLeft_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 	/* USER CODE BEGIN MX_GPIO_Init_2 */
 	/* USER CODE END MX_GPIO_Init_2 */
@@ -719,7 +744,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	while (canctrl_Send(&hcan1, ID) != HAL_OK)
 		;
 }
-
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -734,7 +758,6 @@ void StartDefaultTask(void const *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-		HAL_UART_Transmit(&huart2, (uint8_t*) "HelloWorld\n", strlen("HelloWorld\n"), HAL_MAX_DELAY);
 		osDelay(50);
 	}
 	/* USER CODE END 5 */
@@ -803,6 +826,7 @@ void CAN_Bus(void const *argument) {
 void Actuator(void const *argument) {
 	/* USER CODE BEGIN Actuator */
 	/* Infinite loop */
+
 	for (;;) {
 
 		osDelay(10);
