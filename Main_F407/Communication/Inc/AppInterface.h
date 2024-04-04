@@ -23,6 +23,7 @@ typedef enum CommandList {
 	CMD_MainF4_RB1_Start = 0, //not use
 	CMD_MainF4_RB1_IdentifyBoard,
 	CMD_MainF4_RB1_Valve,
+	CMD_MainF4_RB1_RelayCommand,
 	CMD_MainF4_RB1_Process_SetProcessStep,
 	CMD_MainF4_RB1_Process_SetVelocity,
 	CMD_MainF4_RB1_Process_SetDistance,
