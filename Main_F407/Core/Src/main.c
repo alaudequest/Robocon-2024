@@ -31,9 +31,7 @@
 #include "SwerveModule.h"
 #include "string.h"
 #include "Gamepad.h"
-#include "PIDPosition.h"
 #include "ActuatorValve.h"
-#include "AppInterface.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,6 +60,7 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart1_rx;
 
@@ -76,40 +75,9 @@ osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
-CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
-PID_Param pid;
-PID_type type = PID_BLDC_SPEED;
-
-CAN_MODE_ID Mode_ID = CANCTRL_MODE_MOTOR_SPEED_ANGLE;
-PID_Param targetPID =
-		{ .deltaT = 0.001, .kP = 10, .kI = 10, .kD = 1, .alpha = 1, };
-PID_type pidType = PID_BLDC_SPEED;
-
-uint8_t UARTRX3_Buffer[9];
-uint8_t DataTayGame[9];
-
-float Xleft, Yleft;
-float Xright;
-
-_GamePad GamePad;
-uint32_t gamepadRxIsBusy = 0;
-float u, v, r;
-
-float DeltaYR, DeltaYL, DeltaX;
-//float TestTargetX = 0, TestTargetY = 0,  = 0;
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
-
-uint32_t flagMain = 0;
-#define MAIN_FLAG_GROUP flagMain
-void flagmain_SetFlag(MainEvent e) {
-	SETFLAG(MAIN_FLAG_GROUP, e);
-}
-bool flagmain_CheckFlag(MainEvent e) {
-	return CHECKFLAG(MAIN_FLAG_GROUP, e);
-}
-void flagmain_ClearFlag(MainEvent e) {
-	CLEARFLAG(MAIN_FLAG_GROUP, e);
-}
+uint8_t a[20] = { 0 };
+uint8_t i = 0;
 
 uint32_t nodeSwerveSetHomeComplete = 0;
 #define SETHOME_FLAG_GROUP nodeSwerveSetHomeComplete
@@ -136,6 +104,7 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const *argument);
 void InverseKinematic(void const *argument);
 void CAN_Bus(void const *argument);
@@ -154,26 +123,22 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO0);
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite,
-			&HigherPriorityTaskWoken);
+	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
 	CAN_MODE_ID modeID = canctrl_Receive_2(hcan, CAN_RX_FIFO1);
 	BaseType_t HigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite,
-			&HigherPriorityTaskWoken);
+	xTaskNotifyFromISR(TaskCANHandle, modeID, eSetValueWithOverwrite, &HigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 void CAN_Init() {
 	HAL_CAN_Start(&hcan1);
 	HAL_CAN_ActivateNotification(&hcan1,
-			CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
-	canctrl_Filter_Mask16(&hcan1, CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5, CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5, 0,
-			CAN_RX_FIFO0);
+	CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
+	canctrl_Filter_Mask16(&hcan1, CANCTRL_MODE_SET_HOME << 5, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5, CANCTRL_MODE_SET_HOME << 5, CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5, 0,
+	CAN_RX_FIFO0);
 }
 
 void setHomeComplete() {
@@ -182,9 +147,9 @@ void setHomeComplete() {
 
 void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 	switch (mode) {
-	case CANCTRL_MODE_SET_HOME:
-		nodeHome_SetFlag(targetID);
-		// @formatter:off
+		case CANCTRL_MODE_SET_HOME:
+			nodeHome_SetFlag(targetID);
+			// @formatter:off
 //			if(nodeHome_CheckFlag(
 //					  1 << CANCTRL_DEVICE_MOTOR_CONTROLLER_1
 //					| 1 << CANCTRL_DEVICE_MOTOR_CONTROLLER_2
@@ -194,13 +159,13 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 			if(nodeSwerveSetHomeComplete == 30)
 				setHomeComplete();
 																		// @formatter:on
-		break;
-	case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-		nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
+			break;
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+			nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
 //			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
-		break;
-	default:
-		break;
+			break;
+		default:
+			break;
 	}
 
 }
@@ -211,7 +176,7 @@ int CurrAngle;
 
 char ds[12];
 uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
-
+uint8_t UARTRX3_Buffer[9];
 void Receive(uint8_t *DataArray) {
 	uint8_t *pInt = NULL;
 	if (DataArray[4] == 13) {
@@ -233,36 +198,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-
-	appinf_HandleReceive(huart);
-	if (huart->Instance == USART3) {
-		gamepadRxIsBusy = 1;
-		int ViTriData = -1;
-		for (int i = 0; i <= 8; ++i) {
-			if (UARTRX3_Buffer[i] == 0xAA) {
-				ViTriData = i;
-			}
-		}
-		if (ViTriData != -1) {
-			int cnt = 0;
-			while (cnt < 9) {
-				DataTayGame[cnt] = UARTRX3_Buffer[ViTriData];
-				++ViTriData;
-				if (ViTriData >= 9) {
-					ViTriData = 0;
-				}
-				++cnt;
-			}
-
-			GamepPadHandle(&GamePad, DataTayGame);
-
-		} else {
-			GamePad.Status = 0;
-		}
-		if (!gamepadRxIsBusy)
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-
-	}
+	i++;
+	if (i >= sizeof(a))
+		i = 0;
+	HAL_UART_Receive_IT(&huart2, a, 1);
+	HAL_UART_Transmit(&huart2, (uint8_t*) "OK\n", strlen("OK\n"), HAL_MAX_DELAY);
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
@@ -271,10 +211,11 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-	__HAL_UART_CLEAR_OREFLAG(huart);
-	memset(UARTRX3_Buffer, 0, sizeof(UARTRX3_Buffer));
-	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	__HAL_UART_DISABLE(huart);
+	if (huart->Instance == huart2.Instance) {
+		memset(a, 0, sizeof(a));
+		HAL_UART_Receive_IT(huart, (uint8_t*) a, 2);
+
+	}
 }
 /* USER CODE END 0 */
 
@@ -313,16 +254,14 @@ int main(void) {
 	MX_TIM1_Init();
 	MX_TIM10_Init();
 	MX_USART1_UART_Init();
+	MX_USART2_UART_Init();
 	/* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+//	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-	pid.kP = -0.12;
-	pid.kI = 5.32;
-	pid.kD = 20.22;
-	pid.alpha = 5.31;
-	pid.deltaT = 0.001;
+	HAL_UART_Receive_IT(&huart2, a, 1);
+
 	/* USER CODE END 2 */
 
 	/* USER CODE BEGIN RTOS_MUTEX */
@@ -347,13 +286,11 @@ int main(void) {
 	defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
 	/* definition and creation of TaskInvKine */
-	osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256,
-			TaskInvKineBuffer, &TaskInvKineControlBlock);
+	osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
 	TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
 	/* definition and creation of TaskCAN */
-	osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128,
-			TaskCANBuffer, &TaskCANControlBlock);
+	osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
 	TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
 	/* definition and creation of TaskActuator */
@@ -414,8 +351,7 @@ void SystemClock_Config(void) {
 
 	/** Initializes the CPU, AHB and APB buses clocks
 	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
@@ -499,8 +435,7 @@ static void MX_TIM1_Init(void) {
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig)
-			!= HAL_OK) {
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK) {
 		Error_Handler();
 	}
 	/* USER CODE BEGIN TIM1_Init 2 */
@@ -529,7 +464,7 @@ static void MX_TIM2_Init(void) {
 	htim2.Instance = TIM2;
 	htim2.Init.Prescaler = 0;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim2.Init.Period = 4294967295;
+	htim2.Init.Period = 65535;
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 	sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
@@ -546,8 +481,7 @@ static void MX_TIM2_Init(void) {
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig)
-			!= HAL_OK) {
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK) {
 		Error_Handler();
 	}
 	/* USER CODE BEGIN TIM2_Init 2 */
@@ -593,8 +527,7 @@ static void MX_TIM3_Init(void) {
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig)
-			!= HAL_OK) {
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK) {
 		Error_Handler();
 	}
 	/* USER CODE BEGIN TIM3_Init 2 */
@@ -664,6 +597,37 @@ static void MX_USART1_UART_Init(void) {
 }
 
 /**
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART2_UART_Init(void) {
+
+	/* USER CODE BEGIN USART2_Init 0 */
+
+	/* USER CODE END USART2_Init 0 */
+
+	/* USER CODE BEGIN USART2_Init 1 */
+
+	/* USER CODE END USART2_Init 1 */
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	if (HAL_UART_Init(&huart2) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART2_Init 2 */
+
+	/* USER CODE END USART2_Init 2 */
+
+}
+
+/**
  * @brief USART3 Initialization Function
  * @param None
  * @retval None
@@ -726,13 +690,10 @@ static void MX_GPIO_Init(void) {
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOA,
-			HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin | HC595_DATA_Pin,
-			GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin | HC595_DATA_Pin, GPIO_PIN_RESET);
 
 	/*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
-	GPIO_InitStruct.Pin = HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin
-			| HC595_DATA_Pin;
+	GPIO_InitStruct.Pin = HC595_CLK_Pin | HC595_RCLK_Pin | HC595_OE_Pin | HC595_DATA_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -773,7 +734,7 @@ void StartDefaultTask(void const *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-
+		HAL_UART_Transmit(&huart2, (uint8_t*) "HelloWorld\n", strlen("HelloWorld\n"), HAL_MAX_DELAY);
 		osDelay(50);
 	}
 	/* USER CODE END 5 */
@@ -793,7 +754,7 @@ void InverseKinematic(void const *argument) {
 	/* Infinite loop */
 	for (;;) {
 
-		osDelay(1);
+		osDelay(500);
 	}
 	/* USER CODE END InverseKinematic */
 }
@@ -807,33 +768,27 @@ void InverseKinematic(void const *argument) {
 /* USER CODE END Header_CAN_Bus */
 void CAN_Bus(void const *argument) {
 	/* USER CODE BEGIN CAN_Bus */
-	CAN_Init();
-	osDelay(500);
-	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1,
-			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
-	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2,
-			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
-	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3,
-			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
-	osDelay(500);
-//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
+//	CAN_Init();
+//	osDelay(500);
+//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1, CANCTRL_MODE_SET_HOME);
 //	osDelay(1);
+//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2, CANCTRL_MODE_SET_HOME);
+//	osDelay(1);
+//	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3, CANCTRL_MODE_SET_HOME);
+//	osDelay(1);
+//	osDelay(500);
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
 		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
-			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
-			if ((modeID == CANCTRL_MODE_SET_HOME
-					|| modeID == CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)
-					&& targetID) {
-				handleFunctionCAN(modeID, targetID);
-			}
-			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+//			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
+//			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
+//			if ((modeID == CANCTRL_MODE_SET_HOME || modeID == CANCTRL_MODE_NODE_REQ_SPEED_ANGLE) && targetID) {
+//				handleFunctionCAN(modeID, targetID);
+//			}
+//			HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 		}
+		osDelay(50);
 	}
 	/* USER CODE END CAN_Bus */
 }

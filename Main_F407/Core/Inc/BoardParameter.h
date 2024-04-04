@@ -9,9 +9,7 @@
 #define INC_BOARDPARAMETER_H_
 #include "main.h"
 #include "PID.h"
-#include "AngleOptimizer.h"
 #include "InverseKinematic.h"
-
 
 //typedef enum PID_type{
 //	PID_DC_SPEED = 1,
