@@ -13,13 +13,18 @@
 #include "CRC16.h"
 
 typedef enum CommandList {
-	CMD_NodeSwerveStart = 0, //not use
+	CMD_Swerve_Start = 0, //not use
 	CMD_Swerve_IdentifyBoard,
 	CMD_Swerve_GetPID,
 	CMD_Swerve_SetPID,
 	CMD_Swerve_SavePID,
 	CMD_Swerve_RelayCommand,
+	CMD_Swerve_SetTargetSpeedBLDC,
+	CMD_Swerve_SetTargetAngleDC,
+	CMD_Swerve_GetCurrentSpeedBLDC,
+	CMD_Swerve_GetCurrentAngleDC,
 	CMD_Swerve_SetHome,
+	CMD_Swerve_End, //not use
 	CMD_MainF4_RB1_Start = 0, //not use
 	CMD_MainF4_RB1_IdentifyBoard,
 	CMD_MainF4_RB1_Valve,
@@ -28,7 +33,9 @@ typedef enum CommandList {
 	CMD_MainF4_RB1_Process_SetVelocity,
 	CMD_MainF4_RB1_Process_SetDistance,
 	CMD_MainF4_RB1_Process_SetAngle,
-	CMD_End,	//not use
+	CMD_MainF4_RB1_End,	//not use
+	CMD_MainF4_RB2_Start = 0,
+	CMD_MainF4_RB2_End,
 } CommandList;
 
 typedef enum BoardID {
