@@ -12,47 +12,31 @@
 #include "stdbool.h"
 #include "CRC16.h"
 
-#ifdef BOARD_SWERVE
 typedef enum CommandList {
-	CMD_Start = 0, //not use
-	CMD_IdentifyBoard,
-	CMD_GetPID,
-	CMD_SetPID,
-	CMD_SavePID,
-	CMD_RelayCommand,
-	CMD_SetSpeedBLDC,
-	CMD_SetAngleDC,
-	CMD_SetHome,
-	CMD_ErrorCode,
-	CMD_End,	//not use
+	CMD_Swerve_Start = 0, //not use
+	CMD_Swerve_IdentifyBoard,
+	CMD_Swerve_GetPID,
+	CMD_Swerve_SetPID,
+	CMD_Swerve_SavePID,
+	CMD_Swerve_RelayCommand,
+	CMD_Swerve_SetTargetSpeedBLDC,
+	CMD_Swerve_SetTargetAngleDC,
+	CMD_Swerve_GetCurrentSpeedBLDC,
+	CMD_Swerve_GetCurrentAngleDC,
+	CMD_Swerve_SetHome,
+	CMD_Swerve_End, //not use
+	CMD_MainF4_RB1_Start = 0, //not use
+	CMD_MainF4_RB1_IdentifyBoard,
+	CMD_MainF4_RB1_Valve,
+	CMD_MainF4_RB1_RelayCommand,
+	CMD_MainF4_RB1_Process_SetProcessStep,
+	CMD_MainF4_RB1_Process_SetVelocity,
+	CMD_MainF4_RB1_Process_SetDistance,
+	CMD_MainF4_RB1_Process_SetAngle,
+	CMD_MainF4_RB1_End,	//not use
+	CMD_MainF4_RB2_Start = 0,
+	CMD_MainF4_RB2_End,
 } CommandList;
-#elif BOARD_MAIN
-typedef enum CommandList {
-	CMD_Start = 0, //not use
-	CMD_IdentifyBoard,
-	CMD_GetPID,
-	CMD_SetPID,
-	CMD_SavePID,
-	CMD_TriggerValve,
-	CMD_RelayCommand,
-	CMD_Process_SetProcessStep,
-	CMD_Process_SetVelocity,
-	CMD_Process_SetDistance,
-	CMD_Process_SetAngle,
-	CMD_SetHome
-	CMD_End,	//not use
-} CommandList;
-
-typedef enum MainRelayCommand {
-	RB1_Arm1Catch= 1,
-	RB1_Arm2Catch,
-	RB1_CollectBallLeft,
-	RB1_CollectBallRight,
-} NodeSwerveRelayCommand;
-#else
-#error "You must define which board should use"
-#endif
-
 
 typedef enum BoardID {
 	BOARD_MainF4_RB1 = 1,
@@ -65,8 +49,6 @@ typedef enum BoardID {
 #define APP_COMMAND_LIST_LENGTH 1
 #define APP_CRC_LENGTH	2
 #define APP_DATA_LENGTH 1
-#define APP_BUFFER_SIZE 30
-
 
 typedef enum AppErrorCode {
 	APPERR_OK,
