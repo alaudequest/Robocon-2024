@@ -64,6 +64,10 @@ bool sethome_IsComplete()
 	return 0;
 }
 
+void sethome_fake()
+{
+	homeEvent = SET_HOME_COMPLETE;
+}
 void sethome_Procedure(void (*pSetHomeCompleteCallback)())
 {
 	switch (homeEvent) {

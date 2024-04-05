@@ -333,7 +333,20 @@ int main(void)
 	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
-
+//	HAL_FLASH_Unlock();
+//	FLASH_EraseInitTypeDef EraseInitStruct;
+//	EraseInitStruct.Banks = 1;
+//	EraseInitStruct.TypeErase  = FLASH_TYPEERASE_PAGES;
+//	EraseInitStruct.PageAddress = FLASH_ADDR_TARGET;
+//	EraseInitStruct.NbPages    = 1;
+//	if (HAL_FLASHEx_Erase(&EraseInitStruct, &pageError) != HAL_OK){
+//	   return HAL_FLASH_GetError ();
+//	}
+//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x01) != HAL_OK){
+//	return HAL_FLASH_GetError ();
+//	}
+//	HAL_FLASH_Lock();
+//	uint32_t testFlash = *(__IO uint32_t*)FLASH_ADDR_TARGET;
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -843,7 +856,8 @@ void StartTaskPIDSpeed(void const * argument)
 		osDelay(1000);
 		PID_BLDC_BreakProtection(0);
 		while(!sethome_IsComplete()){
-			osDelay(1);
+			osDelay(1000);
+			sethome_fake();
 		}
 
 	  /* Infinite loop */
