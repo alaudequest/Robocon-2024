@@ -9,7 +9,7 @@
 #include "RB1ActuatorValve.h"
 #include "Flag.h"
 
-BoardID brdID = BOARD_MainF4_RB1;
+BoardID brdID = 0;
 uint8_t txBuffer[80] = { 0 };
 uint8_t rxBuffer[80] = { 0 };
 uint8_t relayCommand = 0;
@@ -20,6 +20,9 @@ static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist);
 
 void MainF4Robot1App_Init()
 {
+	if (brdID != 0)
+		return;
+	brdID = BOARD_MainF4_RB1;
 	appintf_Init(&huart2, txBuffer, sizeof(txBuffer), rxBuffer, sizeof(rxBuffer));
 	appintf_RegisterErrorCallbackEvent(&MainF4Robot1App_ErrorHandler);
 	appintf_RegisterReceivedCallbackEvent(&MainF4Robot1App_ReceiveCommandHandler);
