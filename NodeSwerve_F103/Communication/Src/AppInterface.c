@@ -22,6 +22,9 @@ uint8_t _txBufSize;
 ArgumentOfCommandList_t argCmd[CMD_Swerve_End - 1];
 #elif BOARD_MAINF4_ROBOT1
 ArgumentOfCommandList_t argCmd[CMD_MainF4_RB1_End - 1];
+#elif BOARD_MAINF4_ROBOT2
+ArgumentOfCommandList_t argCmd[CMD_MainF4_RB2_End - 1];
+#error "You should define which board should use"
 #endif
 
 static void ResetFrameData();
