@@ -6,7 +6,7 @@
  */
 
 #include "PID_SwerveModule.h"
-bool bldcEnablePID = true;
+bool isBreakProtectionDone = false;
 
 void PID_DC_CalSpeed(float Target_set)
 {
@@ -34,8 +34,15 @@ void PID_BLDC_CalSpeed(float Target_set)
 	MotorBLDC mbldc = brd_GetObjMotorBLDC();
 	Encoder_t encBLDC = brd_GetObjEncBLDC();
 	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
-	if (bldcEnablePID == false) {
+	if (isBreakProtectionDone == false) {
 		MotorBLDC_Drive(&mbldc, 0);
+	}
+	else if (Target_set != 0) {
+		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
+		float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encBLDC));
+		MotorBLDC_Drive(&mbldc, (int32_t) result);
+		brd_SetObjEncBLDC(encBLDC);
+		brd_SetPID(pid, PID_BLDC_SPEED);
 	}
 	else if ((abs(brd_GetCurrentSpeedBLDC()) < 0.5 &&
 			abs(encBLDC.vel_Real) < 0.5) || Target_set == 0) {
@@ -48,19 +55,13 @@ void PID_BLDC_CalSpeed(float Target_set)
 		brd_SetPID(pid, PID_BLDC_SPEED);
 		encoder_ResetCount(&encBLDC);
 	}
-	else {
-		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
-		float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encBLDC));
-		MotorBLDC_Drive(&mbldc, (int32_t) result);
-		brd_SetObjEncBLDC(encBLDC);
-		brd_SetPID(pid, PID_BLDC_SPEED);
-	}
+
 }
 
 void PID_BLDC_BreakProtection(bool Mode)
 {
 	if (Mode) {
-		bldcEnablePID = false;
+		isBreakProtectionDone = false;
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
 		PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
 		pid.uI = 0;
@@ -69,7 +70,7 @@ void PID_BLDC_BreakProtection(bool Mode)
 		return;
 	}
 	else
-		bldcEnablePID = true;
+		isBreakProtectionDone = true;
 }
 
 void PID_DC_UntangleWireBLDC()

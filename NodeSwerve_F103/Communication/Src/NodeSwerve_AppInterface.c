@@ -32,7 +32,7 @@ void SwerveApp_Init()
 	// get ID board from flash memory
 	uint32_t swerveID = *(__IO uint32_t*) (0x08000000 + 1024 * 64);
 	switch (swerveID) {
-		case 0:
+		default:
 			SwerveApp_ErrorHandler(APPERR_BOARD_NOT_FOUND);
 			break;
 		case 1:
@@ -203,8 +203,10 @@ static void ReceiveCommandHandler(CommandList cmdlist)
 			break;
 		case CMD_Swerve_SetHome:
 			IsSetHome = true;
+			break;
 		case CMD_Swerve_UntangleBLDC:
 			UntangleBLDC = true;
+			break;
 		default:
 			break;
 	}
