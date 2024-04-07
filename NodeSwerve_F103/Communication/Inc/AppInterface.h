@@ -23,6 +23,7 @@ typedef enum CommandList {
 	CMD_Swerve_SetTargetAngleDC,
 	CMD_Swerve_GetCurrentSpeedBLDC,
 	CMD_Swerve_GetCurrentAngleDC,
+	CMD_Swerve_UntangleBLDC,
 	CMD_Swerve_SetHome,
 	CMD_Swerve_End, //not use
 	CMD_MainF4_RB1_Start = 0, //not use
