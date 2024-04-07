@@ -38,7 +38,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 		MotorBLDC_Drive(&mbldc, 0);
 	}
 	else if ((abs(brd_GetCurrentSpeedBLDC()) < 0.5 &&
-			abs(encBLDC) < 0.5) || Target_set == 0) {
+			abs(encBLDC.vel_Real) < 0.5) || Target_set == 0) {
 		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_SET);
 		MotorBLDC_Drive(&mbldc, 0);
 		pid.uI = 0;

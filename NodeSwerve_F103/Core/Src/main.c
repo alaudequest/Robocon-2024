@@ -115,9 +115,9 @@ void CAN_Init() {
 	uint16_t deviceID = *(__IO uint32_t*) FLASH_ADDR_TARGET << CAN_DEVICE_POS;
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_LED_BLUE,
-			deviceID | CANCTRL_MODE_MOTOR_BLDC_BRAKE,
+			deviceID | CANCTRL_MODE_UNTANGLE_WIRE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_TEST,
+			deviceID | CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
@@ -156,14 +156,34 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			break;
 		case CANCTRL_MODE_SET_HOME:
 			break;
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
+//			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+			nodeSpeedAngle.bldcSpeed = brd_GetCurrentCountBLDC();
+			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+			canctrl_PutMessage((void*) &nodeSpeedAngle, sizeof(nodeSpeedAngle));
+			canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
+			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-			bool brake = canfunc_GetBoolValue();
-			MotorBLDC mbldc = brd_GetObjMotorBLDC();
-			MotorBLDC_Brake(&mbldc, brake);
+			//			bool brake = canfunc_GetBoolValue();
+//			MotorBLDC mbldc = brd_GetObjMotorBLDC();
+//			MotorBLDC_Brake(&mbldc, brake);
+			if (canfunc_GetBoolValue()) {
+				HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
+			}
+			else {
+				HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+			}
 			break;
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 			uint8_t Break = canfunc_GetBoolValue();
 			PID_BLDC_BreakProtection(Break);
+		case CANCTRL_MODE_TEST:
+			//			TestMode = canfunc_GetBoolValue();
+			break;
 		case CANCTRL_MODE_LED_BLUE:
 			break;
 		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
@@ -177,10 +197,14 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			case CANCTRL_MODE_PID_BLDC_SPEED:
 			canfunc_GetPID(&can_GetPID_CompleteCallback);
 			break;
+		case CANCTRL_MODE_UNTANGLE_WIRE:
+			if (canfunc_GetBoolValue())
+				UntangleBLDC = 1;
+			else
+				UntangleBLDC = 0;
+			break;
 		case CANCTRL_MODE_START:
 			case CANCTRL_MODE_END:
-			break;
-		default:
 			break;
 	}
 }
@@ -192,11 +216,12 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 			break;
-		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-			CAN_RTR_Encx4BLDC_AngleDC rtrData;
-			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
-			rtrData.dcAngle = brd_GetCurrentAngleDC();
-			canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
+//		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+//			CAN_SpeedBLDC_AngleDC speedAngle;
+////			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
+//			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+//			speedAngle.dcAngle = brd_GetCurrentAngleDC();
+//			canfunc_RTR_SpeedAngle(can, speedAngle);
 			break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);
@@ -705,7 +730,7 @@ void StartDefaultTask(void const *argument)
 			osDelay(1);
 			goto SET_HOME_DEFAULT_TASK;
 		}
-		osDelay(10);
+		osDelay(1);
 	}
 	/* USER CODE END 5 */
 }
@@ -741,11 +766,12 @@ void StartTaskPID(void const *argument)
 			goto SET_HOME_PID_TASK;
 		if (DC_IsEnablePID)
 			PID_DC_CalPos(brd_GetTargetAngleDC());
-		if (BLDC_IsEnablePID)
+		if (BLDC_IsEnablePID) {
 			if (UntangleBLDC == true)
 				PID_BLDC_CalSpeed(0);
 			else
 				PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
+		}
 		osDelay(5);
 	}
 	/* USER CODE END StartTaskPID */
