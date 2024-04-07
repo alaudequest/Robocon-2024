@@ -152,35 +152,35 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 void handleFunctionCAN(CAN_MODE_ID mode) {
 	switch (mode) {
 		case CANCTRL_MODE_SHOOT:
-		break;
+			break;
 		case CANCTRL_MODE_SET_HOME:
-		break;
+			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-		bool brake = canfunc_GetBoolValue();
-		MotorBLDC mbldc = brd_GetObjMotorBLDC();
-		MotorBLDC_Brake(&mbldc, brake);
-		break;
+			bool brake = canfunc_GetBoolValue();
+			MotorBLDC mbldc = brd_GetObjMotorBLDC();
+			MotorBLDC_Brake(&mbldc, brake);
+			break;
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
-		uint8_t Break = canfunc_GetBoolValue();
-		PID_BLDC_BreakProtection(Break);
+			uint8_t Break = canfunc_GetBoolValue();
+			PID_BLDC_BreakProtection(Break);
 		case CANCTRL_MODE_LED_BLUE:
-		break;
+			break;
 		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-		CAN_SpeedBLDC_AngleDC speedAngle;
-		speedAngle = canfunc_MotorGetSpeedAndAngle();
-		brd_SetTargetAngleDC(speedAngle.dcAngle);
-		brd_SetTargetSpeedBLDC(speedAngle.bldcSpeed);
-		break;
+			CAN_SpeedBLDC_AngleDC speedAngle;
+			speedAngle = canfunc_MotorGetSpeedAndAngle();
+			brd_SetTargetAngleDC(speedAngle.dcAngle);
+			brd_SetTargetSpeedBLDC(speedAngle.bldcSpeed);
+			break;
 		case CANCTRL_MODE_PID_DC_SPEED:
-		case CANCTRL_MODE_PID_DC_ANGLE:
-		case CANCTRL_MODE_PID_BLDC_SPEED:
-		canfunc_GetPID(&can_GetPID_CompleteCallback);
-		break;
+			case CANCTRL_MODE_PID_DC_ANGLE:
+			case CANCTRL_MODE_PID_BLDC_SPEED:
+			canfunc_GetPID(&can_GetPID_CompleteCallback);
+			break;
 		case CANCTRL_MODE_START:
-		case CANCTRL_MODE_END:
-		break;
+			case CANCTRL_MODE_END:
+			break;
 		default:
-		break;
+			break;
 	}
 }
 
@@ -188,29 +188,29 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 	PID_Param pid;
 	switch (modeID) {
 		case CANCTRL_MODE_SET_HOME:
-		bool setHomeValue = 1;
-		xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
-		break;
+			bool setHomeValue = 1;
+			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
+			break;
 		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-		CAN_RTR_Encx4BLDC_AngleDC rtrData;
-		rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
-		rtrData.dcAngle = brd_GetCurrentAngleDC();
-		canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
-		break;
+			CAN_RTR_Encx4BLDC_AngleDC rtrData;
+			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
+			rtrData.dcAngle = brd_GetCurrentAngleDC();
+			canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
+			break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
-		pid = brd_GetPID(PID_BLDC_SPEED);
-		canfunc_RTR_PID(can, pid, PID_BLDC_SPEED);
-		break;
+			pid = brd_GetPID(PID_BLDC_SPEED);
+			canfunc_RTR_PID(can, pid, PID_BLDC_SPEED);
+			break;
 		case CANCTRL_MODE_PID_DC_ANGLE:
-		pid = brd_GetPID(PID_DC_ANGLE);
-		canfunc_RTR_PID(can, pid, PID_DC_ANGLE);
-		break;
+			pid = brd_GetPID(PID_DC_ANGLE);
+			canfunc_RTR_PID(can, pid, PID_DC_ANGLE);
+			break;
 		case CANCTRL_MODE_PID_DC_SPEED:
-		pid = brd_GetPID(PID_DC_SPEED);
-		canfunc_RTR_PID(can, pid, PID_DC_SPEED);
-		break;
+			pid = brd_GetPID(PID_DC_SPEED);
+			canfunc_RTR_PID(can, pid, PID_DC_SPEED);
+			break;
 		default:
-		break;
+			break;
 	}
 }
 
@@ -231,11 +231,11 @@ void Flash_Write(CAN_DEVICE_ID ID) {
 	fe.Banks = FLASH_BANK_1;
 	uint32_t pageErr = 0;
 	HAL_FLASH_Unlock();
-	if(HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
+	if (HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
-	if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, (uint32_t) ID) != HAL_OK) {
+	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, (uint32_t) ID) != HAL_OK) {
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
@@ -361,8 +361,8 @@ int main(void)
  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
@@ -374,7 +374,7 @@ void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-	if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -388,7 +388,7 @@ void SystemClock_Config(void)
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
 	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -421,7 +421,7 @@ static void MX_CAN_Init(void)
 	hcan.Init.AutoRetransmission = DISABLE;
 	hcan.Init.ReceiveFifoLocked = DISABLE;
 	hcan.Init.TransmitFifoPriority = DISABLE;
-	if(HAL_CAN_Init(&hcan) != HAL_OK)
+	if (HAL_CAN_Init(&hcan) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -443,8 +443,8 @@ static void MX_TIM2_Init(void)
 
 	/* USER CODE END TIM2_Init 0 */
 
-	TIM_MasterConfigTypeDef sMasterConfig = {0};
-	TIM_OC_InitTypeDef sConfigOC = {0};
+	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+	TIM_OC_InitTypeDef sConfigOC = { 0 };
 
 	/* USER CODE BEGIN TIM2_Init 1 */
 
@@ -455,13 +455,13 @@ static void MX_TIM2_Init(void)
 	htim2.Init.Period = 999;
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if(HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+	if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
 			{
 		Error_Handler();
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if(HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -469,15 +469,15 @@ static void MX_TIM2_Init(void)
 	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	if(HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+	if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
 			{
 		Error_Handler();
 	}
-	if(HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+	if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
 			{
 		Error_Handler();
 	}
-	if(HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+	if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -500,8 +500,8 @@ static void MX_TIM3_Init(void)
 
 	/* USER CODE END TIM3_Init 0 */
 
-	TIM_Encoder_InitTypeDef sConfig = {0};
-	TIM_MasterConfigTypeDef sMasterConfig = {0};
+	TIM_Encoder_InitTypeDef sConfig = { 0 };
+	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
 
 	/* USER CODE BEGIN TIM3_Init 1 */
 
@@ -521,13 +521,13 @@ static void MX_TIM3_Init(void)
 	sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
 	sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
 	sConfig.IC2Filter = 0;
-	if(HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
+	if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
 			{
 		Error_Handler();
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if(HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -549,8 +549,8 @@ static void MX_TIM4_Init(void)
 
 	/* USER CODE END TIM4_Init 0 */
 
-	TIM_Encoder_InitTypeDef sConfig = {0};
-	TIM_MasterConfigTypeDef sMasterConfig = {0};
+	TIM_Encoder_InitTypeDef sConfig = { 0 };
+	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
 
 	/* USER CODE BEGIN TIM4_Init 1 */
 
@@ -570,13 +570,13 @@ static void MX_TIM4_Init(void)
 	sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
 	sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
 	sConfig.IC2Filter = 0;
-	if(HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK)
+	if (HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK)
 			{
 		Error_Handler();
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if(HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -609,7 +609,7 @@ static void MX_USART1_UART_Init(void)
 	huart1.Init.Mode = UART_MODE_TX_RX;
 	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	if(HAL_UART_Init(&huart1) != HAL_OK)
+	if (HAL_UART_Init(&huart1) != HAL_OK)
 			{
 		Error_Handler();
 	}
@@ -626,7 +626,7 @@ static void MX_USART1_UART_Init(void)
  */
 static void MX_GPIO_Init(void)
 {
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 	/* USER CODE BEGIN MX_GPIO_Init_1 */
 	/* USER CODE END MX_GPIO_Init_1 */
 
@@ -668,7 +668,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 void SethomeHandle() {
-	if(xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 		brd_SetTargetAngleDC(0);
 		brd_SetTargetSpeedBLDC(0);
 	}
@@ -686,24 +686,24 @@ void SethomeHandle() {
 void StartDefaultTask(void const *argument)
 {
 	/* USER CODE BEGIN 5 */
-//	SET_HOME_DEFAULT_TASK:
-//	sethome_Begin();
-//	while (!sethome_IsComplete()) {
-//		sethome_Procedure();
-//		float speed = sethome_GetSpeed();
-//		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-//		osDelay(1);
-//	}
-//	SetHomeCompleteCallback();
-//	IsSetHome = 0;
+	SET_HOME_DEFAULT_TASK:
+	sethome_Begin();
+	while (!sethome_IsComplete()) {
+		sethome_Procedure();
+		float speed = sethome_GetSpeed();
+		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
+		osDelay(1);
+	}
+	SetHomeCompleteCallback();
+	IsSetHome = 0;
 	/* Infinite loop */
 
 	for (;;) {
-//		SethomeHandle();
-//		if (IsSetHome) {
-//			osDelay(1);
-//			goto SET_HOME_DEFAULT_TASK;
-//		}
+		SethomeHandle();
+		if (IsSetHome) {
+			osDelay(1);
+			goto SET_HOME_DEFAULT_TASK;
+		}
 		osDelay(10);
 	}
 	/* USER CODE END 5 */
@@ -721,27 +721,25 @@ float EncoderAngle = 0;
 void StartTaskPID(void const *argument)
 {
 	/* USER CODE BEGIN StartTaskPID */
-//	SET_HOME_PID_TASK: float TargetValue = 0;
-//	while (!sethome_IsComplete()) {
-//		xQueueReceive(qPID, &TargetValue, 0);
-//		PID_DC_CalSpeed((float) TargetValue);
-//		osDelay(5);
-//	}
+	SET_HOME_PID_TASK: float TargetValue = 0;
+	while (!sethome_IsComplete()) {
+		xQueueReceive(qPID, &TargetValue, 0);
+		PID_DC_CalSpeed((float) TargetValue);
+		osDelay(5);
+	}
 	/* Infinite loop */
 	for (;;) {
-//		if (IsSetHome) {
-//			PID_BLDC_BreakProtection(1);
-//			osDelay(1000);
-//			PID_BLDC_BreakProtection(0);
-//			goto SET_HOME_PID_TASK;
-//		}
+		if (IsSetHome) {
+			PID_BLDC_BreakProtection(1);
+			osDelay(1000);
+			PID_BLDC_BreakProtection(0);
+			goto SET_HOME_PID_TASK;
+		}
 
-		if(DC_IsEnablePID)
+		if (DC_IsEnablePID)
 			PID_DC_CalPos(brd_GetTargetAngleDC());
-		if(BLDC_IsEnablePID)
+		if (BLDC_IsEnablePID)
 			PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
-		EncoderAngle = brd_GetCurrentAngleDC();
-		EncoderCount = brd_GetCurrentCountBLDC();
 		osDelay(5);
 	}
 	/* USER CODE END StartTaskPID */
@@ -761,12 +759,12 @@ void StartCANbus(void const *argument)
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
-		if(xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
+		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-			if(((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
-				if(rxHeader.RTR == CAN_RTR_REMOTE)
+			if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
+				if (rxHeader.RTR == CAN_RTR_REMOTE)
 					handle_CAN_RTR_Response(&hcan, modeID);
-				if(rxHeader.RTR == CAN_RTR_DATA)
+				if (rxHeader.RTR == CAN_RTR_DATA)
 					handleFunctionCAN((CAN_MODE_ID) modeID);
 			}
 			HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
@@ -789,7 +787,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	/* USER CODE BEGIN Callback 0 */
 
 	/* USER CODE END Callback 0 */
-	if(htim->Instance == TIM1) {
+	if (htim->Instance == TIM1) {
 		HAL_IncTick();
 	}
 	/* USER CODE BEGIN Callback 1 */

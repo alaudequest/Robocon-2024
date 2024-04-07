@@ -17,16 +17,14 @@ uint8_t *_pTxBuffer;
 uint8_t *_pRxBuffer;
 uint8_t _rxBufSize;
 uint8_t _txBufSize;
-
-#ifdef BOARD_SWERVE
+#if defined BOARD_SWERVE
 ArgumentOfCommandList_t argCmd[CMD_Swerve_End - 1];
-#elif BOARD_MAINF4_ROBOT1
+#elif defined BOARD_MAINF4_ROBOT1
 ArgumentOfCommandList_t argCmd[CMD_MainF4_RB1_End - 1];
-#elif BOARD_MAINF4_ROBOT2
+#elif defined BOARD_MAINF4_ROBOT2
 ArgumentOfCommandList_t argCmd[CMD_MainF4_RB2_End - 1];
 #error "You should define which board should use"
 #endif
-
 static void ResetFrameData();
 static bool IsPassCRC();
 static void DecodeFrameDataAndCheckCRC();
@@ -90,7 +88,8 @@ static void DecodeFrameDataAndCheckCRC() {
 		if (pAppErr != NULL)
 			pAppErr(APPERR_CRC_FAIL);
 		else
-			while (1);
+			while (1)
+				;
 	}
 
 }
@@ -110,7 +109,8 @@ void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 		if (pAppErr != NULL)
 			pAppErr(APPERR_UART_PORT_NULL);
 		else
-			while (1);
+			while (1)
+				;
 	}
 	static bool isOnFrameReceived = false;
 	if (fd.isOnProcess)
@@ -126,7 +126,8 @@ void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 			if (pAppErr != NULL)
 				pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
 			else
-				while (1);
+				while (1)
+					;
 		}
 		isOnFrameReceived = true;
 		fd.isOnProcess = false;
@@ -159,7 +160,8 @@ AppErrorCode appintf_MakeFrame(CommandList cmdlist) {
 		if (pAppErr != NULL)
 			pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
 		else
-			while (1);
+			while (1)
+				;
 	}
 	if (!argCmd[cmdlist].pArg)
 		return APPERR_STORE_BUFFER_IS_NULL;
