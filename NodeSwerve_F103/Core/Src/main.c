@@ -68,6 +68,7 @@ osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
+bool UntangleBLDC = false;
 bool BLDC_IsEnablePID = true;
 bool DC_IsEnablePID = true;
 /* USER CODE END PV */
@@ -721,7 +722,14 @@ float EncoderAngle = 0;
 void StartTaskPID(void const *argument)
 {
 	/* USER CODE BEGIN StartTaskPID */
-	SET_HOME_PID_TASK: float TargetValue = 0;
+	SET_HOME_PID_TASK:
+	PID_BLDC_BreakProtection(1);
+	osDelay(1000);
+	PID_BLDC_BreakProtection(0);
+	/*
+	 * The sethome PID DC speed is controlled by message queue speed qPID from default task in set home mode
+	 */
+	float TargetValue = 0;
 	while (!sethome_IsComplete()) {
 		xQueueReceive(qPID, &TargetValue, 0);
 		PID_DC_CalSpeed((float) TargetValue);
@@ -729,17 +737,15 @@ void StartTaskPID(void const *argument)
 	}
 	/* Infinite loop */
 	for (;;) {
-		if (IsSetHome) {
-			PID_BLDC_BreakProtection(1);
-			osDelay(1000);
-			PID_BLDC_BreakProtection(0);
+		if (IsSetHome)
 			goto SET_HOME_PID_TASK;
-		}
-
 		if (DC_IsEnablePID)
 			PID_DC_CalPos(brd_GetTargetAngleDC());
 		if (BLDC_IsEnablePID)
-			PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
+			if (UntangleBLDC == true)
+				PID_BLDC_CalSpeed(0);
+			else
+				PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
 		osDelay(5);
 	}
 	/* USER CODE END StartTaskPID */

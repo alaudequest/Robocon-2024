@@ -57,7 +57,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 	}
 }
 
-void PID_BLDC_ResetDriver(bool Mode)
+void PID_BLDC_BreakProtection(bool Mode)
 {
 	if (Mode) {
 		bldcEnablePID = false;

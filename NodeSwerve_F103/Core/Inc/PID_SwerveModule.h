@@ -20,5 +20,8 @@ void PID_BLDC_CalSpeed(float Target_set);
 void PID_DC_CalSpeed(float Target_set);
 void PID_DC_CalPos(float Target_set);
 
+void PID_BLDC_OnLowSpeed();
+void PID_BLDC_OnHightSpeed();
+
 void PID_BLDC_BreakProtection(bool Mode);
 #endif /* INC_PID_SWERVEMODULE_H_ */
