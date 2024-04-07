@@ -13,6 +13,7 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern bool BLDC_IsEnablePID;
 extern bool DC_IsEnablePID;
+extern bool UntangleBLDC;
 uint8_t txBuffer[80] = { 0 };
 uint8_t rxBuffer[80] = { 0 };
 BoardID brdID = 0;
@@ -202,6 +203,8 @@ static void ReceiveCommandHandler(CommandList cmdlist)
 			break;
 		case CMD_Swerve_SetHome:
 			IsSetHome = true;
+		case CMD_Swerve_UntangleBLDC:
+			UntangleBLDC = true;
 		default:
 			break;
 	}

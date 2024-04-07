@@ -32,5 +32,4 @@ typedef struct AppPararmPID_t {
 
 void SwerveApp_Init();
 
-
 #endif /* INC_NODESWERVE_APPINTERFACE_H_ */
