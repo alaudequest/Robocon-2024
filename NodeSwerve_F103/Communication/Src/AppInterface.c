@@ -27,7 +27,7 @@ ArgumentOfCommandList_t argCmd[CMD_MainF4_RB2_End - 1];
 #endif
 static void ResetFrameData();
 static bool IsPassCRC();
-static void DecodeFrameDataAndCheckCRC();
+static AppErrorCode DecodeFrameDataAndCheckCRC();
 static inline void jumpToError(AppErrorCode err);
 
 void appintf_Init(UART_HandleTypeDef *huart, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize) {
@@ -74,16 +74,16 @@ void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData) {
 	}
 }
 
-static void DecodeFrameDataAndCheckCRC() {
+static AppErrorCode DecodeFrameDataAndCheckCRC() {
 	uint32_t crcField = APP_DATA_LENGTH + APP_COMMAND_LIST_LENGTH + fd.payloadLength;
 	uint32_t crcNibbleByteMSB = *(_pRxBuffer + crcField) << 8;
 	uint32_t crcNibbleByteLSB = *(_pRxBuffer + crcField + 1);
 	fd.cmdList = *(_pRxBuffer + 1);
 	fd.crc16 = crcNibbleByteMSB | crcNibbleByteLSB;
 	if (!IsPassCRC()) {
-		jumpToError(APPERR_CRC_FAIL);
+		return APPERR_CRC_FAIL;
 	}
-
+	return APPERR_OK;
 }
 
 /**
@@ -97,54 +97,56 @@ static void DecodeFrameDataAndCheckCRC() {
 void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 	if (huart != pAppUART)
 		return;
-	if (pAppUART == NULL) {
-		if (pAppErr != NULL)
-			pAppErr(APPERR_UART_PORT_NULL);
-		else
-			while (1)
-				;
-	}
+	if (pAppUART == NULL)
+		jumpToError(APPERR_UART_PORT_NULL);
 	static bool isOnFrameReceived = false;
-	if (fd.isOnProcess)
-		return;
+//	if (fd.isOnProcess)
+//		return;
 	// if this is a new frame data, extract data length and receive all remain data in interrupt indicated by data length
 	if (!isOnFrameReceived) {
-		fd.isOnProcess = true;
+		isOnFrameReceived = true;
+//		fd.isOnProcess = true;
 		fd.payloadLength = *(_pRxBuffer + 0);
 		uint32_t totalLength = fd.totalLength = fd.payloadLength + APP_CRC_LENGTH + APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
 		if (totalLength < _rxBufSize)
 			HAL_UART_Receive_IT(pAppUART, (uint8_t*) _pRxBuffer + APP_DATA_LENGTH, totalLength - APP_DATA_LENGTH);
-		else {
-			if (pAppErr != NULL)
-				pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
-			else
-				while (1)
-					;
-		}
-		isOnFrameReceived = true;
-		fd.isOnProcess = false;
+		else
+			jumpToError(APPERR_OUT_OF_BUFFER_SIZE);
+
+//		fd.isOnProcess = false;
 	}
 	else { // if all data of the frame have been received, begin to extract data and reset to receive new frame, and calling to user callback function
-		fd.isOnProcess = true;
+//		fd.isOnProcess = true;
 		isOnFrameReceived = false;
-		DecodeFrameDataAndCheckCRC();
-		if (pCallback != NULL)
-			pCallback(fd.cmdList);
-		else {
-			if (pAppErr != NULL)
-				pAppErr(APPERR_NULL_CALLBACK_FUNCTION);
-			else
-				return;
+		if (DecodeFrameDataAndCheckCRC() == APPERR_OK) {
+			if (pCallback != NULL)
+				pCallback(fd.cmdList);
+			else {
+				jumpToError(APPERR_NULL_CALLBACK_FUNCTION);
+			}
 		}
 		HAL_UART_Receive_IT(pAppUART, (uint8_t*) _pRxBuffer, APP_DATA_LENGTH);
 		memset(_pRxBuffer, 0, _rxBufSize);
-		fd.isOnProcess = false;
 		ResetFrameData();
+//		fd.isOnProcess = false;
 	}
 }
 
+void appintf_Reset()
+{
+	HAL_UART_Receive_IT(pAppUART, _pRxBuffer, APP_DATA_LENGTH);
+	memset(_pTxBuffer, 0, _txBufSize);
+	memset(_pRxBuffer, 0, _rxBufSize);
+	ResetFrameData();
+}
+
 void appintf_MakeFrame(CommandList cmdlist) {
-	jumpToError(APPERR_OUT_OF_BUFFER_SIZE);
+	uint32_t totalLength = fd.totalLength = APP_DATA_LENGTH
+			+ APP_COMMAND_LIST_LENGTH
+			+ argCmd[cmdlist].sizeArgument
+			+ APP_CRC_LENGTH;
+	if (totalLength > _txBufSize)
+		jumpToError(APPERR_OUT_OF_BUFFER_SIZE);
 	if (!argCmd[cmdlist].pArg)
 		jumpToError(APPERR_REFERENCE_PAYLOAD_NOT_FOUND);
 	if (!isTxBufferEmpty)
@@ -204,9 +206,14 @@ static inline void jumpToError(AppErrorCode err)
 }
 
 void appintf_SendFrame() {
-	if (!fd.isOnProcess)
-		return;
-	HAL_UART_Transmit(pAppUART, _pTxBuffer, fd.totalLength, 10);
+//	if (!fd.isOnProcess)
+//		return;
+	// sending data length first, delay amount of time for app to process and send the rest of packet
+
+	HAL_UART_Transmit(pAppUART, _pTxBuffer, 1, 10);
+	for (uint16_t i = 0; i < 20000; i++)		// delay để app phân biệt 2 gói tin gửi liền nhau
+		__NOP();
+	HAL_UART_Transmit(pAppUART, _pTxBuffer + 1, fd.totalLength - 1, 10);
 	memset(_pTxBuffer, 0, _txBufSize);
 	isTxBufferEmpty = true;
 	ResetFrameData();
