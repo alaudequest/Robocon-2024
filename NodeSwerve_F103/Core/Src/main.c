@@ -68,9 +68,12 @@ osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
-bool UntangleBLDC = false;
+bool untangleBLDC = false;
 bool BLDC_IsEnablePID = true;
 bool DC_IsEnablePID = true;
+bool appReceive = false;
+uint16_t overrunUART_Count = 0;
+uint16_t errorCountUART = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -199,9 +202,9 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			break;
 		case CANCTRL_MODE_UNTANGLE_WIRE:
 			if (canfunc_GetBoolValue())
-				UntangleBLDC = 1;
+				untangleBLDC = 1;
 			else
-				UntangleBLDC = 0;
+				untangleBLDC = 0;
 			break;
 		case CANCTRL_MODE_START:
 			case CANCTRL_MODE_END:
@@ -270,6 +273,17 @@ void Flash_Write(CAN_DEVICE_ID ID) {
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 	while (1);
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == USART1) {
+		__HAL_UART_DISABLE(huart);
+		__HAL_UART_CLEAR_OREFLAG(huart);
+		errorCountUART++;
+		appintf_Reset();
+		__HAL_UART_ENABLE(huart);
+	}
+//	while (1);
 }
 
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
@@ -767,7 +781,7 @@ void StartTaskPID(void const *argument)
 		if (DC_IsEnablePID)
 			PID_DC_CalPos(brd_GetTargetAngleDC());
 		if (BLDC_IsEnablePID) {
-			if (UntangleBLDC == true)
+			if (untangleBLDC == true)
 				PID_BLDC_CalSpeed(0);
 			else
 				PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
