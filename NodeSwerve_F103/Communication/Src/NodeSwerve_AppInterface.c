@@ -13,7 +13,7 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern bool BLDC_IsEnablePID;
 extern bool DC_IsEnablePID;
-extern bool UntangleBLDC;
+extern bool untangleBLDC;
 uint8_t txBuffer[80] = { 0 };
 uint8_t rxBuffer[80] = { 0 };
 BoardID brdID = 0;
@@ -21,6 +21,10 @@ AppPararmPID_t _appPID;
 float appTargetSpeedBLDC = 0;
 float appTargetAngleDC = 0;
 uint8_t relayCommand = 0;
+
+float appCurrentAngleDC = 0;
+float appCurrentSpeedBLDC = 0;
+
 static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Param *pid);
 static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_Param pid);
 
@@ -62,6 +66,9 @@ void SwerveApp_Init()
 	appintf_RegisterArgument((void*) &appTargetSpeedBLDC, sizeof(appTargetSpeedBLDC), CMD_Swerve_SetTargetSpeedBLDC);
 	appintf_RegisterArgument((void*) &appTargetAngleDC, sizeof(appTargetAngleDC), CMD_Swerve_SetTargetAngleDC);
 	appintf_RegisterArgument((void*) &relayCommand, sizeof(relayCommand), CMD_Swerve_RelayCommand);
+	appintf_RegisterArgument((void*) &appCurrentSpeedBLDC, sizeof(appCurrentSpeedBLDC), CMD_Swerve_GetCurrentSpeedBLDC);
+	appintf_RegisterArgument((void*) &appCurrentAngleDC, sizeof(appCurrentAngleDC), CMD_Swerve_GetCurrentAngleDC);
+
 }
 
 void SwerveApp_ErrorHandler(AppErrorCode err)
@@ -101,8 +108,10 @@ static void SelectRunMotorInManualOrPID() {
 
 	// Điều khiển chạy động cơ BLDC
 	if (CHECKFLAG(relayCommand, RelayCmd_EnablePID_BLDC)) {
-		// Cho phép tính toán PID và khởi chạy encoder
-		HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+		// Cho phép tính toán PID và reset số đếm encoder
+		Encoder_t encBLDC = brd_GetObjEncBLDC();
+		encoder_ResetCount(&encBLDC); // địa chỉ con trỏ biến tạm, không phải biến thực sự
+		brd_SetObjEncBLDC(encBLDC); // cần phải nạp giá trị biến tạm vào biến thực sự trong BoardParameter
 		BLDC_IsEnablePID = true;
 		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
 			brd_SetTargetSpeedBLDC(appTargetSpeedBLDC);
@@ -111,8 +120,7 @@ static void SelectRunMotorInManualOrPID() {
 			brd_SetTargetSpeedBLDC(0);
 	}
 	else { // Nếu không bật PID
-		   // Tắt tính toán PID và tắt đọc encoder
-		HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
+		   // Tắt tính toán PID
 		BLDC_IsEnablePID = false;
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
 		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
@@ -124,20 +132,24 @@ static void SelectRunMotorInManualOrPID() {
 
 	// Điều khiển chạy động cơ DC
 	if (CHECKFLAG(relayCommand, RelayCmd_EnablePID_DC)) {
-		HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+		Encoder_t encDC = brd_GetObjEncDC();
+		encoder_ResetCount(&encDC); // địa chỉ con trỏ biến tạm, không phải biến thực sự
+		brd_SetObjEncDC(encDC); // cần phải nạp giá trị biến tạm vào biến thực sự trong BoardParameter
 		DC_IsEnablePID = true;
-		// PID ở đây là của vị trí góc quay động cơ nên setpoint là góc quay
-		// không phải tốc độ động cơ, do đó không thể nhập góc 0 để dừng động cơ được
+		/* PID ở đây là của vị trí góc quay động cơ nên setpoint là góc quay
+		 * không phải tốc độ động cơ, do đó không thể nhập góc 0 để dừng động cơ được
+		 * mà thậm chí khiến động cơ quay về 0 độ, do đó cần lấy góc hiện tại nạp vào targeAngle
+		 */
 		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
 			brd_SetTargetAngleDC(appTargetAngleDC);
 		}
-//		else{
-//			PID_Param pidSpeedDC = brd_GetPID(PID_DC_SPEED)
-//		}
+		else {
+			brd_SetTargetAngleDC(brd_GetCurrentAngleDC());
+		}
 	}
 	else {		// Nếu không bật PID
-		// Tắt tính toán PID và tắt đọc encoder
-		HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
+		// Tắt tính toán PID
+
 		DC_IsEnablePID = false;
 		MotorDC mdc = brd_GetObjMotorDC();
 		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
@@ -205,7 +217,15 @@ static void ReceiveCommandHandler(CommandList cmdlist)
 			IsSetHome = true;
 			break;
 		case CMD_Swerve_UntangleBLDC:
-			UntangleBLDC = true;
+			untangleBLDC = true;
+			break;
+		case CMD_Swerve_GetCurrentAngleDC:
+			appCurrentAngleDC++;
+			SendArgumentToApp(cmdlist);
+			break;
+		case CMD_Swerve_GetCurrentSpeedBLDC:
+			appCurrentSpeedBLDC++;
+			SendArgumentToApp(cmdlist);
 			break;
 		default:
 			break;
