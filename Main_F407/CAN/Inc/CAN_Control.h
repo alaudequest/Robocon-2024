@@ -9,7 +9,7 @@
 #define INC_CAN_CONTROL_H_
 #include "main.h"
 #include "stdbool.h"
-//#include "Flag.h"
+#include "Flag.h"
 
 #define CAN_DEVICE_POS 8
 typedef enum CAN_MODE_ID{
