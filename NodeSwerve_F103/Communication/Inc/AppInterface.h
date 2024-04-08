@@ -63,6 +63,7 @@ typedef enum AppErrorCode {
 	APPERR_OUT_OF_BUFFER_SIZE,
 	APPERR_UART_PORT_NULL,
 	APPERR_SEND_FRAME_FAIL,
+	APPERR_REFERENCE_PAYLOAD_NOT_FOUND,
 	APPERR_PAYLOAD_NOT_RECOGNIZE,
 	APPERR_STORE_BUFFER_IS_NULL,
 	APPERR_END,
@@ -100,7 +101,7 @@ void appintf_ErrorHandler(AppErrorCode err);
 void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
 void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err));
 void appintf_SendFrame();
-AppErrorCode appintf_MakeFrame(CommandList cmdlist);
+void appintf_MakeFrame(CommandList cmdlist);
 void appintf_GetValueFromPayload();
 void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData);
 void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmdlist);

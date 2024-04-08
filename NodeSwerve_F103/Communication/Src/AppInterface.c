@@ -28,6 +28,7 @@ ArgumentOfCommandList_t argCmd[CMD_MainF4_RB2_End - 1];
 static void ResetFrameData();
 static bool IsPassCRC();
 static void DecodeFrameDataAndCheckCRC();
+static inline void jumpToError(AppErrorCode err);
 
 void appintf_Init(UART_HandleTypeDef *huart, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize) {
 	pAppUART = huart;
@@ -53,20 +54,15 @@ void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err)
 
 void appintf_GetValueFromPayload() {
 	if (fd.payloadLength != argCmd[fd.cmdList].sizeArgument)
-		if (pAppErr != NULL)
-			pAppErr(APPERR_PAYLOAD_NOT_RECOGNIZE);
+		jumpToError(APPERR_PAYLOAD_NOT_RECOGNIZE);
 	uint32_t payloadField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
 	if (argCmd[fd.cmdList].pArg != NULL)
 		memcpy(argCmd[fd.cmdList].pArg, _pRxBuffer + payloadField, fd.payloadLength); //offset to payloadField in receive buffer
 }
 
 void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData) {
-	if (fd.payloadLength != sizeData) {
-		if (pAppErr != NULL)
-			pAppErr(APPERR_PAYLOAD_NOT_RECOGNIZE);
-		else
-			return;
-	}
+	if (fd.payloadLength != sizeData)
+		jumpToError(APPERR_PAYLOAD_NOT_RECOGNIZE);
 	uint32_t payloadField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
 	if (outData != NULL)
 		memcpy(outData, _pRxBuffer + payloadField, fd.payloadLength); //offset to payloadField in receive buffer
@@ -85,11 +81,7 @@ static void DecodeFrameDataAndCheckCRC() {
 	fd.cmdList = *(_pRxBuffer + 1);
 	fd.crc16 = crcNibbleByteMSB | crcNibbleByteLSB;
 	if (!IsPassCRC()) {
-		if (pAppErr != NULL)
-			pAppErr(APPERR_CRC_FAIL);
-		else
-			while (1)
-				;
+		jumpToError(APPERR_CRC_FAIL);
 	}
 
 }
@@ -151,20 +143,10 @@ void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart) {
 	}
 }
 
-AppErrorCode appintf_MakeFrame(CommandList cmdlist) {
-	uint32_t totalLength = fd.totalLength = APP_DATA_LENGTH
-			+ APP_COMMAND_LIST_LENGTH
-			+ argCmd[cmdlist].sizeArgument
-			+ APP_CRC_LENGTH;
-	if (totalLength > _txBufSize) {
-		if (pAppErr != NULL)
-			pAppErr(APPERR_OUT_OF_BUFFER_SIZE);
-		else
-			while (1)
-				;
-	}
+void appintf_MakeFrame(CommandList cmdlist) {
+	jumpToError(APPERR_OUT_OF_BUFFER_SIZE);
 	if (!argCmd[cmdlist].pArg)
-		return APPERR_STORE_BUFFER_IS_NULL;
+		jumpToError(APPERR_REFERENCE_PAYLOAD_NOT_FOUND);
 	if (!isTxBufferEmpty)
 		memset(_pTxBuffer, 0, _txBufSize);
 	fd.isOnProcess = true;
@@ -186,7 +168,39 @@ AppErrorCode appintf_MakeFrame(CommandList cmdlist) {
 	// The last 2 bytes is CRC16
 	memcpy(_pTxBuffer + crcField, temp, 2);
 	isTxBufferEmpty = false;
-	return APPERR_OK;
+}
+
+void appintf_MakeFrame_2(void *payloadData, uint8_t sizeOfPayloadData, CommandList cmdlist) {
+	uint32_t totalLength = fd.totalLength = APP_DATA_LENGTH
+			+ APP_COMMAND_LIST_LENGTH
+			+ sizeOfPayloadData
+			+ APP_CRC_LENGTH;
+	if (totalLength > _txBufSize)
+		jumpToError(APPERR_OUT_OF_BUFFER_SIZE);
+	if (payloadData == NULL)
+		jumpToError(APPERR_REFERENCE_PAYLOAD_NOT_FOUND);
+	if (!isTxBufferEmpty)
+		memset(_pTxBuffer, 0, _txBufSize);
+	fd.isOnProcess = true;
+	uint32_t payloadField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH;
+	uint16_t crcResult;
+	uint32_t crcField = APP_COMMAND_LIST_LENGTH + APP_DATA_LENGTH + sizeOfPayloadData;
+	fd.payloadLength = sizeOfPayloadData;
+	crcResult = crc16_Unreflected((uint8_t*) payloadData, sizeOfPayloadData, 0);
+	uint8_t temp[2] = { crcResult >> 8, crcResult & 0xff };
+	*(_pTxBuffer + 0) = sizeOfPayloadData;
+	*(_pTxBuffer + 1) = (uint8_t) cmdlist;
+	memcpy(_pTxBuffer + payloadField, payloadData, sizeOfPayloadData);
+	memcpy(_pTxBuffer + crcField, temp, 2);
+	isTxBufferEmpty = false;
+}
+
+static inline void jumpToError(AppErrorCode err)
+{
+	if (pAppErr != NULL)
+		pAppErr(err);
+	else
+		while (1);
 }
 
 void appintf_SendFrame() {
