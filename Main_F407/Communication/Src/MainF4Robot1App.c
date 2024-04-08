@@ -33,7 +33,21 @@ void MainF4Robot1App_Init()
 
 static void RelayCommandHandler()
 {
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall1)) {
 
+	}
+
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall2)) {
+
+	}
+
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall1)) {
+
+	}
+
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall2)) {
+
+	}
 }
 
 static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist)

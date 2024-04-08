@@ -23,6 +23,7 @@ typedef enum CommandList {
 	CMD_Swerve_SetTargetAngleDC,
 	CMD_Swerve_GetCurrentSpeedBLDC,
 	CMD_Swerve_GetCurrentAngleDC,
+	CMD_Swerve_UntangleBLDC,
 	CMD_Swerve_SetHome,
 	CMD_Swerve_End, //not use
 	CMD_MainF4_RB1_Start = 0, //not use
@@ -62,6 +63,7 @@ typedef enum AppErrorCode {
 	APPERR_OUT_OF_BUFFER_SIZE,
 	APPERR_UART_PORT_NULL,
 	APPERR_SEND_FRAME_FAIL,
+	APPERR_REFERENCE_PAYLOAD_NOT_FOUND,
 	APPERR_PAYLOAD_NOT_RECOGNIZE,
 	APPERR_STORE_BUFFER_IS_NULL,
 	APPERR_END,
@@ -94,12 +96,14 @@ typedef void (*pCpltCallback)(CommandList cmdlist);
 typedef void (*pErrorCallback)(AppErrorCode err);
 
 void appintf_Init(UART_HandleTypeDef *huart, uint8_t *pTxBuffer, uint8_t txSize, uint8_t *pRxBuffer, uint8_t rxSize);
+void appintf_Reset();
 void appintf_ReceiveDataInterrupt(UART_HandleTypeDef *huart);
 void appintf_ErrorHandler(AppErrorCode err);
 void appintf_RegisterReceivedCallbackEvent(void (*pCpltCallback)(CommandList cmdlist));
 void appintf_RegisterErrorCallbackEvent(void (*pErrorCallback)(AppErrorCode err));
 void appintf_SendFrame();
-AppErrorCode appintf_MakeFrame(CommandList cmdlist);
+void appintf_MakeFrame(CommandList cmdlist);
+void appintf_MakeFrame_2(void *payloadData, uint8_t sizeOfPayloadData, CommandList cmdlist);
 void appintf_GetValueFromPayload();
 void appintf_GetValueFromPayload_2(void *outData, uint8_t sizeData);
 void appintf_RegisterArgument(void *arg, uint8_t sizeOfArgument, CommandList cmdlist);
