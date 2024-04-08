@@ -65,7 +65,9 @@ TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart3;
+UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart6_rx;
 
 osThreadId defaultTaskHandle;
 osThreadId TaskInvKineHandle;
@@ -149,6 +151,7 @@ static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_USART6_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -168,17 +171,17 @@ float gunTarget1, gunTarget2;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == ENC_3A_Pin){
 		if(HAL_GPIO_ReadPin(ENC_3B_GPIO_Port, ENC_3B_Pin)){
-			gunCount1++;
-		}
-		else
-			gunCount1--;
-	}
-	if(GPIO_Pin == ENC_1A_Pin){
-		if(HAL_GPIO_ReadPin(ENC_1B_GPIO_Port, ENC_1B_Pin)){
 			gunCount2--;
 		}
 		else
 			gunCount2++;
+	}
+	if(GPIO_Pin == ENC_1A_Pin){
+		if(HAL_GPIO_ReadPin(ENC_1B_GPIO_Port, ENC_1B_Pin)){
+			gunCount1++;
+		}
+		else
+			gunCount1--;
 	}
 }
 
@@ -245,6 +248,7 @@ int CurrAngle;
 
 char ds[12];
 uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
+uint8_t uart6_ds[1], distanceArray[1];
 
 void Receive(uint8_t *DataArray){
       uint8_t *pInt = NULL;
@@ -265,6 +269,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 			Receive(uart2_ds);
 		  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+	}
+	if(huart -> Instance == USART6){
+		memcpy(distanceArray,uart6_ds,1);
+		memset(uart6_ds,0,1);
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart6, uart6_ds, 1);
+		__HAL_DMA_DISABLE_IT(&hdma_usart6_rx,DMA_IT_HT);
 	}
 }
 
@@ -349,6 +359,7 @@ int main(void)
   MX_TIM10_Init();
   MX_USART1_UART_Init();
   MX_TIM5_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -815,6 +826,39 @@ static void MX_USART3_UART_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -824,6 +868,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -2485,7 +2532,7 @@ if((stateRun<4)||((stateRun>8)&&(stateRun<15))||(stateRun>18)){
 * @retval None
 */
 bool testTick = true;
-uint16_t speed = 50;
+uint16_t speed = 500;
 
 HAL_StatusTypeDef Delay_tick(uint32_t delay) {
 	static TickType_t xStartTime = 0;
@@ -2498,13 +2545,15 @@ HAL_StatusTypeDef Delay_tick(uint32_t delay) {
 	}
 	return HAL_BUSY;
 }
+bool IsShoot = false;
+uint16_t pwmTest;
 /* USER CODE END Header_GunHandle */
 void GunHandle(void const * argument)
 {
   /* USER CODE BEGIN GunHandle */
 	gun_Init();
 //	bool IsGetBall = false;
-	bool IsShoot = false;
+//	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
   /* Infinite loop */
   for(;;)
@@ -2518,47 +2567,34 @@ void GunHandle(void const * argument)
 		  xStartTime = xTaskGetTickCount();
 	  }
 	  if(IsShoot){
-		  gun_PIDSpeed1(gunTarget1);
-		  gun_PIDSpeed2(gunTarget2);
-		  gun_VelCal(gunCount1, gunCount2);
+//		  gun_StartShootBall(pwmTest);
+//		  gun_PIDSpeed1(gunTarget1);
+//		  gun_PIDSpeed2(gunTarget2);
 		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
+//		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
 //			  IsGetBall = 0;
 // SẼ UNCOMMENT HÀNG NÀY SAU KHI CODE XONG	IsShoot = 0;
-			  xOccurredTime = 0;
+//			  xOccurredTime = 0;
 //			  xStartTime = xTaskGetTickCount();
-		  }else{
+//		  }else{
 //			  gun_StartGetBall();
-			  if(xOccurredTime > 4000/portTICK_PERIOD_MS){
-//				  gun_PIDSpeed1(gunTarget1);
-//				  gun_PIDSpeed2(gunTarget2);
+			  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
+				  gun_PIDSpeed1(6000);
+				  gun_PIDSpeed2(6000);
 //				  gun_VelCal(gunCount1, gunCount2);
 //				  gun_StartShootBall(750);
 
 			  }else {
+				  gun_PIDSpeed1(speed);
+				  gun_PIDSpeed2(speed);
 //				  gun_StartShootBall(speed);
 				  if(Delay_tick(200) == HAL_OK) {
-					  speed += 35;
+					  speed += 200;
 				  }
 			  }
+		  gun_VelCal(gunCount1, gunCount2);
 		  }
-//	  }else if(IsShoot) {
-//		  xOccurredTime = xTaskGetTickCount() - xStartTime;
-//		  if(xOccurredTime > 2000/portTICK_PERIOD_MS){
-//			  gun_StopGetBall();
-//			  gun_StopShootBall();
-//			  IsShoot = 0;
-//			  xOccurredTime = 0;
-//			  speed = 0;
-//		  }else {
-//			  gun_StartShootBall(speed);
-//			  if(Delay_tick(500) == HAL_OK) {
-//				  speed += 200;
-//			  }
-//		  }
-	  }else {
-		  gun_StopAll();
-	  }
+
 
     osDelay(5);
   }
