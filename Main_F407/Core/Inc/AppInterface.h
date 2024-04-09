@@ -9,6 +9,7 @@
 #define INC_APPINTERFACE_H_
 #include "main.h"
 #include "string.h"
+#include "stdbool.h"
 
 #define COMMAND_LIST_LENGTH 1
 #define CRC16_LEN	2
