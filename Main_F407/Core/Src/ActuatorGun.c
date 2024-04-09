@@ -71,16 +71,16 @@ void gun_StopAll() {
 }
 
 void gun_VelCal(int gunCount1, int gunCount2){
-	VelCal(&ENC_Gun1,gunCount1, 300,0.005);
-	VelCal(&ENC_Gun2,gunCount2, 300,0.005);
+	VelCal(&ENC_Gun1,gunCount1, DCEncoderPerRound,Gun1DeltaT);
+	VelCal(&ENC_Gun2,gunCount2, DCEncoderPerRound,Gun2DeltaT);
 }
 
 void gun_PIDSpeed1(float Target1){
 	PID_Cal(&PID_Gun1, Target1,ENC_Gun1.vel_Real);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, PID_Gun1.u);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, PID_Gun1.uHat);
 }
 
 void gun_PIDSpeed2(float Target2){
 	PID_Cal(&PID_Gun2, Target2,ENC_Gun2.vel_Real);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, PID_Gun2.u);
+	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, PID_Gun2.uHat);
 }

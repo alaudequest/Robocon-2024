@@ -28,6 +28,8 @@
 #include "BoardParameter.h"
 #include "PID_SwerveModule.h"
 #include "SetHome.h"
+#include "NodeSwerve_AppInterface.h"
+#include "AngleOptimizer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,6 +56,8 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
+UART_HandleTypeDef huart1;
+
 osThreadId defaultTaskHandle;
 osThreadId TaskCalcPIDHandle;
 uint32_t TaskCalcPIDBuffer[ 128 ];
@@ -61,11 +65,18 @@ osStaticThreadDef_t TaskCalcPIDControlBlock;
 osThreadId TaskHandleCANHandle;
 uint32_t TaskHandleCANBuffer[ 128 ];
 osStaticThreadDef_t TaskHandleCANControlBlock;
+osThreadId TaskPIDSpeedHandle;
 osMessageQId qCANHandle;
 /* USER CODE BEGIN PV */
 uint8_t TestMode = 0;
 QueueHandle_t qPID, qHome;
 bool IsSetHome = false;
+bool BLDC_IsEnablePID = true;
+bool DC_IsEnablePID = true;
+uint8_t XaDay = 0;
+float test1;
+
+uint32_t pageError = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,9 +86,11 @@ static void MX_CAN_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTaskPID(void const * argument);
 void StartCANbus(void const * argument);
+void StartTaskPIDSpeed(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
@@ -150,10 +163,29 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			break;
 		case CANCTRL_MODE_SET_HOME:
 			break;
+		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
+			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
+//			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+			nodeSpeedAngle.bldcSpeed = brd_GetCurrentCountBLDC();
+			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
+			canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
+			canctrl_PutMessage((void*)&nodeSpeedAngle, sizeof(nodeSpeedAngle));
+			canctrl_Send(&hcan,*(__IO uint32_t*) FLASH_ADDR_TARGET);
+			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-			bool brake = canfunc_GetBoolValue();
-			MotorBLDC mbldc = brd_GetObjMotorBLDC();
-			MotorBLDC_Brake(&mbldc, brake);
+//			bool brake = canfunc_GetBoolValue();
+//			MotorBLDC mbldc = brd_GetObjMotorBLDC();
+//			MotorBLDC_Brake(&mbldc, brake);
+			if(canfunc_GetBoolValue()) {
+				HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
+				PID_ALL_Enable(0);
+			}
+			else {
+				HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+				HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+				PID_ALL_Enable(1);
+			}
 		break;
 		case CANCTRL_MODE_PID_BLDC_BREAKPROTECTION:
 			uint8_t Break = canfunc_GetBoolValue();
@@ -174,6 +206,11 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			case CANCTRL_MODE_PID_BLDC_SPEED:
 			canfunc_GetPID(&can_GetPID_CompleteCallback);
 		break;
+			case CANCTRL_MODE_UNTANGLE_WIRE:
+				if(canfunc_GetBoolValue())
+					XaDay = 1;
+				else XaDay = 0;
+				break;
 		case CANCTRL_MODE_START:
 			case CANCTRL_MODE_END:
 			break;
@@ -187,11 +224,12 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
 		break;
-		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-			CAN_RTR_Encx4BLDC_AngleDC rtrData;
-			rtrData.encx4BLDC = brd_GetCurrentCountBLDC();
-			rtrData.dcAngle = brd_GetCurrentAngleDC();
-			canfunc_RTR_SetEncoderX4CountBLDC_Angle(can, rtrData);
+//		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
+//			CAN_SpeedBLDC_AngleDC speedAngle;
+////			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
+//			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
+//			speedAngle.dcAngle = brd_GetCurrentAngleDC();
+//			canfunc_RTR_SpeedAngle(can, speedAngle);
 		break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);
@@ -227,11 +265,11 @@ void Flash_Write(CAN_DEVICE_ID ID) {
 	fe.Banks = FLASH_BANK_1;
 	uint32_t pageErr = 0;
 	HAL_FLASH_Unlock();
-	if (HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
+	if(HAL_FLASHEx_Erase(&fe, &pageErr) != HAL_OK) {
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
-	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, (uint32_t) ID) != HAL_OK) {
+	if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, (uint32_t) ID) != HAL_OK) {
 //		 return HAL_FLASH_GetError();
 		while (1);
 	}
@@ -246,6 +284,11 @@ void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
 	__NOP();
 //	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	appintf_ReceiveDataInterrupt(huart);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -280,15 +323,30 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-	__HAL_DBGMCU_FREEZE_TIM2();
 	brd_Init();
 	qPID = xQueueCreate(2, sizeof(float));
 	qHome = xQueueCreate(1, sizeof(bool));
 
+	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
+	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
-
+//	HAL_FLASH_Unlock();
+//	FLASH_EraseInitTypeDef EraseInitStruct;
+//	EraseInitStruct.Banks = 1;
+//	EraseInitStruct.TypeErase  = FLASH_TYPEERASE_PAGES;
+//	EraseInitStruct.PageAddress = FLASH_ADDR_TARGET;
+//	EraseInitStruct.NbPages    = 1;
+//	if (HAL_FLASHEx_Erase(&EraseInitStruct, &pageError) != HAL_OK){
+//	   return HAL_FLASH_GetError ();
+//	}
+//	if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_ADDR_TARGET, 0x01) != HAL_OK){
+//	return HAL_FLASH_GetError ();
+//	}
+//	HAL_FLASH_Lock();
+//	uint32_t testFlash = *(__IO uint32_t*)FLASH_ADDR_TARGET;
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -324,6 +382,10 @@ int main(void)
   /* definition and creation of TaskHandleCAN */
   osThreadStaticDef(TaskHandleCAN, StartCANbus, osPriorityAboveNormal, 0, 128, TaskHandleCANBuffer, &TaskHandleCANControlBlock);
   TaskHandleCANHandle = osThreadCreate(osThread(TaskHandleCAN), NULL);
+
+  /* definition and creation of TaskPIDSpeed */
+  osThreadDef(TaskPIDSpeed, StartTaskPIDSpeed, osPriorityHigh, 0, 128);
+  TaskPIDSpeedHandle = osThreadCreate(osThread(TaskPIDSpeed), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -576,6 +638,39 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -624,14 +719,12 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 void SethomeHandle() {
-	if (xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+	if(xQueueReceive(qHome, (void*) &IsSetHome, 1 / portTICK_PERIOD_MS) == pdTRUE) {
 		brd_SetTargetAngleDC(0);
 		brd_SetSpeedBLDC(0);
 	}
 }
-
 /* USER CODE END 4 */
-
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
  * @brief  Function implementing the defaultTask thread.
@@ -639,30 +732,30 @@ void SethomeHandle() {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const *argument)
+void StartDefaultTask(void const * argument)
 {
-	/* USER CODE BEGIN 5 */
-	SET_HOME_DEFAULT_TASK:
-	sethome_Begin();
-	while (!sethome_IsComplete()) {
-		sethome_Procedure();
-		float speed = sethome_GetSpeed();
-		xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
-		osDelay(1);
-	}
-	SetHomeCompleteCallback();
-	IsSetHome = 0;
-	/* Infinite loop */
-
-	for (;;) {
-		SethomeHandle();
-		if (IsSetHome) {
+	  /* USER CODE BEGIN 5 */
+		SET_HOME_DEFAULT_TASK:
+		sethome_Begin();
+		while (!sethome_IsComplete()) {
+			sethome_Procedure();
+			float speed = sethome_GetSpeed();
+			xQueueSend(qPID, (const void* )&speed, 10/portTICK_PERIOD_MS);
 			osDelay(1);
-			goto SET_HOME_DEFAULT_TASK;
 		}
-		osDelay(1);
-	}
-  /* USER CODE END 5 */
+		SetHomeCompleteCallback();
+		IsSetHome = 0;
+		/* Infinite loop */
+
+		for (;;) {
+			SethomeHandle();
+			if (IsSetHome) {
+				osDelay(1);
+				goto SET_HOME_DEFAULT_TASK;
+			}
+			osDelay(1);
+		}
+	  /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartTaskPID */
@@ -671,33 +764,37 @@ void StartDefaultTask(void const *argument)
  * @param argument: Not used
  * @retval None
  */
-int TestTarget;
+float test1;
+
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const * argument)
 {
-  /* USER CODE BEGIN StartTaskPID */
-	SET_HOME_PID_TASK: float TargetValue = 0;
-	while (!sethome_IsComplete()) {
-		xQueueReceive(qPID, &TargetValue, 0);
-		PID_DC_CalSpeed((float) TargetValue);
-		osDelay(5);
-	}
-	/* Infinite loop */
-	for (;;) {
-		if (IsSetHome) {
-			PID_BLDC_BreakProtection(1);
-			osDelay(1000);
-			PID_BLDC_BreakProtection(0);
-			goto SET_HOME_PID_TASK;
+	  /* USER CODE BEGIN StartTaskPID */
+		SET_HOME_PID_TASK: float TargetValue = 0;
+		while (!sethome_IsComplete()) {
+			xQueueReceive(qPID, &TargetValue, 0);
+			PID_DC_CalSpeed((float) TargetValue);
+			osDelay(2);
 		}
+		/* Infinite loop */
+		for (;;) {
+			if (IsSetHome) {
+				osDelay(1);
+				goto SET_HOME_PID_TASK;
+			}
+			if (XaDay == 0){
+	//			PID_DC_CalPos(test1);
+				PID_DC_CalPos(brd_GetTargetAngleDC());
+			}
+			else{
 
-		PID_DC_CalPos(brd_GetTargetAngleDC());
-		PID_BLDC_CalSpeed(brd_GetSpeedBLDC());
-//		PID_DC_CalPos(TestTarget);
+				PID_DC_XaDay();
+	//			PID_DC_CalPos(0);
+			}
 
-		osDelay(5);
-	}
-  /* USER CODE END StartTaskPID */
+			osDelay(2);
+		}
+	  /* USER CODE END StartTaskPID */
 }
 
 /* USER CODE BEGIN Header_StartCANbus */
@@ -714,12 +811,12 @@ void StartCANbus(void const * argument)
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
-		if (xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
+		if(xTaskNotifyWait(pdFALSE, pdFALSE, &modeID, portMAX_DELAY)) {
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
-			if (((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
-				if (rxHeader.RTR == CAN_RTR_REMOTE)
+			if(((rxHeader.StdId >> CAN_DEVICE_POS) == *(__IO uint32_t*) FLASH_ADDR_TARGET)) {
+				if(rxHeader.RTR == CAN_RTR_REMOTE)
 					handle_CAN_RTR_Response(&hcan, modeID);
-				if (rxHeader.RTR == CAN_RTR_DATA)
+				if(rxHeader.RTR == CAN_RTR_DATA)
 					handleFunctionCAN((CAN_MODE_ID) modeID);
 			}
 			HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
@@ -727,6 +824,82 @@ void StartCANbus(void const * argument)
 //    osDelay(1);
 	}
   /* USER CODE END StartCANbus */
+}
+
+/* USER CODE BEGIN Header_StartTaskPIDSpeed */
+/**
+* @brief Function implementing the TaskPIDSpeed thread.
+* @param argument: Not used
+* @retval None
+*/
+float test;
+void SetPIDonSlowVel()
+{
+	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+	pid.kP = 0.03;
+	pid.kI = 2.5;
+	brd_SetPID(pid, PID_BLDC_SPEED);
+}
+void SetPIDonFastVel()
+{
+	PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+	pid.kP = 0.03;
+	pid.kI = 5;
+	brd_SetPID(pid, PID_BLDC_SPEED);
+}
+/* USER CODE END Header_StartTaskPIDSpeed */
+void StartTaskPIDSpeed(void const * argument)
+{
+	  /* USER CODE BEGIN StartTaskPIDSpeed */
+		SET_HOME_PID_SPEED:
+		PID_BLDC_BreakProtection(1);
+		osDelay(1000);
+		PID_BLDC_BreakProtection(0);
+		while(!sethome_IsComplete()){
+			osDelay(1000);
+			sethome_fake();
+		}
+
+	  /* Infinite loop */
+	  for(;;)
+	  {
+		if (IsSetHome) {
+			goto SET_HOME_PID_SPEED;
+		}
+		int direct = angopt_QuadRantCheckOutput2(brd_GetTargetAngleDC(),angopt_GetOptAngle());
+	//	int direct = angopt_QuadRantCheckOutput2(test1,angopt_GetOptAngle());
+		Encoder_t encBLDC1 = brd_GetObjEncBLDC();
+		if ((abs(brd_GetSpeedBLDC()) < 0.5&&abs(encBLDC1.vel_Real)<0.5)||XaDay == 1)
+		{
+			HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 1);
+			PID_Param pid = brd_GetPID(PID_BLDC_SPEED);
+			Encoder_t encBLDC = brd_GetObjEncBLDC();
+			MotorBLDC mbldc = brd_GetObjMotorBLDC();
+			MotorBLDC_Drive(&mbldc, 0);
+
+
+			pid.uI = 0;
+			pid.e = 0;
+			pid.u = 0;
+			pid.uHat = 0;
+			encoder_ResetCount(&encBLDC);
+			brd_SetPID(pid, PID_BLDC_SPEED);
+			brd_SetObjEncBLDC(encBLDC);
+
+		}else{
+
+			HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, 0);
+	//		if (abs(brd_GetSpeedBLDC())>100)
+	//		{
+	//			SetPIDonFastVel();
+	//		}else{
+	//			SetPIDonSlowVel();
+	//		}
+			PID_BLDC_CalSpeed(direct*brd_GetSpeedBLDC());
+		}
+	    osDelay(2);
+	  }
+	  /* USER CODE END StartTaskPIDSpeed */
 }
 
 /**

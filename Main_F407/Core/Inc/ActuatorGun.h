@@ -13,29 +13,29 @@
 #include "Encoder.h"
 
 /*-----------------------------Begin:PID GUN1 Macro(SPEED)----------------------*/
-#define Gun1Proportion 			0.5
-#define Gun1Integral			10
+#define Gun1Proportion 			0.1
+#define Gun1Integral			8
 #define Gun1Derivatite			0
 #define Gun1Alpha				0
-#define Gun1DeltaT				0.005
+#define Gun1DeltaT				0.01
 #define Gun1SumAboveLimit 		1000
-#define Gun1SumBelowLimit		-1000
+#define Gun1SumBelowLimit		0
 
 /*-----------------------------End:PID GUN1 Macro(SPEED)------------------------*/
 
 /*-----------------------------Begin:PID GUN2 Macro(SPEED)----------------------*/
-#define Gun2Proportion 			0.8
-#define Gun2Integral			10
+#define Gun2Proportion 			0.1
+#define Gun2Integral			8
 #define Gun2Derivatite			0
 #define Gun2Alpha				0
-#define Gun2DeltaT				0.005
+#define Gun2DeltaT				0.01
 #define Gun2SumAboveLimit 		1000
-#define Gun2SumBelowLimit		-1000
+#define Gun2SumBelowLimit		0
 
 /*-----------------------------End:PID GUN2 Macro(SPEED)------------------------*/
 
 
-#define DCEncoderPerRound 					1000
+#define DCEncoderPerRound 					25
 #define DCGearRatio 						3.535 // tỉ số truy�?n 2 puly 1/4
 
 void gun_Init();
