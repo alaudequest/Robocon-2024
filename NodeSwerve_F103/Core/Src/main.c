@@ -784,7 +784,11 @@ void StartTaskPID(void const * argument)
 			}
 			if (XaDay == 0){
 	//			PID_DC_CalPos(test1);
-				PID_DC_CalPos(brd_GetTargetAngleDC());
+				float rawAngle = brd_GetTargetAngleDC();
+				//			float rawAngle = TestAngle;
+				angopt_Cal(rawAngle);
+
+				PID_DC_CalPos(angopt_GetOptAngle());
 			}
 			else{
 
@@ -856,8 +860,8 @@ void StartTaskPIDSpeed(void const * argument)
 		osDelay(1000);
 		PID_BLDC_BreakProtection(0);
 		while(!sethome_IsComplete()){
-			osDelay(1000);
-			sethome_fake();
+			osDelay(1);
+//			sethome_fake();
 		}
 
 	  /* Infinite loop */
