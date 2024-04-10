@@ -13,7 +13,7 @@ void PID_DC_CalSpeed(float Target_set)
 	MotorDC mdc = brd_GetObjMotorDC();
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_SPEED);
-	float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encDC));
+	float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encDC));
 	brd_SetPID(pid, PID_DC_SPEED);
 	brd_SetObjEncDC(encDC);
 	MotorDC_Drive(&mdc, (int32_t) result);
@@ -23,7 +23,7 @@ void PID_DC_CalPos(float Target_set)
 {
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
-	float result = PID_Calculate(&pid, Target_set, encoder_GetPulse(&encDC, MODE_ANGLE));
+	float result = PID_Cal(&pid, Target_set, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
 	PID_DC_CalSpeed(result);
@@ -39,7 +39,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 	}
 	else if (Target_set != 0) {
 		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
-		float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encBLDC));
+		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
 		MotorBLDC_Drive(&mbldc, (int32_t) result);
 		brd_SetObjEncBLDC(encBLDC);
 		brd_SetPID(pid, PID_BLDC_SPEED);
