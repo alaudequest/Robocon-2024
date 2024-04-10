@@ -153,11 +153,6 @@ static void SelectRunMotorInManualOrPID() {
 		DC_IsEnablePID = false;
 		MotorDC mdc = brd_GetObjMotorDC();
 		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
-			// giới hạn tốc độ quay DC
-			if (appTargetAngleDC > 200)
-				appTargetAngleDC = 200;
-			else if (appTargetAngleDC < -200)
-				appTargetAngleDC = -200;
 			MotorDC_Drive(&mdc, appTargetAngleDC);
 		}
 		else

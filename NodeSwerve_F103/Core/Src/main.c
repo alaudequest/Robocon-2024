@@ -29,6 +29,7 @@
 #include "PID_SwerveModule.h"
 #include "SetHome.h"
 #include "NodeSwerve_AppInterface.h"
+#include "AngleOptimizer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -310,6 +311,7 @@ int main(void)
 	/* MCU Configuration--------------------------------------------------------*/
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
@@ -339,6 +341,8 @@ int main(void)
 	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
+
+	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
 
 	/* USER CODE END 2 */
 
@@ -757,6 +761,7 @@ void StartDefaultTask(void const *argument)
  */
 int EncoderCount = 0;
 float EncoderAngle = 0;
+float TestSpeed,TestAngle;
 /* USER CODE END Header_StartTaskPID */
 void StartTaskPID(void const *argument)
 {
@@ -779,12 +784,26 @@ void StartTaskPID(void const *argument)
 		if (IsSetHome)
 			goto SET_HOME_PID_TASK;
 		if (DC_IsEnablePID)
-			PID_DC_CalPos(brd_GetTargetAngleDC());
+		{
+			float rawAngle = brd_GetTargetAngleDC();
+//			float rawAngle = TestAngle;
+			angopt_Cal(rawAngle);
+
+			PID_DC_CalPos(angopt_GetOptAngle());
+		}
+//			PID_DC_CalPos(TestAngle);
 		if (BLDC_IsEnablePID) {
 			if (untangleBLDC == true)
 				PID_BLDC_CalSpeed(0);
-			else
-				PID_BLDC_CalSpeed(brd_GetTargetSpeedBLDC());
+			else{
+				int direct = angopt_QuadRantCheckOutput2(brd_GetTargetAngleDC(),angopt_GetOptAngle());
+//				int direct = angopt_QuadRantCheckOutput2(TestAngle,angopt_GetOptAngle());
+				PID_BLDC_CalSpeed(direct*brd_GetTargetSpeedBLDC());
+//				PID_BLDC_CalSpeed(direct*TestSpeed);
+			}
+
+		}else{
+			HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
 		}
 		osDelay(5);
 	}
