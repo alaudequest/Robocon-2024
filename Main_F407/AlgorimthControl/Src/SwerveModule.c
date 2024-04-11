@@ -68,7 +68,7 @@ void swer2_CalVector(float u, float v, float r){
 
 void swer3_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 180*M_PI/180;
+	float alpha = 0*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY3*r) - sin(alpha)*(v + DX3*r);
 	vct.wheelVelY = sin(alpha)*(u - DY3*r) + cos(alpha)*(v + DX3*r);
 	swer_SetWheelVector(MODULE_ID_3, vct);
@@ -87,4 +87,5 @@ void swer_Init(){
 void swer_SetWheelVector(ModuleID ID,WheelVector vct){swerParam[ID].vct = vct;}
 WheelVector swer_GetWheelVector(ModuleID ID){return swerParam[ID].vct;}
 pVectorCalXY swer_GetFuncHandle(ModuleID ID){return *swerParam[ID].pVctXY;}
-
+void swer_SetOptAngle(ModuleID ID,Angle_Opt_Param angleOpt){swerParam[ID].angleOpt = angleOpt;}
+Angle_Opt_Param swer_GetOptAngle(ModuleID ID){return swerParam[ID].angleOpt;}

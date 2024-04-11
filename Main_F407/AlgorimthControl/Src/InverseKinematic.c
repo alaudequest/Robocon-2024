@@ -9,6 +9,7 @@
 #include "main.h"
 int Count;
 extern TIM_HandleTypeDef htim10;
+float rawAngle;
 InverseKinematicProcedure InvCalcStep = 0;
 
 void invkine_CalWheelVector(ModuleID ID, float u, float v, float r){
@@ -31,14 +32,18 @@ HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r
 	invkine_CalWheelVector(ID, u, v, r);
 	WheelVector vect = swer_GetWheelVector(ID);
 
-	float rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
+
 	velocity = invkine_CalSpeedVectorControl(ID);
+	Angle_Opt_Param angopt = swer_GetOptAngle(ID);
 
-	if(u == 0&&v==0&&r==0)rawAngle= vect.PreAngle;
-	ptnCpltCallback(ID,velocity,rawAngle);
+	if(u == 0&&v==0&&r==0)angopt.currentAngle= angopt.PreCurrAngle;
+	else{
+		angopt.currentAngle = rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
+	}
+	ptnCpltCallback(ID,velocity,angopt.currentAngle);
+	angopt.PreCurrAngle = angopt.currentAngle;
+	swer_SetOptAngle(ID, angopt);
 
-	vect.PreAngle = rawAngle;
-	swer_SetWheelVector(ID,vect);
 	return HAL_OK;
 }
 
