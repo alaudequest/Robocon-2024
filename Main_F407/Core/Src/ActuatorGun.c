@@ -1,10 +1,9 @@
-	/*
+/*
  * ActuatorGun.c
  *
  *  Created on: Mar 24, 2024
  *      Author: namdhay
  */
-
 
 #include "ActuatorGun.h"
 extern TIM_HandleTypeDef htim5;
@@ -21,12 +20,12 @@ void gun_Init() {
 }
 
 void gun_StartGetBall() {
-	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_RESET);
-}
-void gun_StopGetBall(){
 	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_SET);
+}
+void gun_StopGetBall() {
+	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_RESET);
 }
 
 void gun_StartShootBall(uint16_t pwm) {

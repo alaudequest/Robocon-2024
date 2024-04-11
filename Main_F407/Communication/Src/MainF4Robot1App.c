@@ -15,8 +15,7 @@ uint8_t txBuffer[80] = { 0 };
 uint8_t rxBuffer[80] = { 0 };
 uint8_t relayCommand = 0;
 uint8_t valveOutputValue = 0;
-float appRulo1TargetSpeed = 0;
-float appRulo2TargetSpeed = 0;
+float appRuloShootBallTargetSpeed = 0;
 extern UART_HandleTypeDef huart2;
 static void MainF4Robot1App_ErrorHandler(AppErrorCode err);
 static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist);
@@ -32,31 +31,20 @@ void MainF4Robot1App_Init()
 	appintf_RegisterArgument((void*) &brdID, sizeof(brdID), CMD_MainF4_RB1_IdentifyBoard);
 	appintf_RegisterArgument((void*) &relayCommand, sizeof(relayCommand), CMD_MainF4_RB1_RelayCommand);
 	appintf_RegisterArgument((void*) &valveOutputValue, sizeof(valveOutputValue), CMD_MainF4_RB1_Valve);
-	appintf_RegisterArgument((void*) &appRulo1TargetSpeed, sizeof(appRulo1TargetSpeed), CMD_MainF4_RB1_RuloShootBall1TargetSpeed);
-	appintf_RegisterArgument((void*) &appRulo2TargetSpeed, sizeof(appRulo2TargetSpeed), CMD_MainF4_RB1_RuloShootBall2TargetSpeed);
+	appintf_RegisterArgument((void*) &appRuloShootBallTargetSpeed, sizeof(appRuloShootBallTargetSpeed), CMD_MainF4_RB1_RuloShootBallTargetSpeed);
 }
 
 static void RelayCommandHandler()
 {
-	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall1)) {
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall))
+		gun_StartGetBall();
+	else
+		gun_StopGetBall();
 
-	}
-
-	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall2)) {
-
-	}
-
-	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall1)) {
-
-	}
-
-	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall2)) {
-
-	}
-}
-
-static void SetRuloShootBallTargetSpeed()
-{
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall))
+		gun_StartShootBall(appRuloShootBallTargetSpeed);
+	else
+		gun_StopShootBall();
 
 }
 
@@ -75,10 +63,9 @@ static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist)
 			appintf_GetValueFromPayload();
 			RelayCommandHandler();
 			break;
-		case CMD_MainF4_RB1_RuloShootBall1TargetSpeed:
-			case CMD_MainF4_RB1_RuloShootBall2TargetSpeed:
+		case CMD_MainF4_RB1_RuloShootBallTargetSpeed:
 			appintf_GetValueFromPayload();
-			SetRuloShootBallTargetSpeed();
+			RelayCommandHandler();
 			break;
 		default:
 			MainF4Robot1App_ErrorHandler(APPERR_BOARD_FEATURE_NOT_SUPPORT);

@@ -14,10 +14,8 @@
 #include "PID.h"
 
 typedef enum MainF4Robot1RelayCommand {
-	RelayCmd_RunRuloCollectBall1,
-	RelayCmd_RunRuloCollectBall2,
-	RelayCmd_RunRuloShootBall1,
-	RelayCmd_RunRuloShootBall2,
+	RelayCmd_RunRuloCollectBall,
+	RelayCmd_RunRuloShootBall,
 } MainF4Robot1RelayCommand;
 
 typedef struct AppPararmPID_t {
