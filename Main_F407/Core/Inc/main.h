@@ -81,9 +81,16 @@ void Error_Handler(void);
 #define RB1SensorArmRight_Pin GPIO_PIN_13
 #define RB1SensorArmRight_GPIO_Port GPIOE
 #define RB1SensorArmRight_EXTI_IRQn EXTI15_10_IRQn
-#define RB1SensorArmLeft_Pin GPIO_PIN_14
-#define RB1SensorArmLeft_GPIO_Port GPIOE
-#define RB1SensorArmLeft_EXTI_IRQn EXTI15_10_IRQn
+#define Enc2B_Pin GPIO_PIN_14
+#define Enc2B_GPIO_Port GPIOD
+#define Enc2A_Pin GPIO_PIN_15
+#define Enc2A_GPIO_Port GPIOD
+#define Enc2A_EXTI_IRQn EXTI15_10_IRQn
+#define Enc1B_Pin GPIO_PIN_8
+#define Enc1B_GPIO_Port GPIOC
+#define Enc1A_Pin GPIO_PIN_9
+#define Enc1A_GPIO_Port GPIOC
+#define Enc1A_EXTI_IRQn EXTI9_5_IRQn
 
 /* USER CODE BEGIN Private defines */
 

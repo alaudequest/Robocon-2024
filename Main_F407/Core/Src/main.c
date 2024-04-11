@@ -99,6 +99,10 @@ uint8_t DataTayGame[9];
 CAN_SpeedBLDC_AngleDC nodeSpeedAngle[3] = { 0 };
 
 uint32_t nodeSwerveSetHomeComplete = 0;
+int gunCount1, gunCount2;
+float gunTarget1, gunTarget2;
+QueueHandle_t qShoot;
+
 #define SETHOME_FLAG_GROUP nodeSwerveSetHomeComplete
 void nodeHome_SetFlag(CAN_DEVICE_ID e) {
 	SETFLAG(SETHOME_FLAG_GROUP, e);
@@ -231,14 +235,26 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 }
 /*=============================== GPIO EXTI ===============================*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == RB1SensorArmLeft_Pin) {
-		__NOP();
-	}
 	if (GPIO_Pin == RB1SensorArmRight_Pin) {
 		__NOP();
 	}
 	if (GPIO_Pin == RB1SensorLiftBallUp_Pin) {
 		__NOP();
+	}
+
+	if (GPIO_Pin == Enc1A_Pin) {
+		if (HAL_GPIO_ReadPin(Enc1B_GPIO_Port, Enc1B_Pin)) {
+			gunCount1--;
+		}
+		else
+			gunCount1++;
+	}
+	if (GPIO_Pin == Enc2A_Pin) {
+		if (HAL_GPIO_ReadPin(Enc2B_GPIO_Port, Enc2B_Pin)) {
+			gunCount2--;
+		}
+		else
+			gunCount2++;
 	}
 }
 /* USER CODE END 0 */
@@ -291,6 +307,7 @@ int main(void)
 	valve_Init();
 	gun_Init();
 	MainF4Robot1App_Init();
+	qShoot = xQueueCreate(1, sizeof(bool));
 
 	/* USER CODE END 2 */
 
@@ -844,6 +861,7 @@ static void MX_GPIO_Init(void)
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOE, MotorGetB1_Pin | MotorGetB2_Pin, GPIO_PIN_RESET);
@@ -865,13 +883,40 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : RB1SensorLiftBallUp_Pin RB1SensorArmRight_Pin RB1SensorArmLeft_Pin */
-	GPIO_InitStruct.Pin = RB1SensorLiftBallUp_Pin | RB1SensorArmRight_Pin | RB1SensorArmLeft_Pin;
+	/*Configure GPIO pins : RB1SensorLiftBallUp_Pin RB1SensorArmRight_Pin */
+	GPIO_InitStruct.Pin = RB1SensorLiftBallUp_Pin | RB1SensorArmRight_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
+	/*Configure GPIO pin : Enc2B_Pin */
+	GPIO_InitStruct.Pin = Enc2B_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(Enc2B_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : Enc2A_Pin */
+	GPIO_InitStruct.Pin = Enc2A_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(Enc2A_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : Enc1B_Pin */
+	GPIO_InitStruct.Pin = Enc1B_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(Enc1B_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : Enc1A_Pin */
+	GPIO_InitStruct.Pin = Enc1A_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(Enc1A_GPIO_Port, &GPIO_InitStruct);
+
 	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
 	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
@@ -975,10 +1020,52 @@ void CAN_Bus(void const *argument)
 void Actuator(void const *argument)
 {
 	/* USER CODE BEGIN Actuator */
+	gun_Init();
+	//	bool IsGetBall = false;
+	//	bool IsShoot = false;
+	TickType_t xStartTime = 0, xOccurredTime = 0;
 	/* Infinite loop */
-
-	for (;;) {
-
+	for (;;)
+			{
+//		if (xQueueReceive(qShoot, (void*) &IsShoot, 1 / portTICK_PERIOD_MS) == pdTRUE) {
+//			xStartTime = xTaskGetTickCount();
+//		}
+//		if (testTick) {
+//			IsShoot = 1;
+//			testTick = 0;
+//			xStartTime = xTaskGetTickCount();
+//		}
+//		if (IsShoot) {
+//			//		  gun_StartShootBall(pwmTest);
+//			//		  gun_PIDSpeed1(gunTarget1);
+//			//		  gun_PIDSpeed2(gunTarget2);
+//			xOccurredTime = xTaskGetTickCount() - xStartTime;
+//			//		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
+//			//			  IsGetBall = 0;
+//			// SẼ UNCOMMENT HÀNG NÀY SAU KHI CODE XONG	IsShoot = 0;
+//			//			  xOccurredTime = 0;
+//			//			  xStartTime = xTaskGetTickCount();
+//			//		  }else{
+//			//			  gun_StartGetBall();
+//			if (xOccurredTime > 2000 / portTICK_PERIOD_MS) {
+//
+//				//				  gun_StartShootBall(750);
+//
+//			}
+//			else {
+//				gun_PIDSpeed1(speed);
+//				gun_PIDSpeed2(speed);
+//				//				  gun_StartShootBall(speed);
+//				if (Delay_tick(200) == HAL_OK) {
+//					speed += 200;
+//				}
+//			}
+//
+//		}
+		gun_PIDSpeed1(gunTarget1);
+		gun_PIDSpeed2(gunTarget1);
+		//	gun_StartShootBall(gunTarget1);
+		gun_VelCal(gunCount1, gunCount2);
 		osDelay(10);
 	}
 	/* USER CODE END Actuator */
