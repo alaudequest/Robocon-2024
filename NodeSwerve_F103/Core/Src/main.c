@@ -339,7 +339,7 @@ int main(void)
 	qHome = xQueueCreate(1, sizeof(bool));
 
 	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
-	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
+	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
 	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -803,8 +803,8 @@ void StartTaskPID(void const *argument)
 				PID_BLDC_CalSpeed(0);
 			else{
 				int direct = angopt_QuadRantCheckOutput2(brd_GetTargetAngleDC(),angopt_GetOptAngle());
-//				int direct = angopt_QuadRantCheckOutput2(TestAngle,angopt_GetOptAngle());
 				PID_BLDC_CalSpeed(direct*brd_GetTargetSpeedBLDC());
+//				int direct = angopt_QuadRantCheckOutput2(TestAngle,angopt_GetOptAngle());
 //				PID_BLDC_CalSpeed(direct*TestSpeed);
 			}
 
