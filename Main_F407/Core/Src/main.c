@@ -575,9 +575,11 @@ void process_Accel_FloatingEnc2(float Angle,float maxSpeed,float s,float accel)
 
 	if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
 	{
-		chasis_Vector_TargetSpeed = maxSpeed/2;
+		chasis_Vector_TargetSpeed = maxSpeed;
 	}
-
+	if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
+		chasis_Vector_TargetSpeed = maxSpeed/2		;
+		}
 	if (floatingEncCount > (s - 400)){
 		chasis_Vector_TargetSpeed -= accel ;
 	}
@@ -614,12 +616,13 @@ void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,f
 		{
 			chasis_Vector_TargetSpeed += accel;
 		}
-
 		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
 		{
-			chasis_Vector_TargetSpeed = maxSpeed/2;
+			chasis_Vector_TargetSpeed = maxSpeed;
 		}
-
+		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
+			chasis_Vector_TargetSpeed = maxSpeed/2		;
+			}
 		if (floatingEncCount > (s - 400)){
 			chasis_Vector_TargetSpeed -= accel ;
 		}
@@ -738,7 +741,7 @@ void process_Ball_Approach()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,0.08);
-		if(distance > 0.15)
+		if(distance > 0.1)
 		{
 			u = 0;
 			v = 0;
@@ -1047,6 +1050,7 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
+	osDelay(1000);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
 
 //	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
@@ -1879,6 +1883,7 @@ void OdometerHandle(void const * argument)
 		  /* USER CODE BEGIN OdometerHandle */
 
 			process_Init();
+			osDelay(1000);
 //			process_ReadVel_Init();
 			/* Infinite loop */
 			for (;;) {
@@ -1906,7 +1911,8 @@ void OdometerHandle(void const * argument)
 	--------------------------------------------CODE MAU--------------------------------------------------*/
 
 				trajecTheta.t += DELTA_T;
-
+				Get_MPU_Angle();
+				angle_Rad = (a_Now/10.0)*M_PI/180.0;
 //				process_Control_SpeedDC_GetBall(speedTest);
 
 				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
@@ -1925,7 +1931,6 @@ void OdometerHandle(void const * argument)
 						{	// Ra lenh cho co Cau lay bong di xuong
 							process_getBall();
 						}
-//
 					else if (step == 1)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
 							process_setVal_PutBall(1);
@@ -1938,31 +1943,22 @@ void OdometerHandle(void const * argument)
 									Reset_MPU_Angle();
 									process_ResetFloatingEnc();
 									// Set thong so quy hoach quy dao :
-//									trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 5, 0, 0);
 									step = 2;
 								}
 							}
 						}
-//
 					else if (step == 2)
 						{
-							process_Accel_FloatingEnc2(0, 0.8, 4000, 0.08);
+							process_Accel_FloatingEnc3(-20, 0.8, 5500, 0.08, -45, 3);
 						}
-//							//Cho phep PID giu goc
-//							use_pidTheta = 1;
-//							//Set thong so khi vua chay vua xoay
-//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-//							//Set chu trinh chay theo enc
-//							process_Accel_FloatingEnc2(-22, 1.2, 4400, 0.08);
-//						}
-//					else if (step == 3)
-//						{
-//							process_Ball_Approach();
-//						}
-//					else if (step == 4)
-//						{
-//							process_getBall();
-//						}
+					else if (step == 3)
+						{
+							process_Ball_Approach();
+						}
+					else if (step == 4)
+						{
+							process_getBall();
+						}
 //					else if (step == 5)
 //						{
 //							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 4, 0, 0);
@@ -2059,7 +2055,7 @@ void OdometerHandle(void const * argument)
 				}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
-				osDelay(5);
+				osDelay(DELTA_T*1000);
 
 			}
   /* USER CODE END OdometerHandle */
@@ -2086,8 +2082,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM4) {
     readADC();
     startPutBall(process_GetBall_State);
-	Get_MPU_Angle();
-	angle_Rad = (a_Now/10.0)*M_PI/180.0;
+
   }
   /* USER CODE END Callback 1 */
 }
