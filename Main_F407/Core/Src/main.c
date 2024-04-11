@@ -1871,6 +1871,7 @@ void CAN_Bus(void const * argument)
  */
 int ss;
 float encPutBall;
+float testAngle;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -1903,48 +1904,50 @@ void OdometerHandle(void const * argument)
 					// if (dieu kien nut nhan duoc nhan)step = 5;
 				}
 	--------------------------------------------CODE MAU--------------------------------------------------*/
-				angle_Rad = (a_Now/10)*M_PI/180;
+
 				trajecTheta.t += DELTA_T;
 
 //				process_Control_SpeedDC_GetBall(speedTest);
-				Get_MPU_Angle();
 
+				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
 				process_SetFloatingEnc();
 				trajecPlan_Cal(&trajecTheta);
 				if (use_pidTheta)
 				{
-					r = -(PID_Cal(&pid_Angle, trajecTheta.xTrajec, angle_Rad)+trajecTheta.xdottraject);
+					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
 
 				}
 
 				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-//					if (step == 0)
-//						{	// Ra lenh cho co Cau lay bong di xuong
-//							process_getBall();
-//						}
+					if (step == 0)
+						{	// Ra lenh cho co Cau lay bong di xuong
+							process_getBall();
+						}
 //
-//					else if (step == 1)
-//						{	//Ra lenh cho co Cau lay bong di len cham chu U
-//							process_setVal_PutBall(1);
-//
-//							if (GamePad.Down)
-//							{
-//								osDelay(500);
-//								if(GamePad.Down)
-//								{	//Reset thong so enc tha troi va la ban :
-//									Reset_MPU_Angle();
-//									process_ResetFloatingEnc();
-//									// Set thong so quy hoach quy dao :
+					else if (step == 1)
+						{	//Ra lenh cho co Cau lay bong di len cham chu U
+							process_setVal_PutBall(1);
+
+							if (GamePad.Down)
+							{
+								osDelay(500);
+								if(GamePad.Down)
+								{	//Reset thong so enc tha troi va la ban :
+									Reset_MPU_Angle();
+									process_ResetFloatingEnc();
+									// Set thong so quy hoach quy dao :
 //									trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 5, 0, 0);
-//									step = 2;
-//								}
-//							}
-//						}
+									step = 2;
+								}
+							}
+						}
 //
-//					else if (step == 2)
-//						{
+					else if (step == 2)
+						{
+							process_Accel_FloatingEnc2(0, 0.8, 4000, 0.08);
+						}
 //							//Cho phep PID giu goc
 //							use_pidTheta = 1;
 //							//Set thong so khi vua chay vua xoay
@@ -2083,7 +2086,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM4) {
     readADC();
     startPutBall(process_GetBall_State);
-
+	Get_MPU_Angle();
+	angle_Rad = (a_Now/10.0)*M_PI/180.0;
   }
   /* USER CODE END Callback 1 */
 }
