@@ -7,6 +7,7 @@
 
 #include <MainF4Robot1App.h>
 #include "RB1ActuatorValve.h"
+#include "ActuatorGun.h"
 #include "Flag.h"
 
 BoardID brdID = 0;
