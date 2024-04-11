@@ -1658,12 +1658,17 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  * @retval None
  */
 
+uint8_t SetHomeFlag;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
 	osDelay(3000);
+//	while (SetHomeFlag == 0)
+//	{
+//		osDelay(1);
+//	}
 	/* Infinite loop */
 	for (;;) {
 		if(xaDay == 0 )
@@ -1721,6 +1726,7 @@ void CAN_Bus(void const * argument)
 {
   /* USER CODE BEGIN CAN_Bus */
 	CAN_Init();
+	SetHomeFlag = 0;
 	osDelay(3000);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1,
 			CANCTRL_MODE_SET_HOME);
@@ -1731,7 +1737,9 @@ void CAN_Bus(void const * argument)
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3,
 			CANCTRL_MODE_SET_HOME);
 	osDelay(1);
+
 	osDelay(500);
+	SetHomeFlag = 1;
 //	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_4, CANCTRL_MODE_SET_HOME);
 //	osDelay(1);
 	uint32_t modeID;
