@@ -71,11 +71,11 @@ int angopt_QuadRantCheckOutput2(float Input1,float Input2)
 #define Case2		opt.Case2
 #define Direc 		opt.direct
 
-	float XCurr1 = cos(Input1);
-	float YCurr1 = sin(Input1);
+	float XCurr1 = cos(Input1*M_PI/180);
+	float YCurr1 = sin(Input1*M_PI/180);
 
-	float XCurr2 = cos(Input2);
-	float YCurr2 = sin(Input2);
+	float XCurr2 = cos(Input2*M_PI/180);
+	float YCurr2 = sin(Input2*M_PI/180);
 
 
 	Case1 = angopt_QuadrantCheckInput(XCurr1, YCurr1);
