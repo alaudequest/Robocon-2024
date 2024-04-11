@@ -17,6 +17,8 @@ uint8_t relayCommand = 0;
 uint8_t valveOutputValue = 0;
 float appRuloShootBallTargetSpeed = 0;
 extern UART_HandleTypeDef huart2;
+extern float gunTargeSpeed1;
+extern bool testTick;
 static void MainF4Robot1App_ErrorHandler(AppErrorCode err);
 static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist);
 
@@ -41,10 +43,12 @@ static void RelayCommandHandler()
 	else
 		gun_StopGetBall();
 
-	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall))
-		gun_StartShootBall(appRuloShootBallTargetSpeed);
-	else
-		gun_StopShootBall();
+	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall)) {
+		testTick = true;
+	}
+	else {
+		testTick = false;
+	}
 
 }
 
@@ -65,6 +69,7 @@ static void MainF4Robot1App_ReceiveCommandHandler(CommandList cmdlist)
 			break;
 		case CMD_MainF4_RB1_RuloShootBallTargetSpeed:
 			appintf_GetValueFromPayload();
+			gunTargeSpeed1 = appRuloShootBallTargetSpeed;
 			RelayCommandHandler();
 			break;
 		default:

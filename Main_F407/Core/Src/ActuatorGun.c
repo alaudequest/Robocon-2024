@@ -42,6 +42,12 @@ void gun_Init() {
 	// End MOTOR RULO GET BALL INIT
 }
 
+void gun_ResetEncoder(int *gunCount1, int *gunCount2)
+{
+	encoderGun_ResetCount(&ENC_Gun1, gunCount1);
+	encoderGun_ResetCount(&ENC_Gun2, gunCount2);
+}
+
 void gun_StartGetBall() {
 	HAL_GPIO_WritePin(MotorGetB1_GPIO_Port, MotorGetB1_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(MotorGetB2_GPIO_Port, MotorGetB2_Pin, GPIO_PIN_SET);

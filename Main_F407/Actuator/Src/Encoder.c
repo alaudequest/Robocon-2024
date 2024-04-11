@@ -59,3 +59,10 @@ void VelCal(Encoder_t *enc, int count_X1, uint32_t count_PerRevol, float deltaT)
 	enc->count_Pre = count_X1;
 }
 
+void encoderGun_ResetCount(Encoder_t *enc, int *count_X1)
+{
+	count_X1 = 0;
+	enc->vel_Real = 0;
+	enc->vel_Pre = 0;
+}
+

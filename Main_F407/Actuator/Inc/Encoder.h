@@ -34,6 +34,7 @@ typedef struct Encoder_t {
 	float deltaT;
 } Encoder_t;
 void encoder_ResetCount(Encoder_t *enc);
+void encoderGun_ResetCount(Encoder_t *enc, int *count_X1);
 void encoder_Init(Encoder_t *enc, TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT);
 float encoder_GetSpeed(Encoder_t *enc);
 float encoder_GetPulse(Encoder_t *enc, EncoderCountMode count_Mode);

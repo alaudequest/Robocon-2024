@@ -47,5 +47,6 @@ void gun_StopAll();
 void gun_VelCal(int gunCount1, int gunCount2);
 void gun_PIDSpeed1(float Target1);
 void gun_PIDSpeed2(float Target2);
+void gun_ResetEncoder(int *gunCount1, int *gunCount2);
 void gun_PIDSetParam(PID_Param *pid, float kP, float kI, float kD, float alpha, float deltaT, float u_AboveLimit, float u_BelowLimit);
 #endif /* INC_ACTUATORGUN_H_ */
