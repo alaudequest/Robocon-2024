@@ -280,6 +280,10 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 		nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
 //			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
 		break;
+	case CANCTRL_MODE_UNTANGLE_WIRE:
+		canfunc_SetBoolValue(1,CANCTRL_MODE_UNTANGLE_WIRE);
+		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
+		break;
 	default:
 		break;
 	}
