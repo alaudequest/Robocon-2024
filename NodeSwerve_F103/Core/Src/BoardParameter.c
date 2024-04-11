@@ -12,7 +12,22 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
+Safety_Check brd_GetSafyDC()
+{
+	return brdParam.SafeDC;
+}
+void brd_SetSafyDC(Safety_Check safe){
+	brdParam.SafeDC = safe;
+}
 
+Safety_Check brd_GetSafyBLDC()
+{
+	return brdParam.SafeBLDC;
+}
+void brd_SetSafyBLDC(Safety_Check safe)
+{
+	brdParam.SafeBLDC = safe;
+}
 
 float brd_GetCurrentAngleDC(){return encoder_GetPulse(&brdParam.encDC, MODE_ANGLE);}
 float brd_GetCurrentSpeedBLDC(){return encoder_GetSpeed(&brdParam.encBLDC);}
@@ -49,8 +64,8 @@ void brd_Init()
 	brdParam.pidDC_Angle.kD = 0.04;
 	brdParam.pidDC_Angle.alpha = 0.8;
 	brdParam.pidDC_Angle.deltaT = PIDDeltaT;
-	brdParam.pidDC_Angle.u_AboveLimit = 300;
-	brdParam.pidDC_Angle.u_BelowLimit = -300;
+	brdParam.pidDC_Angle.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
 	brdParam.pidDC_Angle.kB = 1/PIDDeltaT;
 
 	brdParam.pidDC_Speed.kP = 1;
@@ -58,8 +73,8 @@ void brd_Init()
 	brdParam.pidDC_Speed.kD = 0;
 	brdParam.pidDC_Speed.alpha = 0;
 	brdParam.pidDC_Speed.deltaT = PIDDeltaT;
-	brdParam.pidDC_Speed.u_AboveLimit = 300;
-	brdParam.pidDC_Speed.u_BelowLimit = -300;
+	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
+	brdParam.pidDC_Speed.u_BelowLimit = DC_SUM_BELOW_LIMIT;
 	brdParam.pidDC_Speed.kB = 1/PIDDeltaT;
 }
 

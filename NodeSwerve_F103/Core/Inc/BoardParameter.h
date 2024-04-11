@@ -23,8 +23,8 @@
 #define DCGearRatio 						  3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
-#define DC_SUM_ABOVE_LIMIT 						300
-#define DC_SUM_BELOW_LIMIT 						-300
+#define DC_SUM_ABOVE_LIMIT 						1000
+#define DC_SUM_BELOW_LIMIT 						-1000
 
 #define PIDDeltaT							0.005
 
@@ -35,9 +35,26 @@ typedef enum PID_type{
 	PID_BLDC_SPEED,
 }PID_type;
 
+typedef struct Safety_Check{
+	int EncCheckForDC;
+	int EncCheckForBLDC;
+
+	float ValueNow;
+	float ValuePre;
+
+	float TargetPre;
+	float TargetNow;
+
+	float SaftyFlag;
+
+}Safety_Check;
 typedef struct BoardParameter_t {
 	float targetAngleDC;
 	float targetSpeedBLDC;
+
+	Safety_Check SafeDC;
+	Safety_Check SafeBLDC;
+
 	int16_t countTimer;
 	MotorDC mdc;
 	MotorBLDC mbldc;
@@ -49,6 +66,13 @@ typedef struct BoardParameter_t {
 }BoardParameter_t;
 
 void brd_Init();
+
+Safety_Check brd_GetSafyDC();
+void brd_SetSafyDC(Safety_Check safe);
+
+Safety_Check brd_GetSafyBLDC();
+void brd_SetSafyBLDC(Safety_Check safe);
+
 PID_Param brd_GetPID(PID_type type);
 void brd_SetPID(PID_Param pid,PID_type type);
 
@@ -83,5 +107,7 @@ void brd_SetHomeCompleteCallback();
 
 float brd_GetDeltaT();
 void brd_SetDeltaT(float deltaT);
+
+
 
 #endif /* INC_BOARDPARAMETER_H_ */

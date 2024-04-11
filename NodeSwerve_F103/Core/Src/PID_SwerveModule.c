@@ -13,10 +13,42 @@ void PID_DC_CalSpeed(float Target_set)
 	MotorDC mdc = brd_GetObjMotorDC();
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_SPEED);
+
+	Safety_Check safeDC = brd_GetSafyDC();
+
+
 	float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encDC));
+	safeDC.ValueNow = encoder_GetPulse(&encDC, MODE_X4);
+
+	if (absf(result)>200)
+	{
+		if (safeDC.ValueNow == safeDC.ValuePre)
+			{
+			if(safeDC.SaftyFlag == 0){
+				safeDC.EncCheckForDC ++;
+			}
+			}
+		else
+			{
+				safeDC.EncCheckForDC = 0;
+			}
+	}
+
+	if (safeDC.EncCheckForDC>=10){
+		safeDC.SaftyFlag = 1;
+	}
+	safeDC.ValuePre = safeDC.ValueNow;
+
 	brd_SetPID(pid, PID_DC_SPEED);
 	brd_SetObjEncDC(encDC);
-	MotorDC_Drive(&mdc, (int32_t) result);
+	brd_SetSafyDC(safeDC);
+
+	if (safeDC.SaftyFlag == 0)
+	{
+		MotorDC_Drive(&mdc, (int32_t) result);
+	}else{
+		MotorDC_Drive(&mdc, 0);
+	}
 }
 
 void PID_DC_CalPos(float Target_set)
