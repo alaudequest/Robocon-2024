@@ -59,6 +59,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define Buzzer_Pin GPIO_PIN_4
+#define Buzzer_GPIO_Port GPIOE
+#define Status_Pin GPIO_PIN_13
+#define Status_GPIO_Port GPIOC
 #define HC595_CLK_Pin GPIO_PIN_4
 #define HC595_CLK_GPIO_Port GPIOA
 #define HC595_RCLK_Pin GPIO_PIN_5

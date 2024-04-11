@@ -903,6 +903,19 @@ void process_getBall()
 		step += 1;
 	}
 }
+void process_Error(uint8_t error)
+{
+	if(error == 1)
+	{
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+		HAL_GPIO_TogglePin(Status_GPIO_Port, Status_Pin);
+	}
+	else if (error == 0)
+	{
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, GPIO_PIN_RESET);
+	}
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////CAM BIEN DO KHOANG CACH/////////////////////////////////////
@@ -1615,13 +1628,33 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : Buzzer_Pin */
+  GPIO_InitStruct.Pin = Buzzer_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Buzzer_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Status_Pin */
+  GPIO_InitStruct.Pin = Status_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Status_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
   GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
@@ -1662,7 +1695,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  * @retval None
  */
 
-uint8_t SetHomeFlag;
+uint8_t SetHomeFlag, check;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1772,7 +1805,7 @@ void CAN_Bus(void const * argument)
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
-	  /* USER CODE BEGIN OdometerHandle */
+  /* USER CODE BEGIN OdometerHandle */
 		  /* USER CODE BEGIN OdometerHandle */
 
 			process_Init();
@@ -1810,6 +1843,8 @@ void OdometerHandle(void const * argument)
 					r = -(PID_Cal(&pid_Angle, trajecTheta.xTrajec, angle_Rad)+trajecTheta.xdottraject);
 
 				}
+
+				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
 //					if (step == 0)
@@ -1969,9 +2004,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
-  }
-  if (htim->Instance == TIM4) {
-    readADC();
   }
   /* USER CODE BEGIN Callback 1 */
 
