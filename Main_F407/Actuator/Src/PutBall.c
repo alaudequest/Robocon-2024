@@ -78,7 +78,7 @@ void startPutBall(uint8_t state)
 			MotorDC_Drive(&getBall.mdc, -1000);
 		}else {
 			MotorDC_Drive(&putBall.mdc,100);
-			MotorDC_Drive(&getBall.mdc, 0);
+			MotorDC_Drive(&getBall.mdc, -1000);
 		}
 	}
 	else if(state == 3)

@@ -1745,8 +1745,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  * @retval None
  */
 
-<<<<<<< HEAD
-uint8_t SetHomeFlag;
+
 uint8_t getBall_State;
 //int speedTest;
 //void process_Control_SpeedDC_GetBall(float speed)
@@ -1761,9 +1760,9 @@ uint8_t getBall_State;
 //
 //	}
 //}
-=======
+
 uint8_t SetHomeFlag, check;
->>>>>>> 7a52cf709a279210ef22d5e49eef005601a5897f
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -2078,10 +2077,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
-<<<<<<< HEAD
 
-=======
->>>>>>> 7a52cf709a279210ef22d5e49eef005601a5897f
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM4) {
