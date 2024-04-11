@@ -20,7 +20,7 @@ void PID_DC_CalSpeed(float Target_set)
 	float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encDC));
 	safeDC.ValueNow = encoder_GetPulse(&encDC, MODE_X4);
 
-	if (absf(result)>200)
+	if (absf(result)>500)
 	{
 		if (safeDC.ValueNow == safeDC.ValuePre)
 			{

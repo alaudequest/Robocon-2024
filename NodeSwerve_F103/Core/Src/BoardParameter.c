@@ -50,8 +50,8 @@ void brd_Init()
 	MotorDC_Init(&brdParam.mdc, &htim2, MOTOR_PWM_INVERSE,
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
-	brdParam.pidBLDC_Speed.kP = 0.1;
-	brdParam.pidBLDC_Speed.kI = 5;
+	brdParam.pidBLDC_Speed.kP = 0.03;
+	brdParam.pidBLDC_Speed.kI = 2.5;
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
 	brdParam.pidBLDC_Speed.deltaT = PIDDeltaT;
