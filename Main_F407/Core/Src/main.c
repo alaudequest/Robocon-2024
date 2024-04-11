@@ -1663,6 +1663,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
+	osDelay(3000);
 	/* Infinite loop */
 	for (;;) {
 		if(xaDay == 0 )
@@ -1720,7 +1721,7 @@ void CAN_Bus(void const * argument)
 {
   /* USER CODE BEGIN CAN_Bus */
 	CAN_Init();
-	osDelay(500);
+	osDelay(3000);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1,
 			CANCTRL_MODE_SET_HOME);
 	osDelay(1);
@@ -1799,111 +1800,111 @@ void OdometerHandle(void const * argument)
 				}
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-					if (step == 0)
-						{	// Ra lenh cho co Cau lay bong di xuong
-							process_getBall();
-						}
-
-					else if (step == 1)
-						{	//Ra lenh cho co Cau lay bong di len cham chu U
-							process_setVal_PutBall(1);
-
-							if (GamePad.Down)
-							{
-								osDelay(500);
-								if(GamePad.Down)
-								{	//Reset thong so enc tha troi va la ban :
-									Reset_MPU_Angle();
-									process_ResetFloatingEnc();
-									// Set thong so quy hoach quy dao :
-									trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 5, 0, 0);
-									step = 2;
-								}
-							}
-						}
-
-					else if (step == 2)
-						{
-							//Cho phep PID giu goc
-							use_pidTheta = 1;
-							//Set thong so khi vua chay vua xoay
-							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-							//Set chu trinh chay theo enc
-							process_Accel_FloatingEnc2(-22, 1.2, 4400, 0.08);
-						}
-					else if (step == 3)
-						{
-							process_Ball_Approach();
-						}
-					else if (step == 4)
-						{
-							process_getBall();
-						}
-					else if (step == 5)
-						{
-							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 4, 0, 0);
-							step += 1;
-						}
-					else if(step == 6)
-						{
-							process_Accel_FloatingEnc2(75, 1.2, 3000, 0.05);
-						}
-					else if(step == 7)
-						{
-							process_PD_OnStrainghtPath();
-							process_ApproachWall();
-						}
-					else if(step == 8)
-						{
-							process_ReleaseBall();
-						}
-					else if (step == 9)
-						{
-							trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 4, 0, 0);
-							step += 1;
-						}
-					else if (step == 10)
-						{
-							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-							process_Accel_FloatingEnc2(-115, 1.2, 3200, 0.05);
-						}
-					else if (step == 11)
-						{
-							process_Ball_Approach2();
-						}
-					else if (step == 12)
-						{
-							process_getBall();
-						}
-					else if (step == 13)
-						{
-							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 3, 0, 0);
-							step += 1;
-						}
-					else if (step == 14)
-						{
-							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-							process_Accel_FloatingEnc2(78, 1.2, 2800, 0.05);
-						}
-					else if (step == 15)
-						{
-							process_PD_OnStrainghtPath();
-							process_ApproachWall();
-						}
-					else if (step == 16)
-						{
-							process_ReleaseBall();
-						}
-					else if (step == 17)
-						{
-							trajecPlan_SetParam(&trajecTheta, angle_Rad, 0*M_PI/180, 1, 0, 0);
-							step += 1;
-						}
-					else if (step == 18)
-						{
-							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-							process_Accel_FloatingEnc2(200, 1.2, 6000, 0.05);
-						}
+//					if (step == 0)
+//						{	// Ra lenh cho co Cau lay bong di xuong
+//							process_getBall();
+//						}
+//
+//					else if (step == 1)
+//						{	//Ra lenh cho co Cau lay bong di len cham chu U
+//							process_setVal_PutBall(1);
+//
+//							if (GamePad.Down)
+//							{
+//								osDelay(500);
+//								if(GamePad.Down)
+//								{	//Reset thong so enc tha troi va la ban :
+//									Reset_MPU_Angle();
+//									process_ResetFloatingEnc();
+//									// Set thong so quy hoach quy dao :
+//									trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 5, 0, 0);
+//									step = 2;
+//								}
+//							}
+//						}
+//
+//					else if (step == 2)
+//						{
+//							//Cho phep PID giu goc
+//							use_pidTheta = 1;
+//							//Set thong so khi vua chay vua xoay
+//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+//							//Set chu trinh chay theo enc
+//							process_Accel_FloatingEnc2(-22, 1.2, 4400, 0.08);
+//						}
+//					else if (step == 3)
+//						{
+//							process_Ball_Approach();
+//						}
+//					else if (step == 4)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 5)
+//						{
+//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 4, 0, 0);
+//							step += 1;
+//						}
+//					else if(step == 6)
+//						{
+//							process_Accel_FloatingEnc2(75, 1.2, 3000, 0.05);
+//						}
+//					else if(step == 7)
+//						{
+//							process_PD_OnStrainghtPath();
+//							process_ApproachWall();
+//						}
+//					else if(step == 8)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if (step == 9)
+//						{
+//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 4, 0, 0);
+//							step += 1;
+//						}
+//					else if (step == 10)
+//						{
+//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+//							process_Accel_FloatingEnc2(-115, 1.2, 3200, 0.05);
+//						}
+//					else if (step == 11)
+//						{
+//							process_Ball_Approach2();
+//						}
+//					else if (step == 12)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 13)
+//						{
+//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 3, 0, 0);
+//							step += 1;
+//						}
+//					else if (step == 14)
+//						{
+//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+//							process_Accel_FloatingEnc2(78, 1.2, 2800, 0.05);
+//						}
+//					else if (step == 15)
+//						{
+//							process_PD_OnStrainghtPath();
+//							process_ApproachWall();
+//						}
+//					else if (step == 16)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if (step == 17)
+//						{
+//							trajecPlan_SetParam(&trajecTheta, angle_Rad, 0*M_PI/180, 1, 0, 0);
+//							step += 1;
+//						}
+//					else if (step == 18)
+//						{
+//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+//							process_Accel_FloatingEnc2(200, 1.2, 6000, 0.05);
+//						}
 
 	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
