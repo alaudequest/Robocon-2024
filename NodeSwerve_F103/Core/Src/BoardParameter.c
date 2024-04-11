@@ -58,8 +58,8 @@ void brd_Init()
 	brdParam.pidDC_Speed.kD = 0;
 	brdParam.pidDC_Speed.alpha = 0;
 	brdParam.pidDC_Speed.deltaT = PIDDeltaT;
-	brdParam.pidDC_Speed.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
-	brdParam.pidDC_Speed.u_BelowLimit = DC_SUM_BELOW_LIMIT;
+	brdParam.pidDC_Speed.u_AboveLimit = 200;
+	brdParam.pidDC_Speed.u_BelowLimit = -200;
 	brdParam.pidDC_Speed.kB = 1/PIDDeltaT;
 }
 
