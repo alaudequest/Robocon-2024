@@ -21,9 +21,10 @@ void startPutBall(uint8_t state)
 	encoder_Init(&putBall.enc, &htim2, 19200, 0.001);
 	if(state == 0)
 	{
+		putBall.putBall_SScheck = 0;
 		putBall.count += 1;
 		putBall.StopPutFlag = 0;
-		if(putBall.count < 50)
+		if(putBall.count < 50*50)
 		{
 			MotorDC_Drive(&putBall.mdc, -200);
 			putBall.flag = 0;
@@ -45,16 +46,19 @@ void startPutBall(uint8_t state)
 		{
 			if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
 			{
-				osDelay(5);
-				if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin)){
-					putBall.StopPutFlag = 1;
-				}
-
+				putBall.putBall_SScheck += 1;
+			}else{
+				putBall.putBall_SScheck = 0;
 			}
+			if(putBall.putBall_SScheck > 5){
+				putBall.StopPutFlag = 1;
+				putBall.putBall_SScheck = 0;
+			}
+
 		}
 		if (putBall.StopPutFlag)
 		{
-			MotorDC_Drive(&putBall.mdc, 0);
+			MotorDC_Drive(&putBall.mdc, 100);
 			MotorDC_Drive(&getBall.mdc, 0);
 			encoder_ResetCount(&putBall.enc);
 		}else{
@@ -64,15 +68,16 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 2)
 	{
+		putBall.putBall_SScheck = 0;
 		putBall.StopPutFlag = 0;
 		putBall.count += 1;
 
-		if (putBall.count<25)
+		if (putBall.count<25*50)
 		{
 			MotorDC_Drive(&putBall.mdc,400);
 			MotorDC_Drive(&getBall.mdc, -1000);
 		}else {
-			MotorDC_Drive(&putBall.mdc,0);
+			MotorDC_Drive(&putBall.mdc,100);
 			MotorDC_Drive(&getBall.mdc, 0);
 		}
 	}
@@ -83,21 +88,27 @@ void startPutBall(uint8_t state)
 		putBall.accel.vel_controller = 0;
 		getBall.accel.vel_controller = 0;
 
-		if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
+		if(putBall.StopPutFlag == 0)
 		{
-			osDelay(5);
-			if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin)){
+			if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
+			{
+				putBall.putBall_SScheck += 1;
+			}else{
+				putBall.putBall_SScheck = 0;
+			}
+			if(putBall.putBall_SScheck > 5){
 				putBall.StopPutFlag = 1;
+				putBall.putBall_SScheck = 0;
 			}
 
 		}
 		if (putBall.StopPutFlag)
 		{
-			MotorDC_Drive(&putBall.mdc, 0);
+			MotorDC_Drive(&putBall.mdc, 100);
 			MotorDC_Drive(&getBall.mdc, 0);
 			encoder_ResetCount(&putBall.enc);
 		}else{
-			MotorDC_Drive(&putBall.mdc, -200);
+			MotorDC_Drive(&putBall.mdc, -150);
 			MotorDC_Drive(&getBall.mdc, -1000);
 		}
 	}

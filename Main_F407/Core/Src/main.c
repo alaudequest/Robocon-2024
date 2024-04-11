@@ -199,6 +199,12 @@ float distance = 0;
 
 ///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
 trajec_Param trajecTheta;
+
+Encoder_t PutBall_Enc;
+PID_Param PutBall_PID;
+
+MotorDC putBall_DC;
+MotorDC GetBall_DC;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END PV */
@@ -290,8 +296,33 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 
 }
 /*=============================== UART ===============================*/
-
-
+//uint8_t YawHandle;
+//uint8_t AngleData[5];
+//int CurrAngle;
+//
+//char ds[12];
+//uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
+//
+//void Receive(uint8_t *DataArray){
+//      uint8_t *pInt = NULL;
+//      if(DataArray[4] == 13){
+//           pInt = &CurrAngle;
+//           for(uint8_t i = 0; i < 4; i++) {
+//               *(pInt + i) = DataArray[i];
+//            }
+//      }
+//      	  memset(DataArray,0,5);
+//      	YawHandle = 1;
+// }
+//void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+//{
+//	if(huart -> Instance == USART1)
+//	{
+//		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+//			Receive(uart2_ds);
+//		  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+//	}
+//}
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART3) {
 		gamepadRxIsBusy = 1;
@@ -396,7 +427,20 @@ void process_Init()
 	pid_Angle.kB = 1/DELTA_T;
 
 	process_AutoChose = 0;
+
+	PutBall_PID.kP = 0;
+	PutBall_PID.kI = 0;
+	PutBall_PID.kD = 0;
+	PutBall_PID.alpha = 0;
+	PutBall_PID.deltaT = DELTA_T;
+	PutBall_PID.u_AboveLimit = 0;
+	PutBall_PID.u_BelowLimit = 0;
+	PutBall_PID.kB = 1/DELTA_T;
+
 	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
+	encoder_Init(&PutBall_Enc,&htim2, 7000/4, DELTA_T);
+	MotorDC_Init(&putBall_DC, &htim3, MOTOR_PWM_INVERSE, TIM_CHANNEL_1, TIM_CHANNEL_2);
+	MotorDC_Init(&GetBall_DC, &htim5, MOTOR_PWM_NORMAL, TIM_CHANNEL_1, TIM_CHANNEL_2);
 }
 
 void process_PD_OnStrainghtPath()
@@ -931,6 +975,8 @@ void process_WireRelease(){
 	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
 	osDelay(1);
 }
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END 0 */
@@ -989,6 +1035,10 @@ int main(void)
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
+
+//	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
+//	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
+
 	pid.kP = -0.12;
 	pid.kI = 5.32;
 	pid.kD = 20.22;
@@ -1663,6 +1713,20 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  */
 
 uint8_t SetHomeFlag;
+uint8_t getBall_State;
+//int speedTest;
+//void process_Control_SpeedDC_GetBall(float speed)
+//{
+//	float result = PID_Cal(&PutBall_PID, speed, encoder_GetSpeed(&PutBall_Enc));
+//	MotorDC_Drive(&putBall_DC, speed);
+//}
+//void process_GetBall()
+//{
+//	if (getBall_State == 0)
+//	{
+//
+//	}
+//}
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1769,16 +1833,20 @@ void CAN_Bus(void const * argument)
  * @param argument: Not used
  * @retval None
  */
+int ss;
+float encPutBall;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
-	  /* USER CODE BEGIN OdometerHandle */
+  /* USER CODE BEGIN OdometerHandle */
 		  /* USER CODE BEGIN OdometerHandle */
 
 			process_Init();
-
+//			process_ReadVel_Init();
 			/* Infinite loop */
 			for (;;) {
+				ss = HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin);
+				encPutBall = encoder_GetPulse(&PutBall_Enc, MODE_X4);
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	/*---------------------------------------------------------------------------------------------------
 				if(step == 0)// Buoc khoi dong sethome
@@ -1801,8 +1869,10 @@ void OdometerHandle(void const * argument)
 	--------------------------------------------CODE MAU--------------------------------------------------*/
 				angle_Rad = (a_Now/10)*M_PI/180;
 				trajecTheta.t += DELTA_T;
-				startPutBall(process_GetBall_State);
+
+//				process_Control_SpeedDC_GetBall(speedTest);
 				Get_MPU_Angle();
+
 				process_SetFloatingEnc();
 				trajecPlan_Cal(&trajecTheta);
 				if (use_pidTheta)
@@ -1948,7 +2018,7 @@ void OdometerHandle(void const * argument)
 				}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
-				osDelay(DELTA_T*1000);
+				osDelay(5);
 
 			}
   /* USER CODE END OdometerHandle */
@@ -1969,12 +2039,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
-  }
-  if (htim->Instance == TIM4) {
-    readADC();
+
   }
   /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM4) {
+    readADC();
+    startPutBall(process_GetBall_State);
 
+  }
   /* USER CODE END Callback 1 */
 }
 
