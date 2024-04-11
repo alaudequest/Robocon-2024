@@ -23,8 +23,8 @@
 #define DCGearRatio 						  3.535
 /*-----------------------------End:DC Macro-----------------------------------*/
 
-#define DC_SUM_ABOVE_LIMIT 						100
-#define DC_SUM_BELOW_LIMIT 						-100
+#define DC_SUM_ABOVE_LIMIT 						300
+#define DC_SUM_BELOW_LIMIT 						-300
 
 #define PIDDeltaT							0.005
 
