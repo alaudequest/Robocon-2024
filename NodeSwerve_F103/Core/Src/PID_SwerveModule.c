@@ -75,7 +75,14 @@ void PID_BLDC_BreakProtection(bool Mode)
 
 void PID_DC_UntangleWireBLDC()
 {
-
+	Encoder_t encDC = brd_GetObjEncDC();
+	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
+	pid.u_AboveLimit = 20;
+	pid.u_BelowLimit = -20;
+	float result = PID_Cal(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
+	brd_SetPID(pid, PID_DC_ANGLE);
+	brd_SetObjEncDC(encDC);
+	PID_DC_CalSpeed(result);
 }
 
 void PID_BLDC_OnLowSpeed()

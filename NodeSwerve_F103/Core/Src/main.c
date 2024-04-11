@@ -308,6 +308,7 @@ int main(void)
 
 	/* USER CODE END 1 */
 
+
 	/* MCU Configuration--------------------------------------------------------*/
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -338,7 +339,7 @@ int main(void)
 	qHome = xQueueCreate(1, sizeof(bool));
 
 	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
-//	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
+	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
 	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
@@ -786,11 +787,15 @@ void StartTaskPID(void const *argument)
 			goto SET_HOME_PID_TASK;
 		if (DC_IsEnablePID)
 		{
-			float rawAngle = brd_GetTargetAngleDC();
-//			float rawAngle = TestAngle;
-			angopt_Cal(rawAngle);
+			if (untangleBLDC == true){
+				PID_DC_UntangleWireBLDC();
+			}else{
+				float rawAngle = brd_GetTargetAngleDC();
+		//			float rawAngle = TestAngle;
+				angopt_Cal(rawAngle);
 
-			PID_DC_CalPos(angopt_GetOptAngle());
+				PID_DC_CalPos(angopt_GetOptAngle());
+			}
 		}
 //			PID_DC_CalPos(TestAngle);
 		if (BLDC_IsEnablePID) {
