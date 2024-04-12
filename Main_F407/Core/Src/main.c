@@ -820,7 +820,7 @@ void process_Ball_Approach2()
 
 void process_Ball_Approach3(uint8_t Ball)
 {
-	float dis = 140 + Ball*(240*2);
+	float dis = 170 + Ball*(220*2);
 
 	if (process_SubState == 0)
 	{	process_Count ++;
@@ -832,7 +832,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	}
 	else if(process_SubState == 1)
 	{
-		process_RunByAngle(45,0.06);
+		process_RunByAngle(45,0.1);
 		use_pidTheta = 1;
 		if (distance<0.6)
 		{
@@ -842,7 +842,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	}
 	else if (process_SubState == 2)
 	{
-		process_RunByAngle(45,0.1);
+		process_RunByAngle(45,0.15);
 		if (floatingEncCount>dis)
 		{
 			u = 0;
@@ -878,7 +878,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,0.08);
-		if(distance > 0.09)
+		if(distance > 0.1)
 		{
 			process_Count ++;
 		}else{
@@ -896,8 +896,6 @@ void process_Ball_Approach3(uint8_t Ball)
 			step += 1;
 		}
 	}
-
-
 }
 
 void process_ApproachWall()
@@ -1986,7 +1984,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 5)
 						{
-							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -5, 3);
+							process_Accel_FloatingEnc3(80, 0.8, 4100, 0.05, -5, 3);
 						}
 					else if(step == 6)
 						{
@@ -2011,7 +2009,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 11)
 						{
-							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -5, 3);
+							process_Accel_FloatingEnc3(83, 0.8, 3500, 0.05, -5, 3);
 						}
 					else if (step == 12)
 						{
@@ -2035,7 +2033,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 17)
 						{
-							process_Accel_FloatingEnc3(95, 0.8, 3500, 0.05, -8, 3);
+							process_Accel_FloatingEnc3(95, 0.8, 3200, 0.05, -8, 3);
 						}
 					else if (step == 18)
 						{
