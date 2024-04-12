@@ -186,6 +186,8 @@ void EXTI9_5_IRQHandler(void)
   /* USER CODE BEGIN EXTI9_5_IRQn 0 */
 
   /* USER CODE END EXTI9_5_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(Sensor1_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor2_Pin);
   HAL_GPIO_EXTI_IRQHandler(Enc1A_Pin);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
 
@@ -242,8 +244,11 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
 
   /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(RB1SensorLiftBallUp_Pin);
-  HAL_GPIO_EXTI_IRQHandler(RB1SensorArmRight_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor4_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor5_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor6_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor7_Pin);
+  HAL_GPIO_EXTI_IRQHandler(Sensor8_Pin);
   HAL_GPIO_EXTI_IRQHandler(Enc2A_Pin);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 

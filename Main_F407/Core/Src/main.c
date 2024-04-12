@@ -34,6 +34,7 @@
 #include "RB1ActuatorValve.h"
 #include "MainF4Robot1App.h"
 #include "ActuatorGun.h"
+#include "Robot1_Sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -236,13 +237,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 }
 /*=============================== GPIO EXTI ===============================*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == RB1SensorArmRight_Pin) {
-		__NOP();
-	}
-	if (GPIO_Pin == RB1SensorLiftBallUp_Pin) {
-		__NOP();
-	}
 
+	RB1_WaitSensorInInterrupt(GPIO_Pin);
 	if (GPIO_Pin == Enc1A_Pin) {
 		if (HAL_GPIO_ReadPin(Enc1B_GPIO_Port, Enc1B_Pin)) {
 			gunCount1--;
@@ -312,6 +308,10 @@ int main(void)
 	CAN_Init();
 	valve_Init();
 	gun_Init();
+	RB1_SensorRegisterPin(Sensor7_GPIO_Port, Sensor7_Pin, RB1_SENSOR_ARM_LEFT);
+	RB1_SensorRegisterPin(Sensor5_GPIO_Port, Sensor5_Pin, RB1_SENSOR_ARM_RIGHT);
+	RB1_SensorRegisterPin(Sensor8_GPIO_Port, Sensor8_Pin, RB1_SENSOR_COLLECT_BALL_LEFT);
+//	RB1_SensorRegisterPin(gpioPort, sensorPin, RB1_SENSOR_COLLECT_BALL_RIGHT);
 	MainF4Robot1App_Init();
 	qShoot = xQueueCreate(1, sizeof(bool));
 
@@ -889,8 +889,10 @@ static void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : RB1SensorLiftBallUp_Pin RB1SensorArmRight_Pin */
-	GPIO_InitStruct.Pin = RB1SensorLiftBallUp_Pin | RB1SensorArmRight_Pin;
+	/*Configure GPIO pins : Sensor1_Pin Sensor2_Pin Sensor4_Pin Sensor5_Pin
+	 Sensor6_Pin Sensor7_Pin Sensor8_Pin */
+	GPIO_InitStruct.Pin = Sensor1_Pin | Sensor2_Pin | Sensor4_Pin | Sensor5_Pin
+			| Sensor6_Pin | Sensor7_Pin | Sensor8_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -1034,19 +1036,16 @@ HAL_StatusTypeDef Delay_tick(uint32_t tick) {
 	return HAL_BUSY;
 }
 /* USER CODE END Header_Actuator */
-bool IsShoot = false;
 void Actuator(void const *argument)
 {
 	/* USER CODE BEGIN Actuator */
 	gun_Init();
 //		bool IsGetBall = false;
+	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
 	/* Infinite loop */
-	for (;;)
-			{
-//		if (xQueueReceive(qShoot, (void*) &IsShoot, 1 / portTICK_PERIOD_MS) == pdTRUE) {
-//			xStartTime = xTaskGetTickCount();
-//		}
+	for (;;) {
+		RB1_SensorTriggerHandle();
 		if (testTick) {
 			IsShoot = 1;
 			xStartTime = xTaskGetTickCount();
@@ -1056,9 +1055,6 @@ void Actuator(void const *argument)
 			gun_ResetEncoder(&gunCount1, &gunCount2);
 		}
 		if (IsShoot) {
-			//		  gun_StartShootBall(pwmTest);
-			//		  gun_PIDSpeed1(gunTarget1);
-			//		  gun_PIDSpeed2(gunTarget2);
 			xOccurredTime = xTaskGetTickCount() - xStartTime;
 			//		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
 			//			  IsGetBall = 0;
@@ -1068,12 +1064,12 @@ void Actuator(void const *argument)
 			//		  }else{
 			//			  gun_StartGetBall();
 
-			// Nếu tốc hiện tại nhỏ hơn target thì gia tốc
+			// Nếu tốc hiện tại nh�? hơn target thì gia tốc
 			if (gunCurrentSpeed1 < gunTargeSpeed1) {
 				if (gunTargeSpeed1 - gunCurrentSpeed1 < 100) {
 					gunCurrentSpeed1 = gunTargeSpeed1;
 				}
-				// Đang tăng tốc
+				// �?ang tăng tốc
 				else {
 					Gun_ShootBall(gunCurrentSpeed1);
 					if (Delay_tick(200) == HAL_OK) {
@@ -1088,7 +1084,7 @@ void Actuator(void const *argument)
 			// Nếu tốc hiện tại lớn hơn target thì giảm tốc
 			else if (gunCurrentSpeed1 > gunTargeSpeed1) {
 				// Sau 2s thì xác lập
-				// Đang giảm tốc
+				// �?ang giảm tốc
 				if (gunCurrentSpeed1 - gunTargeSpeed1 < 100) {
 					gunCurrentSpeed1 = gunTargeSpeed1;
 				}
@@ -1104,13 +1100,6 @@ void Actuator(void const *argument)
 			}
 
 		}
-//		gun_PIDSpeed1(gunTarget1);
-//		gun_PIDSpeed2(gunTarget1);
-//		if (Delay_tick(200) == HAL_OK) {
-//			gunTarget1 += 300;
-//		}
-		//	gun_StartShootBall(gunTarget1);
-//		gun_StartShootBall(pwm);
 		gun_VelCal(gunCount1, gunCount2);
 		osDelay(10);
 	}

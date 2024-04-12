@@ -11,22 +11,17 @@
 #include "74HC595.h"
 #include "Encoder.h"
 
-typedef struct SensorInput_t{
-	int32_t a;
-}SensorInput_t;
+typedef struct Motor_t {
 
-typedef struct Motor_t{
+} Motor_t;
+typedef struct VanOutput_t {
 
-}Motor_t;
-typedef struct VanOutput_t{
-
-}VanOutput_t;
-typedef struct ActuatorParam_t{
-	SensorInput_t seninp;
+} VanOutput_t;
+typedef struct ActuatorParam_t {
 	Motor_t mdc;
 	VanOutput_t vanout;
 	Encoder_t enc;
-}ActuatorParam_t;
+} ActuatorParam_t;
 
 void actor_SetVanOut(uint32_t van);
 uint32_t actor_GetVanOut();
