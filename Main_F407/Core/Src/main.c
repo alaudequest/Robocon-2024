@@ -855,8 +855,8 @@ void process_Ball_Approach3(uint8_t Ball)
 	else if (process_SubState == 3)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(135,-0.06);
-		if(distance < 0.19)
+		process_RunByAngle(135,-0.08);
+		if(distance < 0.17)
 		{
 			process_Count ++;
 		}else{
@@ -877,16 +877,23 @@ void process_Ball_Approach3(uint8_t Ball)
 	else if (process_SubState == 4)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(135,0.06);
-		if(distance > 0.08)
+		process_RunByAngle(135,0.08);
+		if(distance > 0.09)
 		{
+			process_Count ++;
+		}else{
+			process_Count = 0;
+		}
+
+		if (process_Count > 3)
+		{
+			process_Count = 0;
 			u = 0;
 			v = 0;
 			r = 0;
 			use_pidTheta = 0;
 			process_SubState = 0;
 			step += 1;
-
 		}
 	}
 
@@ -905,7 +912,7 @@ void process_ApproachWall()
 		}else{
 			process_SSCheck = 0;
 		}
-		if (process_SSCheck > 3)
+		if (process_SSCheck > 5)
 		{
 			process_SSCheck = 0;
 			process_SubState = 1;
@@ -1967,7 +1974,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 2)
 						{
-							process_Accel_FloatingEnc3(-22, 0.8, 5250, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-22, 0.8, 5300, 0.08, -45, 3);
 						}
 					else if (step == 3)
 						{
@@ -1979,7 +1986,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 5)
 						{
-							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -3, 3);
+							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -5, 3);
 						}
 					else if(step == 6)
 						{
@@ -1991,7 +1998,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if(step == 8)
 						{
-							process_Accel_FloatingEnc3(-118, 0.8, 4200, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
 						}
 					else if (step == 9)
 						{
@@ -2004,7 +2011,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 11)
 						{
-							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -3, 3);
+							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -5, 3);
 						}
 					else if (step == 12)
 						{
@@ -2016,7 +2023,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 14)
 						{
-							process_Accel_FloatingEnc3(-118, 0.8, 4200, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
 						}
 					else if (step == 15)
 						{
@@ -2028,7 +2035,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 17)
 						{
-							process_Accel_FloatingEnc3(95, 0.8, 2600, 0.05, -3, 3);
+							process_Accel_FloatingEnc3(95, 0.8, 3500, 0.05, -8, 3);
 						}
 					else if (step == 18)
 						{
