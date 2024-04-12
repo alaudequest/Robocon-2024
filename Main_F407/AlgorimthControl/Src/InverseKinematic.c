@@ -38,7 +38,7 @@ HAL_StatusTypeDef  invkine_Implementation(ModuleID ID, float u, float v, float r
 
 	if(u == 0&&v==0&&r==0)angopt.currentAngle= angopt.PreCurrAngle;
 	else{
-		angopt.currentAngle = rawAngle = atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
+		angopt.currentAngle =  atan2(vect.wheelVelY,vect.wheelVelX)*180.0/M_PI;
 	}
 	ptnCpltCallback(ID,velocity,angopt.currentAngle);
 	angopt.PreCurrAngle = angopt.currentAngle;

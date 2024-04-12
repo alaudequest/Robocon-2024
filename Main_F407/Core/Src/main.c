@@ -1931,7 +1931,7 @@ void OdometerHandle(void const * argument)
 
 					if (step == 0)
 						{	// Ra lenh cho co Cau lay bong di xuong
-							process_RunByAngle(-22, 0.001);
+							process_RunByAngle(-22, 0.01);
 							process_getBall();
 
 						}
