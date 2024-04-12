@@ -609,6 +609,7 @@ void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,f
 	if (process_SubState == 0)
 	{
 		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
 		process_SubState = 1;
 	}else{
 		use_pidTheta = 1;
@@ -727,7 +728,7 @@ void process_Ball_Approach()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,-0.08);
-		if(distance < 0.21)
+		if(distance < 0.19)
 		{
 			u = 0;
 			v = 0;
@@ -741,7 +742,7 @@ void process_Ball_Approach()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,0.08);
-		if(distance > 0.1)
+		if(distance > 0.08)
 		{
 			u = 0;
 			v = 0;
@@ -899,7 +900,7 @@ void process_ApproachWall()
 	else if(process_SubState == 1)
 		{
 			process_Count++;
-			if (process_Count > 40)
+			if (process_Count > 30)
 			{
 				process_Count = 0;
 				process_SubState = 2;
@@ -938,6 +939,7 @@ void process_ReleaseBall()
 	if (process_Count>50){
 		process_Count = 0;
 		process_setVal_PutBall(3);
+		process_SubState = 0;
 		step++;
 	}
 }
@@ -1929,7 +1931,9 @@ void OdometerHandle(void const * argument)
 
 					if (step == 0)
 						{	// Ra lenh cho co Cau lay bong di xuong
+							process_RunByAngle(-22, 0.001);
 							process_getBall();
+
 						}
 					else if (step == 1)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
@@ -1949,7 +1953,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 2)
 						{
-							process_Accel_FloatingEnc3(-20, 0.8, 5500, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-22, 0.8, 5300, 0.08, -45, 3);
 						}
 					else if (step == 3)
 						{
@@ -1959,24 +1963,22 @@ void OdometerHandle(void const * argument)
 						{
 							process_getBall();
 						}
-//					else if (step == 5)
-//						{
-//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 4, 0, 0);
-//							step += 1;
-//						}
-//					else if(step == 6)
-//						{
-//							process_Accel_FloatingEnc2(75, 1.2, 3000, 0.05);
-//						}
-//					else if(step == 7)
-//						{
-//							process_PD_OnStrainghtPath();
-//							process_ApproachWall();
-//						}
-//					else if(step == 8)
-//						{
-//							process_ReleaseBall();
-//						}
+					else if (step == 5)
+						{
+							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, 0, 3);
+						}
+					else if(step == 6)
+						{
+							process_ApproachWall();
+						}
+					else if(step == 7)
+						{
+							process_ReleaseBall();
+						}
+					else if(step == 8)
+						{
+							process_Accel_FloatingEnc3(-120, 0.8, 3000, 0.08, -45, 3);
+						}
 //					else if (step == 9)
 //						{
 //							trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 4, 0, 0);
@@ -2050,7 +2052,7 @@ void OdometerHandle(void const * argument)
 					uControlY = 	GamePad.YLeftCtr;
 					uControlTheta = GamePad.XRightCtr;
 				}
-				else {
+				else if (Gamepad == 0){
 					process_Signal_RotationMatrixTransform(u, v, r);
 				}
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
