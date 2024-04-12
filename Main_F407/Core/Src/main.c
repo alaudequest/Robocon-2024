@@ -1933,19 +1933,19 @@ void OdometerHandle(void const * argument)
 //				}
 //	--------------------------------------------CODE MAU--------------------------------------------------*/
 //
-//				trajecTheta.t += DELTA_T;
+				trajecTheta.t += DELTA_T;
 				Get_MPU_Angle();
-//				angle_Rad = (a_Now/10.0)*M_PI/180.0;
+				angle_Rad = (a_Now/10.0)*M_PI/180.0;
 ////				process_Control_SpeedDC_GetBall(speedTest);
 //
-//				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
 				process_SetFloatingEnc();
-//				trajecPlan_Cal(&trajecTheta);
-//				if (use_pidTheta)
-//				{
-//					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
-//
-//				}
+				trajecPlan_Cal(&trajecTheta);
+				if (use_pidTheta)
+				{
+					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
+
+				}
 //
 //				process_Error(check);
 //	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
@@ -2046,33 +2046,33 @@ void OdometerHandle(void const * argument)
 //							process_ReleaseBall();
 //						}
 //	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
-//				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
-//				{
-//					osDelay(100);
-//					if (GamePad.Down && GamePad.Cross)
-//					{
-//						Gamepad = 1;
-//					}
-//				}
+				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
+				{
+					osDelay(100);
+					if (GamePad.Down && GamePad.Cross)
+					{
+						Gamepad = 1;
+					}
+				}
 //
-//				if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
-//				{
-//					osDelay(100);
-//					if((GamePad.Square == 1)&&(GamePad.Right == 1))
-//					{
-//						xaDay = 1;
-//					}
-//				}
+				if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
+				{
+					osDelay(100);
+					if((GamePad.Square == 1)&&(GamePad.Right == 1))
+					{
+						xaDay = 1;
+					}
+				}
 //
-//				if (Gamepad == 1)
-//				{
-//					uControlX = 	-GamePad.XLeftCtr;
-//					uControlY = 	GamePad.YLeftCtr;
-//					uControlTheta = GamePad.XRightCtr;
-//				}
-//				else if (Gamepad == 0){
+				if (Gamepad == 1)
+				{
+					uControlX = 	-GamePad.XLeftCtr;
+					uControlY = 	GamePad.YLeftCtr;
+					uControlTheta = GamePad.XRightCtr;
+				}
+				else if (Gamepad == 0){
 					process_Signal_RotationMatrixTransform(u, v, r);
-//				}
+				}
 //	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
 				osDelay(DELTA_T*1000);
