@@ -820,11 +820,8 @@ void process_Ball_Approach2()
 
 void process_Ball_Approach3(uint8_t Ball)
 {
-	float dis;
+	float dis = 140 + Ball*(200*2);
 
-	if (Ball == 0){
-		dis = 140;
-	}
 	if (process_SubState == 0)
 	{	process_Count ++;
 		if (process_Count > 10)
@@ -833,7 +830,17 @@ void process_Ball_Approach3(uint8_t Ball)
 			process_SubState = 1;
 		}
 	}
-	else if (process_SubState == 1)
+	else if(process_SubState == 1)
+	{
+		process_RunByAngle(45,0.1);
+		use_pidTheta = 1;
+		if (distance<0.6)
+		{
+			process_ResetFloatingEnc();
+			process_SubState = 2;
+		}
+	}
+	else if (process_SubState == 2)
 	{
 		process_RunByAngle(45,0.1);
 		if (floatingEncCount>dis)
@@ -842,15 +849,23 @@ void process_Ball_Approach3(uint8_t Ball)
 			v = 0;
 			r = 0;
 			use_pidTheta = 0;
-			process_SubState = 2;
+			process_SubState = 3;
 		}
 	}
 	else if (process_SubState == 3)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(135,-0.08);
-		if(distance < 0.21)
+		process_RunByAngle(135,-0.06);
+		if(distance < 0.2)
 		{
+			process_Count ++;
+		}else{
+			process_Count = 0;
+		}
+
+		if (process_Count > 3)
+		{
+			process_Count = 0;
 			u = 0;
 			v = 0;
 			r = 0;
@@ -862,8 +877,8 @@ void process_Ball_Approach3(uint8_t Ball)
 	else if (process_SubState == 4)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(135,0.08);
-		if(distance > 0.15)
+		process_RunByAngle(135,0.06);
+		if(distance > 0.1)
 		{
 			u = 0;
 			v = 0;
@@ -890,7 +905,7 @@ void process_ApproachWall()
 		}else{
 			process_SSCheck = 0;
 		}
-		if (process_SSCheck > 5)
+		if (process_SSCheck > 3)
 		{
 			process_SSCheck = 0;
 			process_SubState = 1;
@@ -1931,7 +1946,7 @@ void OdometerHandle(void const * argument)
 
 					if (step == 0)
 						{	// Ra lenh cho co Cau lay bong di xuong
-							process_RunByAngle(-22, 0.01);
+//
 							process_getBall();
 
 						}
@@ -1953,11 +1968,11 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 2)
 						{
-							process_Accel_FloatingEnc3(-22, 0.8, 5300, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-22, 0.8, 5250, 0.08, -45, 3);
 						}
 					else if (step == 3)
 						{
-							process_Ball_Approach();
+							process_Ball_Approach3(0);
 						}
 					else if (step == 4)
 						{
@@ -1965,7 +1980,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 5)
 						{
-							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, 0, 3);
+							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -3, 3);
 						}
 					else if(step == 6)
 						{
@@ -1977,50 +1992,41 @@ void OdometerHandle(void const * argument)
 						}
 					else if(step == 8)
 						{
-							process_Accel_FloatingEnc3(-120, 0.8, 3000, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-122, 0.8, 4200, 0.08, -45, 3);
 						}
-//					else if (step == 9)
-//						{
-//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -45*M_PI/180, 4, 0, 0);
-//							step += 1;
-//						}
-//					else if (step == 10)
-//						{
-//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-//							process_Accel_FloatingEnc2(-115, 1.2, 3200, 0.05);
-//						}
-//					else if (step == 11)
-//						{
-//							process_Ball_Approach2();
-//						}
-//					else if (step == 12)
-//						{
-//							process_getBall();
-//						}
-//					else if (step == 13)
-//						{
-//							trajecPlan_SetParam(&trajecTheta, angle_Rad, -3*M_PI/180, 3, 0, 0);
-//							step += 1;
-//						}
-//					else if (step == 14)
-//						{
-//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-//							process_Accel_FloatingEnc2(78, 1.2, 2800, 0.05);
-//						}
-//					else if (step == 15)
-//						{
-//							process_PD_OnStrainghtPath();
-//							process_ApproachWall();
-//						}
-//					else if (step == 16)
-//						{
-//							process_ReleaseBall();
-//						}
-//					else if (step == 17)
-//						{
-//							trajecPlan_SetParam(&trajecTheta, angle_Rad, 0*M_PI/180, 1, 0, 0);
-//							step += 1;
-//						}
+					else if (step == 9)
+						{
+							process_Ball_Approach3(1);
+						}
+
+					else if (step == 10)
+						{
+							process_getBall();
+						}
+					else if (step == 11)
+						{
+							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -3, 3);
+						}
+					else if (step == 12)
+						{
+							process_ApproachWall();
+						}
+					else if (step == 13)
+						{
+							process_ReleaseBall();
+						}
+					else if (step == 14)
+						{
+							process_Accel_FloatingEnc3(-122, 0.8, 4200, 0.08, -45, 3);
+						}
+					else if (step == 15)
+						{
+							process_Ball_Approach3(2);
+						}
+					else if (step == 16)
+						{
+							process_getBall();
+						}
 //					else if (step == 18)
 //						{
 //							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
