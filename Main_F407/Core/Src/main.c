@@ -1074,7 +1074,7 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
-	osDelay(1000);
+//	osDelay(1000);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
 
 //	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
@@ -1910,171 +1910,171 @@ void OdometerHandle(void const * argument)
 //			process_ReadVel_Init();
 			/* Infinite loop */
 			for (;;) {
-				ss = HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin);
-				encPutBall = encoder_GetPulse(&PutBall_Enc, MODE_X4);
-	///////////////////////////////////////////////////////////////////////////////////////////////////////
-	/*---------------------------------------------------------------------------------------------------
-				if(step == 0)// Buoc khoi dong sethome
-				{// Reset co cau ve mac dinh
-					// if (dieu kien sethome da xong)step = 1;
-				}
-				else if(step == 2)//	Doi nhan nut de chay
-				{
-					// if (dieu kien nut nhan duoc nhan)step = 2;
-				}
-				else if(step == 3)//	Robot chay toi khu vuc lay banh
-				{
-					// if (s chua toi hoac s nho hon quang duong)process_Accel_FloatingEnc(Angle,maxSpeed,s,accel);
-					// if (da toi) DungRobot(); Step = 4;
-				}
-				else if(step == 4)// Doi Nhan nut de chay tiep
-				{
-					// if (dieu kien nut nhan duoc nhan)step = 5;
-				}
-	--------------------------------------------CODE MAU--------------------------------------------------*/
-
-				trajecTheta.t += DELTA_T;
-				Get_MPU_Angle();
-				angle_Rad = (a_Now/10.0)*M_PI/180.0;
-//				process_Control_SpeedDC_GetBall(speedTest);
-
-				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-				process_SetFloatingEnc();
-				trajecPlan_Cal(&trajecTheta);
-				if (use_pidTheta)
-				{
-					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
-
-				}
-
-				process_Error(check);
-	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
-
-					if (step == 0)
-						{	// Ra lenh cho co Cau lay bong di xuong
+//				ss = HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin);
+//				encPutBall = encoder_GetPulse(&PutBall_Enc, MODE_X4);
+//	///////////////////////////////////////////////////////////////////////////////////////////////////////
+//	/*---------------------------------------------------------------------------------------------------
+//				if(step == 0)// Buoc khoi dong sethome
+//				{// Reset co cau ve mac dinh
+//					// if (dieu kien sethome da xong)step = 1;
+//				}
+//				else if(step == 2)//	Doi nhan nut de chay
+//				{
+//					// if (dieu kien nut nhan duoc nhan)step = 2;
+//				}
+//				else if(step == 3)//	Robot chay toi khu vuc lay banh
+//				{
+//					// if (s chua toi hoac s nho hon quang duong)process_Accel_FloatingEnc(Angle,maxSpeed,s,accel);
+//					// if (da toi) DungRobot(); Step = 4;
+//				}
+//				else if(step == 4)// Doi Nhan nut de chay tiep
+//				{
+//					// if (dieu kien nut nhan duoc nhan)step = 5;
+//				}
+//	--------------------------------------------CODE MAU--------------------------------------------------*/
 //
-							process_getBall();
-
-						}
-					else if (step == 1)
-						{	//Ra lenh cho co Cau lay bong di len cham chu U
-							process_setVal_PutBall(1);
-
-							if (GamePad.Up)
-							{
-								osDelay(500);
-								if(GamePad.Up)
-								{	//Reset thong so enc tha troi va la ban :
-									Reset_MPU_Angle();
-									process_ResetFloatingEnc();
-									// Set thong so quy hoach quy dao :
-									step = 2;
-								}
-							}
-						}
-					else if (step == 2)
-						{
-							process_Accel_FloatingEnc3(-22, 0.8, 5300, 0.08, -45, 3);
-						}
-					else if (step == 3)
-						{
-							process_Ball_Approach3(0);
-						}
-					else if (step == 4)
-						{
-							process_getBall();
-						}
-					else if (step == 5)
-						{
-							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -5, 3);
-						}
-					else if(step == 6)
-						{
-							process_ApproachWall();
-						}
-					else if(step == 7)
-						{
-							process_ReleaseBall();
-						}
-					else if(step == 8)
-						{
-							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
-						}
-					else if (step == 9)
-						{
-							process_Ball_Approach3(1);
-						}
-
-					else if (step == 10)
-						{
-							process_getBall();
-						}
-					else if (step == 11)
-						{
-							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -5, 3);
-						}
-					else if (step == 12)
-						{
-							process_ApproachWall();
-						}
-					else if (step == 13)
-						{
-							process_ReleaseBall();
-						}
-					else if (step == 14)
-						{
-							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
-						}
-					else if (step == 15)
-						{
-							process_Ball_Approach3(2);
-						}
-					else if (step == 16)
-						{
-							process_getBall();
-						}
-					else if (step == 17)
-						{
-							process_Accel_FloatingEnc3(95, 0.8, 3500, 0.05, -8, 3);
-						}
-					else if (step == 18)
-						{
-							process_ApproachWall();
-						}
-					else if (step == 19)
-						{
-							process_ReleaseBall();
-						}
-	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
-				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
-				{
-					osDelay(100);
-					if (GamePad.Down && GamePad.Cross)
-					{
-						Gamepad = 1;
-					}
-				}
-
-				if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
-				{
-					osDelay(100);
-					if((GamePad.Square == 1)&&(GamePad.Right == 1))
-					{
-						xaDay = 1;
-					}
-				}
-
-				if (Gamepad == 1)
-				{
-					uControlX = 	-GamePad.XLeftCtr;
-					uControlY = 	GamePad.YLeftCtr;
-					uControlTheta = GamePad.XRightCtr;
-				}
-				else if (Gamepad == 0){
-					process_Signal_RotationMatrixTransform(u, v, r);
-				}
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
+//				trajecTheta.t += DELTA_T;
+				Get_MPU_Angle();
+//				angle_Rad = (a_Now/10.0)*M_PI/180.0;
+////				process_Control_SpeedDC_GetBall(speedTest);
+//
+//				process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
+				process_SetFloatingEnc();
+//				trajecPlan_Cal(&trajecTheta);
+//				if (use_pidTheta)
+//				{
+//					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
+//
+//				}
+//
+//				process_Error(check);
+//	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
+//
+//					if (step == 0)
+//						{	// Ra lenh cho co Cau lay bong di xuong
+////
+//							process_getBall();
+//
+//						}
+//					else if (step == 1)
+//						{	//Ra lenh cho co Cau lay bong di len cham chu U
+//							process_setVal_PutBall(1);
+//
+//							if (GamePad.Up)
+//							{
+//								osDelay(500);
+//								if(GamePad.Up)
+//								{	//Reset thong so enc tha troi va la ban :
+//									Reset_MPU_Angle();
+//									process_ResetFloatingEnc();
+//									// Set thong so quy hoach quy dao :
+//									step = 2;
+//								}
+//							}
+//						}
+//					else if (step == 2)
+//						{
+//							process_Accel_FloatingEnc3(-22, 0.8, 5300, 0.08, -45, 3);
+//						}
+//					else if (step == 3)
+//						{
+//							process_Ball_Approach3(0);
+//						}
+//					else if (step == 4)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 5)
+//						{
+//							process_Accel_FloatingEnc3(75, 0.8, 4000, 0.05, -5, 3);
+//						}
+//					else if(step == 6)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if(step == 7)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if(step == 8)
+//						{
+//							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
+//						}
+//					else if (step == 9)
+//						{
+//							process_Ball_Approach3(1);
+//						}
+//
+//					else if (step == 10)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 11)
+//						{
+//							process_Accel_FloatingEnc3(80, 0.8, 3500, 0.05, -5, 3);
+//						}
+//					else if (step == 12)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if (step == 13)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if (step == 14)
+//						{
+//							process_Accel_FloatingEnc3(-117, 0.8, 4200, 0.08, -45, 3);
+//						}
+//					else if (step == 15)
+//						{
+//							process_Ball_Approach3(2);
+//						}
+//					else if (step == 16)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 17)
+//						{
+//							process_Accel_FloatingEnc3(95, 0.8, 3500, 0.05, -8, 3);
+//						}
+//					else if (step == 18)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if (step == 19)
+//						{
+//							process_ReleaseBall();
+//						}
+//	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
+//				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
+//				{
+//					osDelay(100);
+//					if (GamePad.Down && GamePad.Cross)
+//					{
+//						Gamepad = 1;
+//					}
+//				}
+//
+//				if((GamePad.Square == 1)&&(GamePad.Right == 1))// Xa day
+//				{
+//					osDelay(100);
+//					if((GamePad.Square == 1)&&(GamePad.Right == 1))
+//					{
+//						xaDay = 1;
+//					}
+//				}
+//
+//				if (Gamepad == 1)
+//				{
+//					uControlX = 	-GamePad.XLeftCtr;
+//					uControlY = 	GamePad.YLeftCtr;
+//					uControlTheta = GamePad.XRightCtr;
+//				}
+//				else if (Gamepad == 0){
+//					process_Signal_RotationMatrixTransform(u, v, r);
+//				}
+//	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////				xTaskNotify(TaskInvKineHandle,1,eSetValueWithOverwrite);
 				osDelay(DELTA_T*1000);
 
 			}
@@ -2100,8 +2100,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM4) {
-    readADC();
-    startPutBall(process_GetBall_State);
+//    readADC();
+//    startPutBall(process_GetBall_State);
 
   }
   /* USER CODE END Callback 1 */
