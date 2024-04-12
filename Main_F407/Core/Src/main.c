@@ -820,7 +820,7 @@ void process_Ball_Approach2()
 
 void process_Ball_Approach3(uint8_t Ball)
 {
-	float dis = 140 + Ball*(200*2);
+	float dis = 140 + Ball*(240*2);
 
 	if (process_SubState == 0)
 	{	process_Count ++;
@@ -832,7 +832,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	}
 	else if(process_SubState == 1)
 	{
-		process_RunByAngle(45,0.1);
+		process_RunByAngle(45,0.06);
 		use_pidTheta = 1;
 		if (distance<0.6)
 		{
@@ -856,7 +856,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,-0.06);
-		if(distance < 0.2)
+		if(distance < 0.19)
 		{
 			process_Count ++;
 		}else{
@@ -878,7 +878,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(135,0.06);
-		if(distance > 0.1)
+		if(distance > 0.08)
 		{
 			u = 0;
 			v = 0;
@@ -1753,8 +1753,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
 	speedAngle.bldcSpeed = speed;
 	speedAngle.dcAngle = angle;
 	canfunc_MotorPutSpeedAndAngle(speedAngle);
-	while (canctrl_Send(&hcan1, ID) != HAL_OK)
-		;
+	while (canctrl_Send(&hcan1, ID) != HAL_OK);
 }
 
 /* USER CODE END 4 */
@@ -1954,10 +1953,10 @@ void OdometerHandle(void const * argument)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
 							process_setVal_PutBall(1);
 
-							if (GamePad.Down)
+							if (GamePad.Up)
 							{
 								osDelay(500);
-								if(GamePad.Down)
+								if(GamePad.Up)
 								{	//Reset thong so enc tha troi va la ban :
 									Reset_MPU_Angle();
 									process_ResetFloatingEnc();
@@ -1992,7 +1991,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if(step == 8)
 						{
-							process_Accel_FloatingEnc3(-122, 0.8, 4200, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-118, 0.8, 4200, 0.08, -45, 3);
 						}
 					else if (step == 9)
 						{
@@ -2017,7 +2016,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 14)
 						{
-							process_Accel_FloatingEnc3(-122, 0.8, 4200, 0.08, -45, 3);
+							process_Accel_FloatingEnc3(-118, 0.8, 4200, 0.08, -45, 3);
 						}
 					else if (step == 15)
 						{
@@ -2027,12 +2026,18 @@ void OdometerHandle(void const * argument)
 						{
 							process_getBall();
 						}
-//					else if (step == 18)
-//						{
-//							process_PD_Auto_Chose(trajecTheta.Pf, angle_Rad);
-//							process_Accel_FloatingEnc2(200, 1.2, 6000, 0.05);
-//						}
-
+					else if (step == 17)
+						{
+							process_Accel_FloatingEnc3(95, 0.8, 2600, 0.05, -3, 3);
+						}
+					else if (step == 18)
+						{
+							process_ApproachWall();
+						}
+					else if (step == 19)
+						{
+							process_ReleaseBall();
+						}
 	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
 				{
