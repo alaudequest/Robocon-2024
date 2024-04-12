@@ -20,7 +20,7 @@ typedef enum Robot1Sensor {
 } Robot1Sensor;
 
 typedef struct Sensor_t {
-	GPIO_TypeDef *gpioPort;
+	GPIO_TypeDef *sensorPort;
 	uint16_t sensorPin;
 	Robot1Sensor rb1sensor;
 } Sensor_t;

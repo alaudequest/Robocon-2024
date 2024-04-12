@@ -238,13 +238,13 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 /*=============================== GPIO EXTI ===============================*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
-	RB1_WaitSensorInInterrupt(GPIO_Pin);
 	if (GPIO_Pin == Enc1A_Pin) {
 		if (HAL_GPIO_ReadPin(Enc1B_GPIO_Port, Enc1B_Pin)) {
 			gunCount1--;
 		}
 		else
 			gunCount1++;
+		break;
 	}
 	if (GPIO_Pin == Enc2A_Pin) {
 		if (HAL_GPIO_ReadPin(Enc2B_GPIO_Port, Enc2B_Pin)) {
@@ -252,7 +252,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		}
 		else
 			gunCount2++;
+		break;
 	}
+	RB1_WaitSensorInInterrupt(GPIO_Pin);
 }
 void Gun_ShootBall(uint16_t Target1)
 {
@@ -311,7 +313,7 @@ int main(void)
 	RB1_SensorRegisterPin(Sensor7_GPIO_Port, Sensor7_Pin, RB1_SENSOR_ARM_LEFT);
 	RB1_SensorRegisterPin(Sensor5_GPIO_Port, Sensor5_Pin, RB1_SENSOR_ARM_RIGHT);
 	RB1_SensorRegisterPin(Sensor8_GPIO_Port, Sensor8_Pin, RB1_SENSOR_COLLECT_BALL_LEFT);
-//	RB1_SensorRegisterPin(gpioPort, sensorPin, RB1_SENSOR_COLLECT_BALL_RIGHT);
+	RB1_SensorRegisterPin(Sensor4_GPIO_Port, Sensor4_Pin, RB1_SENSOR_COLLECT_BALL_RIGHT);
 	MainF4Robot1App_Init();
 	qShoot = xQueueCreate(1, sizeof(bool));
 
