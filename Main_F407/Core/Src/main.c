@@ -1672,14 +1672,18 @@ void OdometerHandle(void const * argument)
 									Reset_MPU_Angle();
 									process_ResetFloatingEnc();
 									// Set thong so quy hoach quy dao :
-									step = 2;
+									step = 1;
 								}
 							}
 						}
 					else if (step == 1)
 					{
-						process_Accel_FloatingEnc3(0, 0.8, 2000, 0.08, 0, 3);
+						process_Accel_FloatingEnc3(90, 0.5, 1000, 0.08, 0, 3);
 					}
+//					else if (step == 2)
+//					{
+//						process_Accel_FloatingEnc3(90, 0.8, 2000, 0.08, 0, 3);
+//					}
 //	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
 				{
