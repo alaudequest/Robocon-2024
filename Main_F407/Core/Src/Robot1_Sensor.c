@@ -63,7 +63,7 @@ void RB1_SensorTriggerHandle()
 
 	// Giả sử cho phép có gai nhiễu ở đầu quá trình đọc liên tục thì số đếm sẽ nhỏ hơn định mức một khoảng cho phép
 	if (readCount > CONTINOUS_READ_NUM - 100) {
-		rb1DetectSensor = sensorArray[i].rb1sensor;
+		rb1DetectSensor = sensorArray[indexOfSensorTrigger].rb1sensor;
 	}
 	// Reset lại quá trình đọc cảm biến và cho phép ngắt
 	delayTick = 0;

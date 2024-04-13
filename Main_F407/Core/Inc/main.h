@@ -59,10 +59,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define Buzzer_Pin GPIO_PIN_4
+#define Buzzer_GPIO_Port GPIOE
 #define MotorGetB1_Pin GPIO_PIN_5
 #define MotorGetB1_GPIO_Port GPIOE
 #define MotorGetB2_Pin GPIO_PIN_6
 #define MotorGetB2_GPIO_Port GPIOE
+#define Status_Pin GPIO_PIN_13
+#define Status_GPIO_Port GPIOC
 #define MotorGun1_Pin GPIO_PIN_0
 #define MotorGun1_GPIO_Port GPIOA
 #define MotorGun2_Pin GPIO_PIN_1

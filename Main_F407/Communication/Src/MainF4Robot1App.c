@@ -39,9 +39,9 @@ void MainF4Robot1App_Init()
 static void RelayCommandHandler()
 {
 	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloCollectBall))
-		gun_StartGetBall();
+		RB1_CollectBallMotor_On();
 	else
-		gun_StopGetBall();
+		RB1_CollectBallMotor_Off();
 
 	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall)) {
 		testTick = true;
