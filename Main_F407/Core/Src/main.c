@@ -316,7 +316,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-
+	__HAL_UART_CLEAR_OREFLAG(huart);
+	memset(UARTRX3_Buffer, 0, sizeof(UARTRX3_Buffer));
+	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+	__HAL_UART_DISABLE(huart);
 }
 /*=============================== GPIO EXTI ===============================*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
@@ -593,7 +596,6 @@ int main(void)
 	RB1_SensorRegisterPin(Sensor8_GPIO_Port, Sensor8_Pin, RB1_SENSOR_COLLECT_BALL_LEFT);
 	RB1_SensorRegisterPin(Sensor4_GPIO_Port, Sensor4_Pin, RB1_SENSOR_COLLECT_BALL_RIGHT);
 	MainF4Robot1App_Init();
-	qShoot = xQueueCreate(1, sizeof(bool));
 
 	/* USER CODE END 2 */
 
@@ -1375,6 +1377,10 @@ void Actuator(void const *argument)
 //		bool IsGetBall = false;
 	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
+	valve_BothCatch();
+	osDelay(1000);
+	valve_BothRelease();
+	osDelay(1000);
 	/* Infinite loop */
 	for (;;) {
 		RB1_CollectBallMotor_ControlSpeed();
