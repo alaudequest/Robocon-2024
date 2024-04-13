@@ -80,6 +80,7 @@ uint32_t TaskCANBuffer[128];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskActuatorHandle;
 osThreadId TaskOdometerHandle;
+osThreadId TaskProcessHandle;
 /* USER CODE BEGIN PV */
 
 CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -156,7 +157,7 @@ trajec_Param trajecTheta;
 
 uint32_t nodeSwerveSetHomeComplete = 0;
 int gunCount1, gunCount2;
-float gunCurrentSpeed1, gunCurrentSpeed2, gunTargeSpeed1, gunTargeSpeed2;
+float gunCurrentSpeed1, gunCurrentSpeed2, gunTargetSpeed1, gunTargeSpeed2;
 QueueHandle_t qShoot;
 bool testTick = false;
 
@@ -192,6 +193,7 @@ void InverseKinematic(void const *argument);
 void CAN_Bus(void const *argument);
 void Actuator(void const *argument);
 void OdometerHandle(void const *argument);
+void TaskRunProcess(void const *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -270,6 +272,10 @@ int CurrAngle;
 char ds[12];
 uint8_t uart2_ds[5], ds_ind, ds_cnt, ds_flg;
 uint8_t UARTRX3_Buffer[9];
+bool phatHienLuaTrai = false;
+bool phatHienLuaPhai = false;
+bool phatHienBongTrai = false;
+bool phatHienBongPhai = false;
 void Receive(uint8_t *DataArray) {
 	uint8_t *pInt = NULL;
 	if (DataArray[4] == 13) {
@@ -533,6 +539,72 @@ void process_WireRelease() {
 	osDelay(1);
 }
 
+void process_PhatHienLuaTrai() {
+	phatHienLuaTrai = true;
+}
+
+void process_PhatHienLuaPhai() {
+	phatHienLuaPhai = true;
+}
+
+bool process_ThucHienGapLua() {
+
+	bool gapLuaThanhCong = false;
+	// sau khi đọc tín hiệu ngắt cả 2 cảm biến
+	if (phatHienLuaTrai == true && phatHienLuaPhai == true) {
+		uint16_t soLanPhatHienLuaTrai = 0;
+		uint16_t soLanPhatHienLuaPhai = 0;
+		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
+		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
+		//đọc liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
+		for (uint16_t i = 0; i < 2000; i++) {
+			if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
+				soLanPhatHienLuaTrai++;
+			}
+			else
+				soLanPhatHienLuaTrai = 0;
+			if (HAL_GPIO_ReadPin(camBienLuaPhai.sensorPort, camBienLuaPhai.sensorPin)) {
+				soLanPhatHienLuaPhai++;
+			}
+			else
+				soLanPhatHienLuaPhai = 0;
+		}
+		if (soLanPhatHienLuaTrai > 1800 && soLanPhatHienLuaPhai > 1800) {
+			valve_BothCatch();
+			gapLuaThanhCong = true;
+		}
+		phatHienLuaTrai = false;
+		phatHienLuaPhai = false;
+	}
+	return gapLuaThanhCong;
+}
+
+void process_LuaBongTrai() {
+	phatHienBongTrai = true;
+}
+void process_LuaBongPhai() {
+	valve_RightCollectBall();
+	osDelay(3000);
+	valve_RightWaitCollectBall();
+}
+
+bool process_ThucHienLuaBongTrai() {
+	bool thucHienThanhCong = false;
+	// Nếu cảm biến lùa bóng trái phát hiện bóng
+	if (phatHienBongTrai) {
+		// Rút xilanh để lùa bóng vào
+		valve_LeftCollectBall();
+		osDelay(3000);
+		// Đẩy xilanh ra và chờ cảm biến phát hiện
+		valve_LeftWaitCollectBall();
+		// chờ bóng bắn xong
+		osDelay(2000);
+		phatHienBongTrai = false;
+		thucHienThanhCong = true;
+	}
+	return thucHienThanhCong;
+}
+
 // Danh cho co cau ban
 void Gun_ShootBall(uint16_t Target1)
 {
@@ -589,12 +661,16 @@ int main(void)
 	CAN_Init();
 	valve_Init();
 	gun_Init();
+	process_Init();
 	RB1_CollectBallMotor_Init();
 
 	RB1_SensorRegisterPin(Sensor7_GPIO_Port, Sensor7_Pin, RB1_SENSOR_ARM_LEFT);
 	RB1_SensorRegisterPin(Sensor5_GPIO_Port, Sensor5_Pin, RB1_SENSOR_ARM_RIGHT);
 	RB1_SensorRegisterPin(Sensor8_GPIO_Port, Sensor8_Pin, RB1_SENSOR_COLLECT_BALL_LEFT);
 	RB1_SensorRegisterPin(Sensor4_GPIO_Port, Sensor4_Pin, RB1_SENSOR_COLLECT_BALL_RIGHT);
+	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
+	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
+	RB1_RegisterSensorCallBack(&process_LuaBongTrai, RB1_SENSOR_COLLECT_BALL_LEFT);
 	MainF4Robot1App_Init();
 
 	/* USER CODE END 2 */
@@ -635,6 +711,10 @@ int main(void)
 	/* definition and creation of TaskOdometer */
 	osThreadDef(TaskOdometer, OdometerHandle, osPriorityLow, 0, 128);
 	TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
+
+	/* definition and creation of TaskProcess */
+	osThreadDef(TaskProcess, TaskRunProcess, osPriorityNormal, 0, 256);
+	TaskProcessHandle = osThreadCreate(osThread(TaskProcess), NULL);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -1369,6 +1449,8 @@ HAL_StatusTypeDef Delay_tick(uint32_t tick) {
 	}
 	return HAL_BUSY;
 }
+bool beginToCollectBallLeft = false;
+bool beginToCollectBallRight = false;
 /* USER CODE END Header_Actuator */
 void Actuator(void const *argument)
 {
@@ -1377,12 +1459,16 @@ void Actuator(void const *argument)
 //		bool IsGetBall = false;
 	bool IsShoot = false;
 	TickType_t xStartTime = 0, xOccurredTime = 0;
-	valve_BothCatch();
-	osDelay(1000);
-	valve_BothRelease();
-	osDelay(1000);
 	/* Infinite loop */
 	for (;;) {
+		if (beginToCollectBallLeft) {
+			valve_LeftWaitCollectBall();
+			beginToCollectBallLeft = false;
+		}
+		if (beginToCollectBallRight) {
+			valve_RightWaitCollectBall();
+			beginToCollectBallRight = false;
+		}
 		RB1_CollectBallMotor_ControlSpeed();
 		RB1_SensorTriggerHandle();
 		if (testTick) {
@@ -1404,9 +1490,9 @@ void Actuator(void const *argument)
 			//			  gun_StartGetBall();
 
 			// Nếu tốc hiện tại nh�? hơn target thì gia tốc
-			if (gunCurrentSpeed1 < gunTargeSpeed1) {
-				if (gunTargeSpeed1 - gunCurrentSpeed1 < 100) {
-					gunCurrentSpeed1 = gunTargeSpeed1;
+			if (gunCurrentSpeed1 < gunTargetSpeed1) {
+				if (gunTargetSpeed1 - gunCurrentSpeed1 < 100) {
+					gunCurrentSpeed1 = gunTargetSpeed1;
 				}
 				// �?ang tăng tốc
 				else {
@@ -1417,15 +1503,15 @@ void Actuator(void const *argument)
 				}
 
 				if (xOccurredTime > 2000 / portTICK_PERIOD_MS) {
-					Gun_ShootBall(gunTargeSpeed1);
+					Gun_ShootBall(gunTargetSpeed1);
 				}
 			}
 			// Nếu tốc hiện tại lớn hơn target thì giảm tốc
-			else if (gunCurrentSpeed1 > gunTargeSpeed1) {
+			else if (gunCurrentSpeed1 > gunTargetSpeed1) {
 				// Sau 2s thì xác lập
 				// �?ang giảm tốc
-				if (gunCurrentSpeed1 - gunTargeSpeed1 < 100) {
-					gunCurrentSpeed1 = gunTargeSpeed1;
+				if (gunCurrentSpeed1 - gunTargetSpeed1 < 100) {
+					gunCurrentSpeed1 = gunTargetSpeed1;
 				}
 				else {
 					Gun_ShootBall(gunCurrentSpeed1);
@@ -1434,7 +1520,7 @@ void Actuator(void const *argument)
 					}
 				}
 				if (xOccurredTime > 2000 / portTICK_PERIOD_MS) {
-					Gun_ShootBall(gunTargeSpeed1);
+					Gun_ShootBall(gunTargetSpeed1);
 				}
 			}
 
@@ -1457,9 +1543,8 @@ void OdometerHandle(void const *argument)
 	/* USER CODE BEGIN OdometerHandle */
 
 	/* Infinite loop */
-
-	process_Init();
 	osDelay(1000);
+
 //			process_ReadVel_Init();
 	/* Infinite loop */
 	for (;;) {
@@ -1562,6 +1647,76 @@ void OdometerHandle(void const *argument)
 	/* USER CODE END OdometerHandle */
 }
 
+/* USER CODE BEGIN Header_TaskRunProcess */
+/**
+ * @brief Function implementing the TaskProcess thread.
+ * @param argument: Not used
+ * @retval None
+ */
+
+uint8_t processStep = 0;
+uint8_t numOfLeftCollectBall = 0;
+/* USER CODE END Header_TaskRunProcess */
+void TaskRunProcess(void const *argument)
+{
+#define MAX_LEFT_BALL 5
+	/* USER CODE BEGIN TaskRunProcess */
+	/* Infinite loop */
+	for (;;) {
+		if (processStep == 0) {
+			if (process_ThucHienGapLua()) {
+				processStep++;
+			}
+		}
+		else if (processStep == 1) {
+			osDelay(1000);
+			valve_BothRelease();
+			processStep++;
+		}
+		else if (processStep == 2) {
+			beginToCollectBallLeft = true;
+			RB1_CollectBallMotor_On();
+			testTick = 1;
+			gunTargetSpeed1 = 3000;
+			processStep++;
+		}
+		else if (processStep == 3) {
+			uint16_t readCount = 0;
+			Sensor_t collectBallLeft = RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_LEFT);
+			for (uint16_t i = 0; i < 1500; i++) {
+				if (HAL_GPIO_ReadPin(collectBallLeft.sensorPort, collectBallLeft.sensorPin)) {
+					readCount++;
+				}
+				else
+					readCount = 0;
+			}
+			if (readCount > 1300) {
+
+				processStep++;
+			}
+		}
+		else if (processStep == 4) {
+			if (numOfLeftCollectBall < MAX_LEFT_BALL) {
+				numOfLeftCollectBall++;
+				valve_LeftCollectBall();
+				osDelay(1000);
+				valve_LeftWaitCollectBall();
+				processStep = 3;
+			}
+			if (numOfLeftCollectBall >= MAX_LEFT_BALL)
+				processStep = 5;
+			valve_LeftCollectBall();
+			gunTargetSpeed1 = 0;
+			RB1_CollectBallMotor_Off();
+		}
+	}
+	else if (processStep == 5) {
+	}
+	osDelay(10);
+}
+/* USER CODE END TaskRunProcess */
+}
+
 /**
  * @brief  Period elapsed callback in non blocking mode
  * @note   This function is called  when TIM14 interrupt took place, inside
@@ -1572,15 +1727,15 @@ void OdometerHandle(void const *argument)
  */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	/* USER CODE BEGIN Callback 0 */
+/* USER CODE BEGIN Callback 0 */
 
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM14) {
-		HAL_IncTick();
-	}
-	/* USER CODE BEGIN Callback 1 */
+/* USER CODE END Callback 0 */
+if (htim->Instance == TIM14) {
+	HAL_IncTick();
+}
+/* USER CODE BEGIN Callback 1 */
 
-	/* USER CODE END Callback 1 */
+/* USER CODE END Callback 1 */
 }
 
 /**
@@ -1589,12 +1744,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
-	/* User can add his own implementation to report the HAL error return state */
-	__disable_irq();
-	while (1) {
-	}
-	/* USER CODE END Error_Handler_Debug */
+/* USER CODE BEGIN Error_Handler_Debug */
+/* User can add his own implementation to report the HAL error return state */
+__disable_irq();
+while (1) {
+}
+/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT

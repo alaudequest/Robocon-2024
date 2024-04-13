@@ -16,7 +16,7 @@ PID_Param PID_Gun1;
 PID_Param PID_Gun2;
 
 uint16_t collectBallPWM = 0;
-uint16_t collectBallTickTime = 0;
+uint32_t collectBallTickTime = 0;
 uint8_t accelState = 0;
 
 void gun_PIDSetParam(PID_Param *pid, float kP, float kI, float kD, float alpha, float deltaT, float u_AboveLimit, float u_BelowLimit)
