@@ -428,19 +428,9 @@ void process_Init()
 
 	process_AutoChose = 0;
 
-	PutBall_PID.kP = 0;
-	PutBall_PID.kI = 0;
-	PutBall_PID.kD = 0;
-	PutBall_PID.alpha = 0;
-	PutBall_PID.deltaT = DELTA_T;
-	PutBall_PID.u_AboveLimit = 0;
-	PutBall_PID.u_BelowLimit = 0;
-	PutBall_PID.kB = 1/DELTA_T;
-
 	encoder_Init(&FloatingEnc, &htim1, 200, DELTA_T);
-	encoder_Init(&PutBall_Enc,&htim2, 7000/4, DELTA_T);
-	MotorDC_Init(&putBall_DC, &htim3, MOTOR_PWM_INVERSE, TIM_CHANNEL_1, TIM_CHANNEL_2);
-	MotorDC_Init(&GetBall_DC, &htim5, MOTOR_PWM_NORMAL, TIM_CHANNEL_1, TIM_CHANNEL_2);
+//	encoder_Init(&FloatingEnc, &htim2, 200, DELTA_T);
+
 }
 
 void process_PD_OnStrainghtPath()
@@ -1670,7 +1660,7 @@ void OdometerHandle(void const * argument)
 //				process_Error(check);
 //	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 //
-					if (step == 1)
+					if (step == 0)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
 
 
@@ -1686,7 +1676,10 @@ void OdometerHandle(void const * argument)
 								}
 							}
 						}
-
+					else if (step == 1)
+					{
+						process_Accel_FloatingEnc3(0, 0.8, 2000, 0.08, 0, 3);
+					}
 //	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
 				{
