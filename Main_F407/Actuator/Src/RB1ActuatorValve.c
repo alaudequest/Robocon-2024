@@ -21,6 +21,7 @@ void valve_Init() {
 
 void valve_Reset()
 {
+	valve_BothRelease();
 	HC595_ClearByteOutput(0xff);
 	HC595_ShiftOut(NULL, 1, 1);
 }
