@@ -30,6 +30,7 @@ typedef struct Sensor_t {
 
 void RB1_SensorRegisterPin(GPIO_TypeDef *gpioPort, uint16_t sensorPin, Robot1Sensor rb1SensorName);
 void RB1_SensorTriggerHandle();
-void RB1_WaitSensorInInterrupt(uint16_t sensorPin);
 void RB1_RegisterSensorCallBack(void (*pSensorCallback)(void), Robot1Sensor rb1SensorName);
 Sensor_t RB1_GetSensor(Robot1Sensor rb1SensorName);
+void RB1_WaitSensorInInterrupt(uint16_t sensorPin);
+bool RB1_PollingReadSensor(Robot1Sensor rb1SensorName);

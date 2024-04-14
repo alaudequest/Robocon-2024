@@ -6,6 +6,7 @@
  */
 
 #include "Robot1_Sensor.h"
+#include "stdbool.h"
 
 #define SENSOR_DELAY_READ_MS 20
 #define CONTINOUS_READ_NUM 3000
@@ -16,8 +17,19 @@ uint16_t currentSensorTrigger = 0;
 Robot1Sensor rb1DetectSensor = 0;
 uint8_t indexOfSensorTrigger = 0;
 uint32_t delayTick = 0;
+
+// dùng để lưu thứ tự đăng ký sensor tương ứng với loại cảm biến trong enum Robot1Sensor
+// giúp giải quyết việc dùng vòng lặp for để quét sensorArray và tìm enum được request bởi người dùng
+uint8_t keySensorEnum_ValueIndexOfSensorArray[4] = { 0 };
+
 static void sensorErrorHandler(SensorError sErr);
 
+/**
+ * @fn void RB1_WaitSensorInInterrupt(uint16_t)
+ * @brief hàm này phải được gọi trong void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+ *
+ * @param sensorPin là chân ngắt từ hàm HAL_GPIO_EXTI_Callback truyền vào
+ */
 void RB1_WaitSensorInInterrupt(uint16_t sensorPin)
 {
 	//Nếu đang trong quá trình xử lý sensor thì không nhận tín hiệu sensor mới
@@ -40,7 +52,27 @@ void RB1_WaitSensorInInterrupt(uint16_t sensorPin)
 	}
 }
 
-// Gọi hàm này trong vòng lặp xử lý bên main.c
+/**
+ * @fn bool RB1_PollingReadSensor(Robot1Sensor)
+ * @brief Sử dụng khi không dùng ngắt cảm biến
+ * (có thể trong trường hợp nhiễu không đọc được ngắt như chạy động cơ)
+ *
+ * @param rb1SensorName đây là enum của Robot1Sensor chỉ ra loại cảm biến đang muốn đọc
+ * @return
+ */
+bool RB1_PollingReadSensor(Robot1Sensor rb1SensorName)
+{
+	// Lấy thông tin cảm biến ở phần tử được mapping với enum Robot1Sensor
+	Sensor_t sensor = sensorArray[keySensorEnum_ValueIndexOfSensorArray[rb1SensorName]];
+	return HAL_GPIO_ReadPin(sensor.sensorPort, sensor.sensorPin);
+}
+
+/**
+ * @fn void RB1_SensorTriggerHandle()
+ * @brief Hàm này dùng chung với RB1_WaitSensorInInterrupt
+ * Gọi hàm này trong loop while(1) của task hoặc int main() để xử lý khi phát hiện ngắt cảm biến
+ *
+ */
 void RB1_SensorTriggerHandle()
 {
 	//Nếu không có cảm biến thì return
@@ -73,6 +105,17 @@ void RB1_SensorTriggerHandle()
 	currentSensorTrigger = 0;
 }
 
+/**
+ * @fn void RB1_SensorRegisterPin(GPIO_TypeDef*, uint16_t, Robot1Sensor)
+ * @brief Đăng ký sử dụng cảm biến, lưu ý chân được cấu hình trên board phải khớp với phần cứng sử dụng
+ * Ví dụ các chân cảm biến từ PA0 đến PA5 của board sử dụng dùng cho đọc cảm biến
+ * thì không thể dùng chân PB0 không phục vụ mục đích đọc cảm biến để đăng ký
+ * Đặc biệt khi dùng line ngắt (ví dụ PA0 trùng line ngắt với PB0) thì có thể chân ngắt cảm biến
+ * bị trùng line ngắt với chân ngắt port khác trên board
+ * @param sensorPort
+ * @param sensorPin
+ * @param rb1SensorName
+ */
 void RB1_SensorRegisterPin(GPIO_TypeDef *sensorPort, uint16_t sensorPin, Robot1Sensor rb1SensorName)
 {
 	// Nếu port và pin không khớp từ PE7 tới PE14 (các chân đọc sensor) thì báo lỗi
@@ -87,25 +130,20 @@ void RB1_SensorRegisterPin(GPIO_TypeDef *sensorPort, uint16_t sensorPin, Robot1S
 	sensorArray[sensorRegisterCount - 1].sensorPort = sensorPort;
 	sensorArray[sensorRegisterCount - 1].sensorPin = sensorPin;
 	sensorArray[sensorRegisterCount - 1].rb1sensor = rb1SensorName;
+	//Cho biết loại cảm biến hiện tại đang được đăng ký ở phần tử sensorRegisterCount - 1 trong mảng sensorArray
+	keySensorEnum_ValueIndexOfSensorArray[rb1SensorName] = sensorRegisterCount - 1;
 	sensorRegisterCount++;
 }
 
 void RB1_RegisterSensorCallBack(void (*pSensorCallback)(void), Robot1Sensor rb1SensorName)
 {
-	for (uint8_t i = 0; i < 8; i++) {
-		if (sensorArray[i].rb1sensor == rb1SensorName) {
-			sensorArray[i].sensorCallBack = pSensorCallback;
-			return;
-		}
-	}
+	sensorArray[keySensorEnum_ValueIndexOfSensorArray[rb1SensorName]].sensorCallBack = pSensorCallback;
 }
 
 Sensor_t RB1_GetSensor(Robot1Sensor rb1SensorName)
 {
-	for (uint8_t i = 0; i < 8; i++) {
-		if (sensorArray[i].rb1sensor == rb1SensorName)
-			return sensorArray[i];
-	}
+	// Trả về thông tin cảm biến ở phần tử được mapping với enum Robot1Sensor
+	return sensorArray[keySensorEnum_ValueIndexOfSensorArray[rb1SensorName]];
 }
 
 static void sensorErrorHandler(SensorError sErr)
