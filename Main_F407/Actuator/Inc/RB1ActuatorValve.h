@@ -30,4 +30,8 @@ void valve_LeftCollectBall();
 void valve_LeftWaitCollectBall();
 void valve_RightCollectBall();
 void valve_RightWaitCollectBall();
+void valve_ArmDownAndHandHold();
+void valve_ArmUp();
+void valve_HandRelease();
+void valve_Reset();
 #endif /* INC_RB1ACTUATORVALVE_H_ */

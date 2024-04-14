@@ -16,9 +16,12 @@ void valve_Init() {
 	HC595_AssignPin(&valve, HC595_DATA_GPIO_Port, HC595_DATA_Pin, HC595_DS);
 	HC595_AssignPin(&valve, HC595_OE_GPIO_Port, HC595_OE_Pin, HC595_OE);
 	HC595_ClearByteOutput(0xff);
-	// nâng cánh tay trái và phải lúc xuất phát để tránh bị lố kích thước
-	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_Reset()
+{
+	HC595_ClearByteOutput(0xff);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
@@ -49,8 +52,8 @@ void valve_TestBlinkAll() {
 void valve_BothCatch()
 {
 	// hạ cánh tay trái và phải
-	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 	HC595_SetBitOutput(VALVE_HAND_LEFT_HC595_PIN); // kẹp tay gắp trái
@@ -58,8 +61,8 @@ void valve_BothCatch()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 	// nâng cánh tay trái và phải
-	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
@@ -67,8 +70,8 @@ void valve_BothCatch()
 void valve_BothRelease()
 {
 	// hạ cánh tay trái và phải
-	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 	HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
@@ -76,10 +79,33 @@ void valve_BothRelease()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 	// nâng cánh tay trái và phải
+	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+	osDelay(500);
+}
+
+void valve_ArmDownAndHandHold()
+{
+	// hạ cánh tay trái và phải
 	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
 	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
-	osDelay(500);
+}
+
+void valve_ArmUp()
+{
+	// hạ cánh tay trái và phải
+	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_HandRelease()
+{
+	HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
+	HC595_ClearBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // mở tay gắp phải
+	HC595_ShiftOut(NULL, 1, 1);
 }
 
 void valve_LeftCollectBall() {
