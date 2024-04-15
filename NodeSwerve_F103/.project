@@ -35,10 +35,5 @@
 			<type>2</type>
 			<location>G:/Robocon/Robocon-2024/Main_F407/CAN</location>
 		</link>
-		<link>
-			<name>IoTVisionLibrary</name>
-			<type>2</type>
-			<location>C:/Users/Admin/Desktop/Robocon2024/Main_F407/IoTVisionLibrary</location>
-		</link>
 	</linkedResources>
 </projectDescription>

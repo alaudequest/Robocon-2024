@@ -17,7 +17,7 @@ void PID_DC_CalSpeed(float Target_set)
 	Safety_Check safeDC = brd_GetSafyDC();
 
 
-	float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encDC));
+	float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encDC));
 	safeDC.ValueNow = encoder_GetPulse(&encDC, MODE_X4);
 
 	if (absf(result)>500)
@@ -55,7 +55,7 @@ void PID_DC_CalPos(float Target_set)
 {
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
-	float result = PID_Cal(&pid, Target_set, encoder_GetPulse(&encDC, MODE_ANGLE));
+	float result = PID_Calculate(&pid, Target_set, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
 	PID_DC_CalSpeed(result);
@@ -71,7 +71,7 @@ void PID_BLDC_CalSpeed(float Target_set)
 	}
 	else if (Target_set != 0) {
 		HAL_GPIO_WritePin(BLDC_BRAKE_GPIO_Port, BLDC_BRAKE_Pin, GPIO_PIN_RESET);
-		float result = PID_Cal(&pid, Target_set, encoder_GetSpeed(&encBLDC));
+		float result = PID_Calculate(&pid, Target_set, encoder_GetSpeed(&encBLDC));
 		MotorBLDC_Drive(&mbldc, (int32_t) result);
 		brd_SetObjEncBLDC(encBLDC);
 		brd_SetPID(pid, PID_BLDC_SPEED);
@@ -111,7 +111,7 @@ void PID_DC_UntangleWireBLDC()
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
 	pid.u_AboveLimit = 20;
 	pid.u_BelowLimit = -20;
-	float result = PID_Cal(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
+	float result = PID_Calculate(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
 	PID_DC_CalSpeed(result);
