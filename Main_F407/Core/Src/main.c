@@ -1647,6 +1647,7 @@ HAL_StatusTypeDef Delay_tick(uint32_t tick) {
 }
 bool beginToCollectBallLeft = false;
 bool beginToCollectBallRight = false;
+float TestAngle,TestSpeed;
 /* USER CODE END Header_Actuator */
 void Actuator(void const * argument)
 {
@@ -1797,174 +1798,176 @@ void OdometerHandle(void const * argument)
 			}
 		}
 		else if (step == 1)
-				{
-			process_PD_OnStrainghtPath();
-			process_Accel_FloatingEnc3(-28, 0.5, 3300, 0.08, 0, 3);
-		}
-		else if (step == 2)
 		{
 			process_PD_OnStrainghtPath();
-			process_RiceAppRoach();
+			process_Accel_FloatingEnc5(-25, 0.5, 3300, 0.08, 0, 3);
 		}
-		else if(step == 3)
-		{
-			process_Accel_FloatingEnc5(-45, 0.5, 9800, 0.08, 90, 3);
-		}
-		else if (step == 4)
-		{
-			process_Accel_FloatingEnc4(180, 0.2, 1200, 0.08, 90, 3);
-		}
-		else if (step == 5)
-		{
-			valve_ArmDownAndHandHold();
-			step += 1;
-		}
-		else if (step == 6)
-		{
-			Gamepad = 1;
-			if (GamePad.Up)
-			{
-				osDelay(500);
-				if (GamePad.Up)
-				{	//Reset thong so enc tha troi va la ban :
-//					Reset_MPU_Angle();
-					process_ResetFloatingEnc();
-					// Set thong so quy hoach quy dao :
+//		else if (step == 2)
+//		{
+//			process_PD_OnStrainghtPath();
+//			process_RiceAppRoach();
+//		}
+//		else if(step == 3)
+//		{
+//			process_Accel_FloatingEnc5(-45, 0.5, 9800, 0.08, 90, 3);
+//		}
+//		else if (step == 4)
+//		{
+//			process_Accel_FloatingEnc4(180, 0.2, 1200, 0.08, 90, 3);
+//		}
+//		else if (step == 5)
+//		{
+//			valve_ArmDownAndHandHold();
+//			step += 1;
+//		}
+//		else if (step == 6)
+//		{
+//			Gamepad = 1;
+//			if (GamePad.Up)
+//			{
+//				osDelay(500);
+//				if (GamePad.Up)
+//				{	//Reset thong so enc tha troi va la ban :
+////					Reset_MPU_Angle();
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//
+//					Gamepad = 0;
+//					step += 1;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					osDelay(50);
+//					process_Error(0);
+//					osDelay(50);
+//					process_Error(1);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(50);
+//					process_Error(0);
+//				}
+//			}
+//		}
+//		else if(step == 7 )
+//		{
+//			process_Accel_FloatingEnc5(132, 0.5, 9600, 0.08, 0, 3);
+//		}
+//		else if(step == 8)
+//		{
+//			process_RiceAppRoach();
+//		}
+//		else if(step == 9)
+//		{
+//			process_Accel_FloatingEnc5(-70, 0.5, 8300, 0.08, 90, 3);
+//		}
+//		else if(step == 10)
+//		{
+//			process_Accel_FloatingEnc4(180, 0.2, 900, 0.08, 90, 3);
+//		}
+//		else if(step == 11)
+//		{
+//			valve_ArmDownAndHandHold();
+//			step += 1;
+//		}
+//		else if (step == 12)
+//		{
+//			Gamepad = 1;
+//			if (GamePad.Up)
+//			{
+//				osDelay(500);
+//				if (GamePad.Up)
+//				{	//Reset thong so enc tha troi va la ban :
+////					Reset_MPU_Angle();
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//
+//					Gamepad = 0;
+//					step += 1;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					osDelay(50);
+//					process_Error(0);
+//					osDelay(50);
+//					process_Error(1);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(50);
+//					process_Error(0);
+//				}
+//			}
+//		}
+//		else if(step == 13)
+//		{
+//			process_Accel_FloatingEnc5(100, 0.5, 8600, 0.08, 0, 3);
+//		}
+//		else if(step == 14)
+//		{
+//			process_ResetWallAppRoach();
+//		}
+//		else if(step == 15)
+//		{
+//			process_Accel_FloatingEnc4(-18, 0.5, 9200, 0.08, 0, 3);
+//		}
+//		else if (step == 16)
+//		{
+//			if (GamePad.Up)
+//			{
+//				osDelay(500);
+//				if (GamePad.Up)
+//				{
+//					beginToCollectBallLeft = true;
+//					use_pidTheta = false;
+//					r = 0;
+//					RB1_CollectBallMotor_On();
+//					testTick = 1;
+//					gunTargetSpeed1 = 3500;
+//					step+=1;
+//				}
+//
+//			}
+//
+//		}
+//		else if(step == 17){
+//			Sensor_t collectBallLeft = RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_LEFT);
+//			// khi doc duoc cam bien thi ngung chay va dong cua lua
+//			use_pidTheta = 1;
+//			process_RunByAngle(-90, 0.3);
+//			if (HAL_GPIO_ReadPin(collectBallLeft.sensorPort, collectBallLeft.sensorPin)) {
+//				numOfBall++;
+//				use_pidTheta = 0;
+//				Gamepad = 0;
+//				u = 0;
+//				v = 0;
+//				r = 0;
+//				step++;
+//			}
+//		}
+//		else if(step == 18){
+//			// dong cua lua banh
+//			valve_LeftCollectBall();
+//			osDelay(1000);
+//
+//				if(numOfBall < 1){
+//					step = 16
+//
+//
+//
+//
+//
+//							;
+//					valve_LeftWaitCollectBall();
+//				} else {
+//					gunTargetSpeed1 = 0;
+//					RB1_CollectBallMotor_Off();
+//					step +=1;
+//
+//			}
+//
+//
+//		}
 
-					Gamepad = 0;
-					step += 1;
-					// tha tay gap
-					process_Error(1);
-					valve_HandRelease();
-					osDelay(50);
-					process_Error(0);
-					osDelay(50);
-					process_Error(1);
-					osDelay(50);
-					valve_ArmUp();
-					osDelay(50);
-					process_Error(0);
-				}
-			}
-		}
-		else if(step == 7 )
-		{
-			process_Accel_FloatingEnc5(132, 0.5, 9600, 0.08, 0, 3);
-		}
-		else if(step == 8)
-		{
-			process_RiceAppRoach();
-		}
-		else if(step == 9)
-		{
-			process_Accel_FloatingEnc5(-70, 0.5, 8300, 0.08, 90, 3);
-		}
-		else if(step == 10)
-		{
-			process_Accel_FloatingEnc4(180, 0.2, 900, 0.08, 90, 3);
-		}
-		else if(step == 11)
-		{
-			valve_ArmDownAndHandHold();
-			step += 1;
-		}
-		else if (step == 12)
-		{
-			Gamepad = 1;
-			if (GamePad.Up)
-			{
-				osDelay(500);
-				if (GamePad.Up)
-				{	//Reset thong so enc tha troi va la ban :
-//					Reset_MPU_Angle();
-					process_ResetFloatingEnc();
-					// Set thong so quy hoach quy dao :
 
-					Gamepad = 0;
-					step += 1;
-					// tha tay gap
-					process_Error(1);
-					valve_HandRelease();
-					osDelay(50);
-					process_Error(0);
-					osDelay(50);
-					process_Error(1);
-					osDelay(50);
-					valve_ArmUp();
-					osDelay(50);
-					process_Error(0);
-				}
-			}
-		}
-		else if(step == 13)
-		{
-			process_Accel_FloatingEnc5(100, 0.5, 8600, 0.08, 0, 3);
-		}
-		else if(step == 14)
-		{
-			process_ResetWallAppRoach();
-		}
-		else if(step == 15)
-		{
-			process_Accel_FloatingEnc4(-18, 0.5, 9200, 0.08, 0, 3);
-		}
-		else if (step == 16)
-		{
-			if (GamePad.Up)
-			{
-				osDelay(500);
-				if (GamePad.Up)
-				{
-					beginToCollectBallLeft = true;
-					use_pidTheta = false;
-					r = 0;
-					RB1_CollectBallMotor_On();
-					testTick = 1;
-					gunTargetSpeed1 = 3500;
-					step+=1;
-				}
-
-			}
-
-		}
-		else if(step == 17){
-			Sensor_t collectBallLeft = RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_LEFT);
-			// khi doc duoc cam bien thi ngung chay va dong cua lua
-			use_pidTheta = 1;
-			process_RunByAngle(-90, 0.3);
-			if (HAL_GPIO_ReadPin(collectBallLeft.sensorPort, collectBallLeft.sensorPin)) {
-				numOfBall++;
-				use_pidTheta = 0;
-				Gamepad = 0;
-				u = 0;
-				v = 0;
-				r = 0;
-				step++;
-			}
-		}
-		else if(step == 18){
-			// dong cua lua banh
-			valve_LeftCollectBall();
-			osDelay(1000);
-
-				if(numOfBall < 1){
-					step = 16
-
-
-
-
-
-							;
-					valve_LeftWaitCollectBall();
-				} else {
-					gunTargetSpeed1 = 0;
-					RB1_CollectBallMotor_Off();
-					step +=1;
-
-			}
-
-
-		}
 //		else if(step == 14)
 //		{
 //			use_pidTheta = 1;
@@ -2198,6 +2201,8 @@ void OdometerHandle(void const * argument)
 //
 //		}
 //	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
+
+
 
 		if(GamePad.Triangle)
 		{
