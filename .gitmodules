@@ -1,6 +1,7 @@
 [submodule "NodeSwerve_F103/STM32-Library"]
 	path = NodeSwerve_F103/STM32-Library
 	url = https://github.com/TM-khoa/STM32-Library.git
+
 [submodule "Main_F407/STM32-Library"]
 	path = Main_F407/STM32-Library
 	url = https://github.com/TM-khoa/STM32-Library.git

@@ -13,8 +13,8 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern bool BLDC_IsEnablePID;
 extern bool DC_IsEnablePID;
-uint8_t txBuffer[80] = {0};
-uint8_t rxBuffer[80] = {0};
+uint8_t txBuffer[80] = { 0 };
+uint8_t rxBuffer[80] = { 0 };
 BoardID brdID = 0;
 AppPararmPID_t _appPID;
 float appTargetSpeedBLDC = 0;
@@ -26,23 +26,22 @@ static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_P
 static void ReceiveCommandHandler(CommandList cmdlist);
 void SwerveApp_ErrorHandler(AppErrorCode err);
 
-void SwerveApp_Init()
-{
+void SwerveApp_Init() {
 	// get ID board from flash memory
 	uint32_t swerveID = *(__IO uint32_t*) (0x08000000 + 1024 * 64);
 	switch (swerveID) {
-		case 0:
-		SwerveApp_ErrorHandler(APPERR_BOARD_NOT_FOUND);
-		break;
 		case 1:
-		brdID = BOARD_NodeSwerve1;
-		break;
+			brdID = BOARD_NodeSwerve1;
+			break;
 		case 2:
-		brdID = BOARD_NodeSwerve2;
-		break;
+			brdID = BOARD_NodeSwerve2;
+			break;
 		case 3:
-		brdID = BOARD_NodeSwerve3;
-		break;
+			brdID = BOARD_NodeSwerve3;
+			break;
+		default:
+			SwerveApp_ErrorHandler(APPERR_BOARD_NOT_FOUND);
+			break;
 	}
 	/* Lưu giá trị Setpoint để khi set từ app không bị mất giá trị
 	 * Setpoint(vì app sẽ thay đổi giá trị của brdParam.targetSpeedBLDC và brdParam.targetAngleDC
@@ -63,9 +62,9 @@ void SwerveApp_Init()
 	appintf_RegisterArgument((void*) &relayCommand, sizeof(relayCommand), CMD_RelayCommand);
 }
 
-void SwerveApp_ErrorHandler(AppErrorCode err)
-{
-	while (1);
+void SwerveApp_ErrorHandler(AppErrorCode err) {
+	while (1)
+		;
 }
 
 static void SendArgumentToApp(CommandList cmdlist) {
@@ -75,7 +74,7 @@ static void SendArgumentToApp(CommandList cmdlist) {
 
 static void HandleCommandSetPID() {
 	appintf_GetValueFromPayload();
-	if(_appPID.type < PID_DC_SPEED || _appPID.type > PID_BLDC_SPEED)
+	if (_appPID.type < PID_DC_SPEED || _appPID.type > PID_BLDC_SPEED)
 		SwerveApp_ErrorHandler(APPERR_BOARD_FEATURE_NOT_SUPPORT);
 	PID_Param pid;
 	Convert_AppParamPID_to_PIDParam(_appPID, &pid);
@@ -89,7 +88,7 @@ static void HandleCommandGetPID() {
 	appintf_GetValueFromPayload_2((void*) &temp, sizeof(temp));
 	PID_type typePID = temp;
 	PID_Param pid = brd_GetPID(typePID);
-	if(typePID < PID_DC_SPEED || typePID > PID_BLDC_SPEED)
+	if (typePID < PID_DC_SPEED || typePID > PID_BLDC_SPEED)
 		SwerveApp_ErrorHandler(APPERR_BOARD_FEATURE_NOT_SUPPORT);
 	Convert_PIDParam_to_AppParamPID(&_appPID, pid);
 	appintf_MakeFrame(CMD_GetPID);
@@ -99,22 +98,22 @@ static void HandleCommandGetPID() {
 static void SelectRunMotorInManualOrPID() {
 
 	// Điều khiển chạy động cơ BLDC
-	if(CHECKFLAG(relayCommand, RelayCmd_EnablePID_BLDC)) {
+	if (CHECKFLAG(relayCommand, RelayCmd_EnablePID_BLDC)) {
 		// Cho phép tính toán PID và khởi chạy encoder
 		HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 		BLDC_IsEnablePID = true;
-		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
+		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
 			brd_SetTargetSpeedBLDC(appTargetSpeedBLDC);
 		}
 		else
 			brd_SetTargetSpeedBLDC(0);
 	}
 	else { // Nếu không bật PID
-		// Tắt tính toán PID và tắt đọc encoder
+		   // Tắt tính toán PID và tắt đọc encoder
 		HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
 		BLDC_IsEnablePID = false;
 		MotorBLDC mbldc = brd_GetObjMotorBLDC();
-		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
+		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorBLDC)) {
 			MotorBLDC_Drive(&mbldc, appTargetSpeedBLDC);
 		}
 		else
@@ -122,12 +121,12 @@ static void SelectRunMotorInManualOrPID() {
 	}
 
 	// Điều khiển chạy động cơ DC
-	if(CHECKFLAG(relayCommand, RelayCmd_EnablePID_DC)) {
+	if (CHECKFLAG(relayCommand, RelayCmd_EnablePID_DC)) {
 		HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
 		DC_IsEnablePID = true;
 		// PID ở đây là của vị trí góc quay động cơ nên setpoint là góc quay
 		// không phải tốc độ động cơ, do đó không thể nhập góc 0 để dừng động cơ được
-		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
+		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
 			brd_SetTargetAngleDC(appTargetAngleDC);
 		}
 //		else{
@@ -139,11 +138,11 @@ static void SelectRunMotorInManualOrPID() {
 		HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
 		DC_IsEnablePID = false;
 		MotorDC mdc = brd_GetObjMotorDC();
-		if(CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
+		if (CHECKFLAG(relayCommand, RelayCmd_RunMotorDC)) {
 			// giới hạn tốc độ quay DC
-			if(appTargetAngleDC > 200)
+			if (appTargetAngleDC > 200)
 				appTargetAngleDC = 200;
-			else if(appTargetAngleDC < -200)
+			else if (appTargetAngleDC < -200)
 				appTargetAngleDC = -200;
 			MotorDC_Drive(&mdc, appTargetAngleDC);
 		}
@@ -155,16 +154,15 @@ static void SelectRunMotorInManualOrPID() {
 /**
  * Gửi lên app trạng thái ban đầu của board, để đồng bộ trạng thái
  */
-static void SendBoardInitStateToApp()
-{
+static void SendBoardInitStateToApp() {
 	// gửi trạng thái cờ bật PID của BLDC
-	if(BLDC_IsEnablePID)
+	if (BLDC_IsEnablePID)
 		SETFLAG(relayCommand, RelayCmd_EnablePID_BLDC);
 	else
 		CLEARFLAG(relayCommand, RelayCmd_EnablePID_BLDC);
 
 	// gửi trạng thái cờ bật PID của BLDC
-	if(DC_IsEnablePID)
+	if (DC_IsEnablePID)
 		SETFLAG(relayCommand, RelayCmd_EnablePID_DC);
 	else
 		CLEARFLAG(relayCommand, RelayCmd_EnablePID_DC);
@@ -173,42 +171,40 @@ static void SendBoardInitStateToApp()
 
 }
 
-static void ReceiveCommandHandler(CommandList cmdlist)
-{
+static void ReceiveCommandHandler(CommandList cmdlist) {
 	switch (cmdlist) {
 		case CMD_IdentifyBoard:
-		SendArgumentToApp(cmdlist);
-		for (uint16_t i = 0; i < 20000; i++)		// delay để app phân biệt 2 gói tin gửi liền nhau
-			__NOP();
-		SendBoardInitStateToApp();
-		break;
+			SendArgumentToApp(cmdlist);
+			for (uint16_t i = 0; i < 20000; i++)		// delay để app phân biệt 2 gói tin gửi liền nhau
+				__NOP();
+			SendBoardInitStateToApp();
+			break;
 		case CMD_SetSpeedBLDC:
 		case CMD_SetAngleDC:
-		appintf_GetValueFromPayload();
-		/* Khi vừa cài target setpoint xong thì chạy tốc độ mới luôn
-		 thay vì phải click checkbox on/off từ trên app gửi xuống
-		 */
-		SelectRunMotorInManualOrPID();
-		break;
+			appintf_GetValueFromPayload();
+			/* Khi vừa cài target setpoint xong thì chạy tốc độ mới luôn
+			 thay vì phải click checkbox on/off từ trên app gửi xuống
+			 */
+			SelectRunMotorInManualOrPID();
+			break;
 		case CMD_SetPID:
-		HandleCommandSetPID();
-		break;
+			HandleCommandSetPID();
+			break;
 		case CMD_GetPID:
-		HandleCommandGetPID();
-		break;
+			HandleCommandGetPID();
+			break;
 		case CMD_RelayCommand:
-		appintf_GetValueFromPayload();
-		SelectRunMotorInManualOrPID();
-		break;
+			appintf_GetValueFromPayload();
+			SelectRunMotorInManualOrPID();
+			break;
 		case CMD_SetHome:
-		IsSetHome = true;
+			IsSetHome = true;
 		default:
-		break;
+			break;
 	}
 }
 
-static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Param *pid)
-{
+static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Param *pid) {
 	pid->kP = appPID.kp;
 	pid->kI = appPID.ki;
 	pid->kD = appPID.kd;
@@ -218,8 +214,7 @@ static inline void Convert_AppParamPID_to_PIDParam(AppPararmPID_t appPID, PID_Pa
 	pid->u_BelowLimit = appPID.limitLow;
 }
 
-static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_Param pid)
-{
+static inline void Convert_PIDParam_to_AppParamPID(AppPararmPID_t *appPID, PID_Param pid) {
 	appPID->kp = pid.kP;
 	appPID->ki = pid.kI;
 	appPID->kd = pid.kD;

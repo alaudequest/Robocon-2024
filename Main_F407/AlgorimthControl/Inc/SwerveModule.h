@@ -12,8 +12,6 @@
 #include "math.h"
 
 #define MAX_MODULE 					4
-//#define ROBOT_WIDTH_METER 			0.25
-//#define ROBOT_LENGHT_METER			0.25
 #define ROBOT_WHEEL_RADIUS_METER 	0.045
 
 typedef enum ModuleID{
@@ -26,6 +24,7 @@ typedef enum ModuleID{
 typedef struct WheelVector{
 	float wheelVelX;
 	float wheelVelY;
+	float PreAngle;
 }WheelVector;
 
 typedef struct Angle_Opt_Param{
@@ -63,6 +62,7 @@ void swer_SetWheelVector(ModuleID ID,WheelVector vct);
 
 Angle_Opt_Param swer_GetOptAngle(ModuleID ID);
 void swer_SetOptAngle(ModuleID ID,Angle_Opt_Param angleOpt);
+
 pVectorCalXY swer_GetFuncHandle(ModuleID ID);
 void swer_Init();
 

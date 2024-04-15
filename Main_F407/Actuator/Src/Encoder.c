@@ -7,6 +7,7 @@
 
 #include "Encoder.h"
 #include "stdbool.h"
+#include "stdlib.h"
 
 
 void encoder_Init(Encoder_t *enc,TIM_HandleTypeDef *htim, uint16_t pulPerRev, float deltaT)
@@ -47,7 +48,19 @@ void encoder_ResetCount(Encoder_t *enc)
 	enc->count_X4 = 0;
 	enc->vel_Pre = 0;
 	enc->vel_Real = 0;
+	enc->Distance = 0;
 }
 
 float encoder_GetFilterSpeedVal(Encoder_t *enc){return enc->vel_Fil;}
 
+void encoder_SetRadius(Encoder_t *enc,float R)
+{
+	enc->Radius = R;
+}
+
+float encoder_GetFloatingDis(Encoder_t *enc)
+{
+	enc->Distance += abs((int16_t)__HAL_TIM_GET_COUNTER(enc->htim));
+	__HAL_TIM_SET_COUNTER(enc->htim,0);
+	return enc->Distance;
+}

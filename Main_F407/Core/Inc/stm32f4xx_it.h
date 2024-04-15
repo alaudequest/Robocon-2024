@@ -53,8 +53,11 @@ void BusFault_Handler(void);
 void UsageFault_Handler(void);
 void DebugMon_Handler(void);
 void CAN1_RX0_IRQHandler(void);
+void EXTI9_5_IRQHandler(void);
 void USART1_IRQHandler(void);
+void USART2_IRQHandler(void);
 void USART3_IRQHandler(void);
+void EXTI15_10_IRQHandler(void);
 void TIM8_TRG_COM_TIM14_IRQHandler(void);
 void DMA2_Stream2_IRQHandler(void);
 /* USER CODE BEGIN EFP */
