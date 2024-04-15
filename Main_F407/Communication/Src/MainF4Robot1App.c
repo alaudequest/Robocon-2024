@@ -11,10 +11,10 @@
 #include "Flag.h"
 
 BoardID brdID = 0;
-uint8_t txBuffer[80] = { 0 };
-uint8_t rxBuffer[80] = { 0 };
-uint8_t relayCommand = 0;
-uint8_t valveOutputValue = 0;
+static uint8_t txBuffer[80] = { 0 };
+static uint8_t rxBuffer[80] = { 0 };
+static uint8_t relayCommand = 0;
+static uint8_t valveOutputValue = 0;
 float appRuloShootBallTargetSpeed = 0;
 extern UART_HandleTypeDef huart2;
 extern float gunTargetSpeed1;

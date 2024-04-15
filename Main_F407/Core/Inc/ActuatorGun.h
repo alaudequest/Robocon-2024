@@ -38,21 +38,28 @@
 #define DCEncoderPerRound 					200
 #define DCGearRatio 						1
 
-void gun_Init();
-void gun_StartGetBall();
-void gun_StopGetBall();
-void VelCal(Encoder_t *enc, int count_X1, uint32_t count_PerRevol, float deltaT);
-void gun_StartShootBall(uint16_t pwm);
-void gun_StopShootBall();
-void gun_StopAll();
-void gun_VelCal(int gunCount1, int gunCount2);
-void gun_PIDSpeed1(float Target1);
-void gun_PIDSpeed2(float Target2);
-void gun_ResetEncoder(int *gunCount1, int *gunCount2);
-void encoderGun_ResetCount(Encoder_t *enc, int *count_X1);
-void gun_PIDSetParam(PID_Param *pid, float kP, float kI, float kD, float alpha, float deltaT, float u_AboveLimit, float u_BelowLimit);
+typedef enum AccelerationState {
+	NO_ACCEL,
+	ACCELERATION,
+	DECELERATION,
+} AccelerationState;
+
+void RB1_Gun_Init();
+void RB1_Gun_Start(uint16_t targetPWM);
+void RB1_Gun_Stop();
+
+void RB1_CalculateRuloGunPIDSpeed();
+void RB1_VelocityCalculateOfGun();
+void RB1_GunIncreaseTickTimerInInterrupt();
+
 void RB1_CollectBallMotor_Init();
 void RB1_CollectBallMotor_ControlSpeed();
 void RB1_CollectBallMotor_On();
 void RB1_CollectBallMotor_Off();
+
+void RB1_EncGun1_IncreaseCount();
+void RB1_EncGun1_DecreaseCount();
+void RB1_EncGun2_IncreaseCount();
+void RB1_EncGun2_DecreaseCount();
+void RB1_EncoderGun_ResetCount();
 #endif /* INC_ACTUATORGUN_H_ */

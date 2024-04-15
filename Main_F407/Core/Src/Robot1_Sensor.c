@@ -96,8 +96,9 @@ void RB1_SensorTriggerHandle()
 	// Giả sử cho phép có gai nhiễu ở đầu quá trình đọc liên tục thì số đếm sẽ nhỏ hơn định mức một khoảng cho phép
 	if (readCount > CONTINOUS_READ_NUM - 100) {
 		rb1DetectSensor = sensorArray[indexOfSensorTrigger].rb1sensor;
-		// sau khi nhận dạng cảm biến, gọi tới hàm xử lý tương ứng
-		sensorArray[indexOfSensorTrigger].sensorCallBack();
+		// sau khi nhận dạng cảm biến, gọi tới hàm xử lý tương ứng do người dùng đăng ký
+		if (sensorArray[indexOfSensorTrigger].sensorCallBack != NULL)
+			sensorArray[indexOfSensorTrigger].sensorCallBack();
 	}
 	// Reset lại quá trình đọc cảm biến và cho phép ngắt
 	delayTick = 0;
@@ -135,6 +136,13 @@ void RB1_SensorRegisterPin(GPIO_TypeDef *sensorPort, uint16_t sensorPin, Robot1S
 	sensorRegisterCount++;
 }
 
+/**
+ * @fn void RB1_RegisterSensorCallBack(void(*)(void), Robot1Sensor)
+ * @brief Khi có sự kiện ngắt trên cảm biến thì sẽ gọi tới hàm do người dùng tự thiết kế
+ * Có thể không sử dụng
+ * @param pSensorCallback con trỏ hàm trỏ tới hàm do người dùng truyền vào
+ * @param rb1SensorName
+ */
 void RB1_RegisterSensorCallBack(void (*pSensorCallback)(void), Robot1Sensor rb1SensorName)
 {
 	sensorArray[keySensorEnum_ValueIndexOfSensorArray[rb1SensorName]].sensorCallBack = pSensorCallback;

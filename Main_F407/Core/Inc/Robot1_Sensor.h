@@ -5,6 +5,7 @@
  *      Author: SpiritBoi
  */
 #include "main.h"
+#include "stdbool.h"
 
 typedef void (*pSensorCallback)(void);
 

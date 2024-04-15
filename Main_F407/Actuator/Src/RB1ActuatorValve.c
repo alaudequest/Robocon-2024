@@ -8,9 +8,9 @@
 #include <RB1ActuatorValve.h>
 #include "stdbool.h"
 #include "cmsis_os.h"
-HC595 valve;
-uint32_t valveDelayTick = 0;
-uint8_t valveProcessStep = 0;
+static HC595 valve;
+static uint32_t valveDelayTick = 0;
+static uint8_t valveProcessStep = 0;
 
 static inline void ProcessArmUp(uint8_t expectedStep);
 static inline void ProcessArmDown(uint8_t expectedStep);
