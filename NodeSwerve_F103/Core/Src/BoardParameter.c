@@ -12,9 +12,25 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
+Safety_Check brd_GetSafyDC()
+{
+	return brdParam.SafeDC;
+}
+void brd_SetSafyDC(Safety_Check safe){
+	brdParam.SafeDC = safe;
+}
 
+Safety_Check brd_GetSafyBLDC()
+{
+	return brdParam.SafeBLDC;
+}
+void brd_SetSafyBLDC(Safety_Check safe)
+{
+	brdParam.SafeBLDC = safe;
+}
 
 float brd_GetCurrentAngleDC(){return encoder_GetPulse(&brdParam.encDC, MODE_ANGLE);}
+float brd_GetCurrentSpeedBLDC(){return encoder_GetSpeed(&brdParam.encBLDC);}
 int brd_GetCurrentCountBLDC(){return (int)encoder_GetPulse(&brdParam.encBLDC, MODE_X4);}
 
 void brd_Init()
@@ -34,8 +50,8 @@ void brd_Init()
 	MotorDC_Init(&brdParam.mdc, &htim2, MOTOR_PWM_INVERSE,
 			TIM_CHANNEL_3,
 			TIM_CHANNEL_4);
-	brdParam.pidBLDC_Speed.kP = 0.1;
-	brdParam.pidBLDC_Speed.kI = 5;
+	brdParam.pidBLDC_Speed.kP = 0.03;
+	brdParam.pidBLDC_Speed.kI = 2.5;
 	brdParam.pidBLDC_Speed.kD = 0;
 	brdParam.pidBLDC_Speed.alpha = 0;
 	brdParam.pidBLDC_Speed.deltaT = PIDDeltaT;
