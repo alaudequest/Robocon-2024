@@ -45,12 +45,13 @@ typedef enum AccelerationState {
 } AccelerationState;
 
 void RB1_Gun_Init();
-void RB1_Gun_Start(uint16_t targetPWM);
+void RB1_Gun_Start();
 void RB1_Gun_Stop();
 
 void RB1_CalculateRuloGunPIDSpeed();
 void RB1_VelocityCalculateOfGun();
 void RB1_GunIncreaseTickTimerInInterrupt();
+void RB1_UpdateAccelTickInInterrupt();
 
 void RB1_CollectBallMotor_Init();
 void RB1_CollectBallMotor_ControlSpeed();

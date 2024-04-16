@@ -605,12 +605,6 @@ bool process_ThucHienLuaBongTrai() {
 	return thucHienThanhCong;
 }
 
-// Danh cho co cau ban
-void Gun_ShootBall(uint16_t Target1)
-{
-	gun_PIDSpeed1(Target1);
-	gun_PIDSpeed2(Target1);
-}
 /* USER CODE END 0 */
 
 /**
@@ -1455,9 +1449,6 @@ bool beginToCollectBallRight = false;
 void Actuator(void const *argument)
 {
 	/* USER CODE BEGIN Actuator */
-//		bool IsGetBall = false;
-	bool IsShoot = false;
-	TickType_t xStartTime = 0, xOccurredTime = 0;
 	/* Infinite loop */
 	for (;;) {
 		if (beginToCollectBallLeft) {
@@ -1470,60 +1461,7 @@ void Actuator(void const *argument)
 		}
 		RB1_CollectBallMotor_ControlSpeed();
 		RB1_SensorTriggerHandle();
-		if (testTick) {
-			IsShoot = 1;
-			xStartTime = xTaskGetTickCount();
-		}
-		else {
-			IsShoot = 0;
-
-		}
-		if (IsShoot) {
-			xOccurredTime = xTaskGetTickCount() - xStartTime;
-			//		  if(xOccurredTime > 7000/portTICK_PERIOD_MS){
-			//			  IsGetBall = 0;
-			// SẼ UNCOMMENT HÀNG NÀY SAU KHI CODE XONG	IsShoot = 0;
-			//			  xOccurredTime = 0;
-			//			  xStartTime = xTaskGetTickCount();
-			//		  }else{
-			//			  gun_StartGetBall();
-
-			// Nếu tốc hiện tại nh�? hơn target thì gia tốc
-			if (gunCurrentSpeed1 < gunTargetSpeed1) {
-				if (gunTargetSpeed1 - gunCurrentSpeed1 < 100) {
-					gunCurrentSpeed1 = gunTargetSpeed1;
-				}
-				// �?ang tăng tốc
-				else {
-					Gun_ShootBall(gunCurrentSpeed1);
-					if (Delay_tick(200) == HAL_OK) {
-						gunCurrentSpeed1 += 100;
-					}
-				}
-
-				if (xOccurredTime > 2000 / portTICK_PERIOD_MS) {
-					Gun_ShootBall(gunTargetSpeed1);
-				}
-			}
-			// Nếu tốc hiện tại lớn hơn target thì giảm tốc
-			else if (gunCurrentSpeed1 > gunTargetSpeed1) {
-				// Sau 2s thì xác lập
-				// �?ang giảm tốc
-				if (gunCurrentSpeed1 - gunTargetSpeed1 < 100) {
-					gunCurrentSpeed1 = gunTargetSpeed1;
-				}
-				else {
-					Gun_ShootBall(gunCurrentSpeed1);
-					if (Delay_tick(200) == HAL_OK) {
-						gunCurrentSpeed1 -= 100;
-					}
-				}
-				if (xOccurredTime > 2000 / portTICK_PERIOD_MS) {
-					Gun_ShootBall(gunTargetSpeed1);
-				}
-			}
-
-		}
+		RB1_CalculateRuloGunPIDSpeed();
 		osDelay(10);
 	}
 	/* USER CODE END Actuator */
@@ -1729,7 +1667,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	/* USER CODE END Callback 0 */
 	if (htim->Instance == TIM14) {
 		HAL_IncTick();
-		RB1_IncreaseTickTimerInInterrupt();
+		void RB1_GunIncreaseTickTimerInInterrupt();
+		RB1_UpdateAccelTickInInterrupt();
 	}
 	/* USER CODE BEGIN Callback 1 */
 

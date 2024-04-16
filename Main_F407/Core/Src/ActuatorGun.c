@@ -19,8 +19,14 @@ static uint16_t collectBallPWM = 0;
 static uint32_t collectBallTickTime = 0;
 static uint8_t pidCurrentTickTimeGun1_ms = 0;
 static uint8_t pidCurrentTickTimeGun2_ms = 0;
-static AccelerationState accelState = NO_ACCEL;
-static float accelGunSpeed1, accelGunSpeed2, gunTargetSpeed1, gunTargetSpeed2;
+static uint8_t accelTickGun1 = 0;
+static uint8_t accelTickGun2 = 0;
+static AccelerationState accelStateCollectBall = NO_ACCEL;
+static AccelerationState accelStateGun = NO_ACCEL;
+static float speedInAccelGun1, speedInAccelGun2, gunTargetSpeed1, gunTargetSpeed2;
+
+#define ACCEL_TIME_STEP (0.01 * 1000 * 15) // GunDeltaT * 1000ms * 15 = 0.01 * 1000 * 15 = 150ms
+
 void RB1_Gun_Init() {
 	// Start MOTOR GUN INIT
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
@@ -55,28 +61,72 @@ void RB1_VelocityCalculateOfGun()
 	VelocityCalculate(&encGun2);
 }
 
+void RB1_UpdateAccelTickInInterrupt()
+{
+	if (accelStateGun == ACCELERATION || accelStateGun == DECELERATION) {
+		accelTickGun1++;
+		accelTickGun2++;
+	}
+}
+
+static void CalculateAccelValue(AccelerationState *accelState, uint8_t *accelTick, uint8_t accelTimeStep, float *valueInAccel, float targetValue, uint8_t numStep)
+{
+	if (*accelTick < accelTimeStep)
+		return;
+	float valueStep = targetValue / numStep;
+	if (*accelState == ACCELERATION) {
+		*valueInAccel += valueStep;
+		if (targetValue - *valueInAccel < valueStep) {
+			*valueInAccel = targetValue;
+			*accelState = NO_ACCEL;
+		}
+	}
+	else if (*accelState == DECELERATION) {
+		*valueInAccel -= valueStep;
+		if (*valueInAccel - targetValue < valueStep) {
+			*valueInAccel = targetValue;
+			*accelState = NO_ACCEL;
+		}
+	}
+	*accelTick = 0;
+}
+
 void RB1_CalculateRuloGunPIDSpeed()
 {
+	float targetSpeed1, targetSpeed2;
 	RB1_VelocityCalculateOfGun();
-
-	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT) {
-		float uHat = PID_Calculate(&PID_Gun1, gunTargetSpeed1, encGun1.vel_Real);
+	if (accelStateGun == ACCELERATION || accelStateGun == DECELERATION) {
+		CalculateAccelValue(&accelStateGun, &accelTickGun1, ACCEL_TIME_STEP, &speedInAccelGun1, gunTargetSpeed1, 10);
+		targetSpeed1 = speedInAccelGun1;
+		CalculateAccelValue(&accelStateGun, &accelTickGun2, ACCEL_TIME_STEP, &speedInAccelGun2, gunTargetSpeed2, 10);
+		targetSpeed2 = speedInAccelGun2;
+	}
+	else {
+		targetSpeed1 = gunTargetSpeed1;
+		targetSpeed2 = gunTargetSpeed2;
+	}
+	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
+		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
 		pidCurrentTickTimeGun1_ms = 0;
 	}
-	if (pidCurrentTickTimeGun2_ms >= Gun1DeltaT) {
-		float uHat = PID_Calculate(&PID_Gun2, gunTargetSpeed2, encGun2.vel_Real);
+	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
+		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
 		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
 		pidCurrentTickTimeGun2_ms = 0;
 	}
 }
 
-void RB1_Gun_Start(bool enablePID, uint16_t targetPWM) {
-	accelState = ACCELERATION;
+void RB1_Gun_Start() {
+	accelStateGun = ACCELERATION;
+	accelTickGun1 = 0;
+	accelTickGun2 = 0;
 }
 
 void RB1_Gun_Stop() {
-	accelState = DECELERATION;
+	accelStateGun = DECELERATION;
+	accelTickGun1 = 0;
+	accelTickGun2 = 0;
 }
 
 void RB1_SetTargetSpeedGun1(float targetSpeed) {
@@ -105,7 +155,7 @@ static void CollectBallMotorSpeedUp()
 		collectBallPWM += 100;
 
 		if (collectBallPWM > 1000) {
-			accelState = 0;
+			accelStateCollectBall = 0;
 		}
 	}
 
@@ -123,32 +173,31 @@ static void CollectBallMotorSpeedDown()
 			collectBallPWM -= 100;
 
 		if (collectBallPWM <= 0) {
-			accelState = 0;
+			accelStateCollectBall = 0;
 		}
 	}
 }
 
 void RB1_CollectBallMotor_ControlSpeed()
 {
-	if (accelState == 1) {
+	if (accelStateCollectBall != ACCELERATION || accelStateCollectBall != DECELERATION)
+		return;
+	if (accelStateCollectBall == ACCELERATION) {
 		CollectBallMotorSpeedUp();
 	}
-	else if (accelState == 2) {
+	else if (accelStateCollectBall == DECELERATION) {
 		CollectBallMotorSpeedDown();
-	}
-	else {
-
 	}
 }
 
 void RB1_CollectBallMotor_On()
 {
-	accelState = 1;
+	accelStateCollectBall = ACCELERATION;
 }
 
 void RB1_CollectBallMotor_Off()
 {
-	accelState = 2;
+	accelStateCollectBall = DECELERATION;
 }
 
 void RB1_GunIncreaseTickTimerInInterrupt()
