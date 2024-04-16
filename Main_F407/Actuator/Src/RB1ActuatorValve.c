@@ -49,7 +49,6 @@ void valve_TestBlinkAll() {
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(2000);
 }
-
 void valve_BothCatch()
 {
 	// hạ cánh tay trái và phải
@@ -67,6 +66,8 @@ void valve_BothCatch()
 	HC595_ShiftOut(NULL, 1, 1);
 	osDelay(500);
 }
+
+
 
 void valve_BothRelease()
 {

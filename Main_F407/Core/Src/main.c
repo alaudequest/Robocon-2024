@@ -407,7 +407,7 @@ void process_PD_OnStrainghtPath()
 
 void process_PD_OnTrajecPath()
 {
-	pid_Angle.kP = 0.6;
+	pid_Angle.kP = 0.8;
 	pid_Angle.kI = 0;
 	pid_Angle.kD = 0;
 	pid_Angle.alpha = 0;
@@ -617,6 +617,61 @@ void process_RunByAngle(float Angle, float speed)
 	v = sin(Angle * M_PI / 180) * speed;
 }
 
+void process_RunByAngle2(float Angle, float speed, float time)
+{
+	use_pidTheta = 1;
+	process_Count++;
+	process_RunByAngle(Angle, speed);
+	if (process_Count > time/50)
+	{
+		process_RunByAngle(Angle, 0);
+
+		if(absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+		{
+			process_SSCheck++;
+		}else{
+			process_SSCheck = 0;
+		}
+
+		if(process_SSCheck>10)
+		{
+			process_Count = 0;
+			process_ResetFloatingEnc();
+			process_SSCheck =0;
+			use_pidTheta = 0;
+			step += 1;
+			r = 0;
+//			process_RunByAngle(Angle, 0);
+		}
+	}
+}
+void process_RunByAngle3(float Angle, float speed, float s)
+{
+	if(process_SubState == 0)
+	{
+		process_ResetFloatingEnc();
+		process_SubState = 1;
+		use_pidTheta = 1;
+	}
+	else if(process_SubState == 1)
+	{
+		process_RunByAngle(Angle, speed);
+		if(floatingEncCount >= s -100)
+		{
+			use_pidTheta = 0;
+			r = 0;
+
+		}
+		if(floatingEncCount >= s)
+		{
+			process_RunByAngle(Angle, 0);
+			process_ResetFloatingEnc();
+			process_SubState =0;
+			step += 1;
+
+		}
+	}
+}
 void process_Signal_RotationMatrixTransform(float u, float v, float r)
 {
 	uControlX = u * cos(angle_Rad) - v * sin(angle_Rad);
@@ -778,7 +833,7 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(20,0.15);
+		process_RunByAngle(18,0.15);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
 
@@ -788,7 +843,7 @@ void process_RiceAppRoach()
 	}
 	else if(process_SubState == 1){
 		process_Error(0);
-		process_RunByAngle(90,0.01);
+		process_RunByAngle(90,0.2);
 		process_SubState = 2;
 	}
 	else if(process_SubState == 2){
@@ -798,6 +853,7 @@ void process_RiceAppRoach()
 	else if(process_SubState == 3){
 		process_ResetFloatingEnc();
 		process_SubState = 0;
+		process_Count = 0;
 		step += 1;
 	}
 }
@@ -1784,7 +1840,7 @@ void OdometerHandle(void const * argument)
 //
 		if (step == 0)
 				{	//Ra lenh cho co Cau lay bong di len cham chu U
-
+			process_RunByAngle(-25,0.001);
 			if (GamePad.Up)
 			{
 				osDelay(500);
@@ -1800,103 +1856,119 @@ void OdometerHandle(void const * argument)
 		else if (step == 1)
 		{
 			process_PD_OnStrainghtPath();
-			process_Accel_FloatingEnc5(-25, 0.5, 3300, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(-25, 0.5, 3500, 0.08, 0, 3);
 		}
-//		else if (step == 2)
-//		{
-//			process_PD_OnStrainghtPath();
-//			process_RiceAppRoach();
-//		}
-//		else if(step == 3)
-//		{
-//			process_Accel_FloatingEnc5(-45, 0.5, 9800, 0.08, 90, 3);
-//		}
-//		else if (step == 4)
-//		{
-//			process_Accel_FloatingEnc4(180, 0.2, 1200, 0.08, 90, 3);
-//		}
-//		else if (step == 5)
-//		{
-//			valve_ArmDownAndHandHold();
-//			step += 1;
-//		}
-//		else if (step == 6)
-//		{
-//			Gamepad = 1;
-//			if (GamePad.Up)
-//			{
-//				osDelay(500);
-//				if (GamePad.Up)
-//				{	//Reset thong so enc tha troi va la ban :
-////					Reset_MPU_Angle();
-//					process_ResetFloatingEnc();
-//					// Set thong so quy hoach quy dao :
-//
-//					Gamepad = 0;
-//					step += 1;
-//					// tha tay gap
-//					process_Error(1);
-//					valve_HandRelease();
-//					osDelay(50);
-//					process_Error(0);
-//					osDelay(50);
-//					process_Error(1);
-//					osDelay(50);
-//					valve_ArmUp();
-//					osDelay(50);
-//					process_Error(0);
-//				}
-//			}
-//		}
-//		else if(step == 7 )
-//		{
-//			process_Accel_FloatingEnc5(132, 0.5, 9600, 0.08, 0, 3);
-//		}
-//		else if(step == 8)
-//		{
-//			process_RiceAppRoach();
-//		}
-//		else if(step == 9)
-//		{
-//			process_Accel_FloatingEnc5(-70, 0.5, 8300, 0.08, 90, 3);
-//		}
-//		else if(step == 10)
-//		{
-//			process_Accel_FloatingEnc4(180, 0.2, 900, 0.08, 90, 3);
-//		}
-//		else if(step == 11)
-//		{
-//			valve_ArmDownAndHandHold();
-//			step += 1;
-//		}
-//		else if (step == 12)
-//		{
-//			Gamepad = 1;
-//			if (GamePad.Up)
-//			{
-//				osDelay(500);
-//				if (GamePad.Up)
-//				{	//Reset thong so enc tha troi va la ban :
-////					Reset_MPU_Angle();
-//					process_ResetFloatingEnc();
-//					// Set thong so quy hoach quy dao :
-//
-//					Gamepad = 0;
-//					step += 1;
-//					// tha tay gap
-//					process_Error(1);
-//					valve_HandRelease();
-//					osDelay(50);
-//					process_Error(0);
-//					osDelay(50);
-//					process_Error(1);
-//					osDelay(50);
-//					valve_ArmUp();
-//					osDelay(50);
-//					process_Error(0);
-//				}
-//			}
-//		}
+		else if (step == 2)
+		{
+			process_PD_OnStrainghtPath();
+			process_RiceAppRoach();
+		}
+		else if(step == 3)
+		{
+			process_RunByAngle3(-90,0.5,200);
+		}
+		else if(step == 4)
+		{
+			process_Accel_FloatingEnc5(-45, 0.5, 11800, 0.08, 90, 3);
+			if(floatingEncCount>1000)
+			{
+				valve_ArmDownAndHandHold();
+			}
+		}
+		else if (step == 5)
+		{
+			process_RunByAngle2(180, 0.2, 750);
+		}
+		else if (step == 6)
+		{
+			step += 1;
+		}
+		else if (step == 7)
+		{
+			Gamepad = 1;
+			if (GamePad.Up)
+			{
+				osDelay(500);
+				if (GamePad.Up)
+				{	//Reset thong so enc tha troi va la ban :
+//					Reset_MPU_Angle();
+					process_ResetFloatingEnc();
+					// Set thong so quy hoach quy dao :
+
+					Gamepad = 0;
+					step += 1;
+					// tha tay gap
+					process_Error(1);
+					valve_HandRelease();
+					osDelay(50);
+					process_Error(0);
+					osDelay(50);
+					process_Error(1);
+					osDelay(50);
+					valve_ArmUp();
+					osDelay(50);
+					process_Error(0);
+				}
+			}
+		}
+		else if(step == 8 )
+		{
+			process_Accel_FloatingEnc5(132, 0.5, 11800, 0.08, 0, 3);
+		}
+		else if(step == 9)
+		{
+			process_RiceAppRoach();
+		}
+		else if(step == 10)
+		{
+			process_RunByAngle3(-90,0.5,200);
+		}
+		else if(step == 11)
+		{
+			process_Accel_FloatingEnc5(-60, 0.5, 9900, 0.08, 90, 3);
+			if(floatingEncCount>1000)
+			{
+				valve_ArmDownAndHandHold();
+			}
+		}
+
+		else if(step ==12)
+		{
+			process_RunByAngle2(180, 0.2, 800);
+		}
+		else if(step == 13)
+		{
+			valve_ArmDownAndHandHold();
+			step += 1;
+		}
+		else if (step == 14)
+		{
+			Gamepad = 1;
+			if (GamePad.Up)
+			{
+				osDelay(500);
+				if (GamePad.Up)
+				{	//Reset thong so enc tha troi va la ban :
+//					Reset_MPU_Angle();
+					process_ResetFloatingEnc();
+					// Set thong so quy hoach quy dao :
+
+					Gamepad = 0;
+					step += 1;
+					// tha tay gap
+					process_Error(1);
+					valve_HandRelease();
+					osDelay(50);
+					process_Error(0);
+					osDelay(50);
+					process_Error(1);
+					osDelay(50);
+					valve_ArmUp();
+					osDelay(50);
+					process_Error(0);
+				}
+			}
+		}
 //		else if(step == 13)
 //		{
 //			process_Accel_FloatingEnc5(100, 0.5, 8600, 0.08, 0, 3);
@@ -2238,6 +2310,14 @@ void OdometerHandle(void const * argument)
 			uControlX = -GamePad.XLeftCtr;
 			uControlY = GamePad.YLeftCtr;
 			uControlTheta = GamePad.XRightCtr;
+
+			if (absf(uControlX)>absf(uControlY))
+			{
+				uControlY = 0;
+			}else if(absf(uControlX)<absf(uControlY))
+			{
+				uControlX = 0;
+			}
 
 		}
 		else if (Gamepad == 0) {

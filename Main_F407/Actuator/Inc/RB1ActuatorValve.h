@@ -19,6 +19,7 @@
 #define VALVE_HAND_RIGHT_HC595_PIN 1
 
 void valve_TestPin(pinName pin);
+void valve_ArmDown();
 void valve_TestBlinkAll();
 void valve_Output(uint8_t outputPort, bool on);
 void valve_BothCatch();

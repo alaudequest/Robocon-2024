@@ -50,7 +50,7 @@ void swer0_CalVector(float u, float v, float r){
 //	vct.wheelVelY = sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v + ROBOT_LENGHT_METER*r);
 //	swer_SetWheelVector(MODULE_ID_4, vct);
 //}
-float Angle1 = 45,Angle2 = 135,Angle3 = 90;
+float Angle1 = 45.5,Angle2 = 138,Angle3 = 88;
 void swer1_CalVector(float u, float v, float r){
 	WheelVector vct;
 	float alpha = Angle1*M_PI/180;
