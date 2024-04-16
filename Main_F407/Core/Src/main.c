@@ -48,7 +48,9 @@ typedef enum MainEvent {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define REDBALL 0
+#define BLUEBALL 1
+#define PURPLEBALL 2
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,6 +70,7 @@ TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim10;
 
+UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
@@ -205,6 +208,14 @@ PID_Param PutBall_PID;
 
 MotorDC putBall_DC;
 MotorDC GetBall_DC;
+///////////////////////////////////////Truyen Thong Xu Ly Anh///////////////////////////////////////
+uint8_t UARTRX5_Buffer[4], Raspberry[4];
+uint8_t UARTTX5_OK_Buffer[3] = "OK\n";
+uint8_t UARTTX5_Start_Buffer[2] = "a\n";
+bool UART5_IsReceived = false;
+bool Raspberry_Enable = false;
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END PV */
@@ -224,6 +235,7 @@ static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_UART5_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -351,6 +363,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		if (!gamepadRxIsBusy)
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 
+	}
+
+	if (huart->Instance == UART5) {
+		memcpy(Raspberry, UARTRX5_Buffer, 4);
+		memset(UARTRX5_Buffer, 0, 4);
+		UART5_IsReceived = true;
+		HAL_UART_Receive_IT(&huart5, (uint8_t*) UARTRX5_Buffer, 1);
 	}
 }
 
@@ -1014,6 +1033,23 @@ void process_WireRelease(){
 	osDelay(1);
 }
 
+//////////////////////////////////Ham Xu Ly Bong Mau////////////////////////////////////////////////
+HAL_StatusTypeDef UART5_Start_To_Raspberry(){
+	if(!Raspberry_Enable) return HAL_ERROR;
+	if(HAL_UART_Transmit(&huart5, UARTTX5_Start_Buffer, 2, 100) != HAL_OK)
+		return HAL_BUSY;
+	Raspberry_Enable = false;
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef UART5_Is_Received(){
+	if(!UART5_IsReceived) return HAL_ERROR;
+	Raspberry[0] -= 0x30;
+	if(HAL_UART_Transmit(&huart5, UARTTX5_OK_Buffer, 3, 100) != HAL_OK)
+		return HAL_BUSY;
+	UART5_IsReceived = false;
+	return HAL_OK;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1059,6 +1095,7 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   MX_USART2_UART_Init();
+  MX_UART5_Init();
   /* USER CODE BEGIN 2 */
 
 	log_Init(&huart2);
@@ -1074,7 +1111,7 @@ int main(void)
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
 	osDelay(1000);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
-
+	HAL_UART_Receive_IT(&huart5, (uint8_t*) UARTRX5_Buffer, 1);
 //	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 //	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
@@ -1574,6 +1611,39 @@ static void MX_TIM10_Init(void)
 }
 
 /**
+  * @brief UART5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART5_Init(void)
+{
+
+  /* USER CODE BEGIN UART5_Init 0 */
+
+  /* USER CODE END UART5_Init 0 */
+
+  /* USER CODE BEGIN UART5_Init 1 */
+
+  /* USER CODE END UART5_Init 1 */
+  huart5.Instance = UART5;
+  huart5.Init.BaudRate = 115200;
+  huart5.Init.WordLength = UART_WORDLENGTH_8B;
+  huart5.Init.StopBits = UART_STOPBITS_1;
+  huart5.Init.Parity = UART_PARITY_NONE;
+  huart5.Init.Mode = UART_MODE_TX_RX;
+  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART5_Init 2 */
+
+  /* USER CODE END UART5_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -1708,6 +1778,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
@@ -1941,6 +2012,7 @@ void OdometerHandle(void const * argument)
 //				process_setVal_PutBall(testball);
 				if (use_pidTheta)
 				{
+
 					r = -(PID_Cal(&pid_Angle,(float) trajecTheta.xTrajec,(float)angle_Rad)+(float)trajecTheta.xdottraject);
 
 				}
@@ -1948,101 +2020,111 @@ void OdometerHandle(void const * argument)
 				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-					if (step == 0)
-						{	// Ra lenh cho co Cau lay bong di xuong
+				if (step == 1){
+					UART5_Start_To_Raspberry();
+					step += 1;
+				}if (step == 2)
+				{
+					if((UART5_Is_Received() == HAL_OK))
+					{
+						step+=1;
+					}
+				}
+//					if (step == 0)
+//						{	// Ra lenh cho co Cau lay bong di xuong
+////
+//							process_getBall();
 //
-							process_getBall();
-
-						}
-					else if (step == 1)
-						{	//Ra lenh cho co Cau lay bong di len cham chu U
-							process_setVal_PutBall(1);
-
-							if (GamePad.Up)
-							{
-								osDelay(500);
-								if(GamePad.Up)
-								{	//Reset thong so enc tha troi va la ban :
-									Reset_MPU_Angle();
-									process_ResetFloatingEnc();
-									// Set thong so quy hoach quy dao :
-									step = 2;
-								}
-							}
-						}
-					else if (step == 2)
-						{
-							process_Accel_FloatingEnc3(-22, 1, 5300, 0.08, -45, 3);
-						}
-					else if (step == 3)
-						{
-							process_Ball_Approach3(0);
-						}
-					else if (step == 4)
-						{
-							process_getBall();
-						}
-					else if (step == 5)
-						{
-							process_Accel_FloatingEnc3(80, 1, 3600, 0.08, -3, 3);
-						}
-					else if(step == 6)
-						{
-							process_ApproachWall();
-						}
-					else if(step == 7)
-						{
-							process_ReleaseBall();
-						}
-					else if(step == 8)
-						{
-							process_Accel_FloatingEnc3(-120, 1, 4200, 0.08, -45, 3);
-						}
-					else if (step == 9)
-						{
-							process_Ball_Approach3(1);
-						}
-
-					else if (step == 10)
-						{
-							process_getBall();
-						}
-					else if (step == 11)
-						{
-							process_Accel_FloatingEnc3(83, 1, 3000, 0.08, -5, 3);
-						}
-					else if (step == 12)
-						{
-							process_ApproachWall();
-						}
-					else if (step == 13)
-						{
-							process_ReleaseBall();
-						}
-					else if (step == 14)
-						{
-							process_Accel_FloatingEnc3(-120, 1, 4200, 0.08, -45, 3);
-						}
-					else if (step == 15)
-						{
-							process_Ball_Approach3(2);
-						}
-					else if (step == 16)
-						{
-							process_getBall();
-						}
-					else if (step == 17)
-						{
-							process_Accel_FloatingEnc3(95, 1, 2800, 0.08, -8, 3);
-						}
-					else if (step == 18)
-						{
-							process_ApproachWall();
-						}
-					else if (step == 19)
-						{
-							process_ReleaseBall();
-						}
+//						}
+//					else if (step == 1)
+//						{	//Ra lenh cho co Cau lay bong di len cham chu U
+//							process_setVal_PutBall(1);
+//
+//							if (GamePad.Up)
+//							{
+//								osDelay(500);
+//								if(GamePad.Up)
+//								{	//Reset thong so enc tha troi va la ban :
+//									Reset_MPU_Angle();
+//									process_ResetFloatingEnc();
+//									// Set thong so quy hoach quy dao :
+//									step = 2;
+//								}
+//							}
+//						}
+//					else if (step == 2)
+//						{
+//							process_Accel_FloatingEnc3(-22, 1, 5300, 0.08, -45, 3);
+//						}
+//					else if (step == 3)
+//						{
+//							process_Ball_Approach3(0);
+//						}
+//					else if (step == 4)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 5)
+//						{
+//							process_Accel_FloatingEnc3(80, 1, 3600, 0.08, -3, 3);
+//						}
+//					else if(step == 6)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if(step == 7)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if(step == 8)
+//						{
+//							process_Accel_FloatingEnc3(-120, 1, 4200, 0.08, -45, 3);
+//						}
+//					else if (step == 9)
+//						{
+//							process_Ball_Approach3(1);
+//						}
+//
+//					else if (step == 10)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 11)
+//						{
+//							process_Accel_FloatingEnc3(83, 1, 3000, 0.08, -5, 3);
+//						}
+//					else if (step == 12)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if (step == 13)
+//						{
+//							process_ReleaseBall();
+//						}
+//					else if (step == 14)
+//						{
+//							process_Accel_FloatingEnc3(-120, 1, 4200, 0.08, -45, 3);
+//						}
+//					else if (step == 15)
+//						{
+//							process_Ball_Approach3(2);
+//						}
+//					else if (step == 16)
+//						{
+//							process_getBall();
+//						}
+//					else if (step == 17)
+//						{
+//							process_Accel_FloatingEnc3(95, 1, 2800, 0.08, -8, 3);
+//						}
+//					else if (step == 18)
+//						{
+//							process_ApproachWall();
+//						}
+//					else if (step == 19)
+//						{
+//							process_ReleaseBall();
+//						}
 	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
 				{
@@ -2094,7 +2176,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
     HAL_IncTick();
-
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM4) {
