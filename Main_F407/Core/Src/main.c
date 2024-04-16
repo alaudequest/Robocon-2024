@@ -230,7 +230,9 @@ void CAN_Init() {
 }
 
 void setHomeComplete() {
-
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+	osDelay(100);
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 }
 
 void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
@@ -244,7 +246,7 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 //					| 1 << CANCTRL_DEVICE_MOTOR_CONTROLLER_3
 //					| 1 << CANCTRL_DEVICE_MOTOR_CONTROLLER_4
 //					))
-			if(nodeSwerveSetHomeComplete == 30)
+			if(nodeSwerveSetHomeComplete == 14)
 				setHomeComplete();
 																		// @formatter:on
 			break;
@@ -263,6 +265,7 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
 	while (1);
 }
 /*=============================== UART ===============================*/
@@ -1649,24 +1652,23 @@ void InverseKinematic(void const * argument)
  * @brief Function implementing the TaskCAN thread.
  * @param argument: Not used
  * @retval None
+ *
  */
 /* USER CODE END Header_CAN_Bus */
 void CAN_Bus(void const * argument)
 {
   /* USER CODE BEGIN CAN_Bus */
 	CAN_Init();
-	osDelay(3000);
+	osDelay(1000);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_1,
 			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
+	osDelay(10);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_2,
 			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
+	osDelay(10);
 	canctrl_RTR_TxRequest(&hcan1, CANCTRL_DEVICE_MOTOR_CONTROLLER_3,
 			CANCTRL_MODE_SET_HOME);
-	osDelay(1);
-
-	osDelay(500);
+	osDelay(10);
 	uint32_t modeID;
 	/* Infinite loop */
 	for (;;) {
@@ -1881,6 +1883,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 6)
 		{
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
 			step += 1;
 		}
 		else if (step == 7)
@@ -1889,6 +1892,7 @@ void OdometerHandle(void const * argument)
 			if (GamePad.Up)
 			{
 				osDelay(500);
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 				if (GamePad.Up)
 				{	//Reset thong so enc tha troi va la ban :
 //					Reset_MPU_Angle();
