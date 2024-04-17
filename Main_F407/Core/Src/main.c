@@ -157,7 +157,6 @@ trajec_Param trajecTheta;
 
 uint32_t nodeSwerveSetHomeComplete = 0;
 int gunCount1, gunCount2;
-float gunCurrentSpeed1, gunCurrentSpeed2, gunTargetSpeed1, gunTargeSpeed2;
 QueueHandle_t qShoot;
 bool testTick = false;
 
@@ -1340,6 +1339,9 @@ void StartDefaultTask(void const *argument)
 {
 	/* USER CODE BEGIN 5 */
 	swer_Init();
+	RB1_Gun_Start(1000, 500);
+	RB1_SetTargetSpeedGun1(1000);
+	RB1_SetTargetSpeedGun2(500);
 	osDelay(3000);
 	/* Infinite loop */
 	for (;;) {
@@ -1432,17 +1434,6 @@ void CAN_Bus(void const *argument)
  * @param argument: Not used
  * @retval None
  */
-HAL_StatusTypeDef Delay_tick(uint32_t tick) {
-	static TickType_t xStartTime = 0;
-	if (!xStartTime) {
-		xStartTime = xTaskGetTickCount();
-	}
-	if (xTaskGetTickCount() - xStartTime >= tick) {
-		xStartTime = 0;
-		return HAL_OK;
-	}
-	return HAL_BUSY;
-}
 bool beginToCollectBallLeft = false;
 bool beginToCollectBallRight = false;
 /* USER CODE END Header_Actuator */

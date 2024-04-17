@@ -12,6 +12,7 @@
 #include "Motor.h"
 #include "Encoder.h"
 #include "PID.h"
+#include "stdbool.h"
 
 /*-----------------------------Begin:PID GUN1 Macro(SPEED)----------------------*/
 #define Gun1Proportion 			0.5
@@ -44,9 +45,22 @@ typedef enum AccelerationState {
 	DECELERATION,
 } AccelerationState;
 
+typedef struct Acceleration_t {
+	float currentOutputValue;
+	float valueStep;
+	float targetValue;
+	uint16_t accelTick_ms;
+	uint8_t accelTimeStep_ms;
+	uint8_t numStep;
+	bool lockNumStep;
+} Acceleration_t;
+
 void RB1_Gun_Init();
-void RB1_Gun_Start();
+void RB1_Gun_Start(float gun1TargetSpeed, float gun2TargetSpeed);
 void RB1_Gun_Stop();
+
+void RB1_SetTargetSpeedGun1(float targetSpeed);
+void RB1_SetTargetSpeedGun2(float targetSpeed);
 
 void RB1_CalculateRuloGunPIDSpeed();
 void RB1_VelocityCalculateOfGun();

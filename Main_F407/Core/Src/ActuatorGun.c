@@ -19,11 +19,10 @@ static uint16_t collectBallPWM = 0;
 static uint32_t collectBallTickTime = 0;
 static uint8_t pidCurrentTickTimeGun1_ms = 0;
 static uint8_t pidCurrentTickTimeGun2_ms = 0;
-static uint8_t accelTickGun1 = 0;
-static uint8_t accelTickGun2 = 0;
 static AccelerationState accelStateCollectBall = NO_ACCEL;
-static AccelerationState accelStateGun = NO_ACCEL;
-static float speedInAccelGun1, speedInAccelGun2, gunTargetSpeed1, gunTargetSpeed2;
+static Acceleration_t accelGun1, accelGun2;
+
+static void RB1_Gun_AccelerateInit();
 
 #define ACCEL_TIME_STEP (0.01 * 1000 * 15) // GunDeltaT * 1000ms * 15 = 0.01 * 1000 * 15 = 150ms
 
@@ -39,6 +38,7 @@ void RB1_Gun_Init() {
 	PID_SetParameters(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha);
 	PID_SetSaturate(&PID_Gun2, Gun2SumAboveLimit, Gun2SumBelowLimit);
 	encGun2.deltaT = PID_Gun2.deltaT = Gun2DeltaT;
+	RB1_Gun_AccelerateInit();
 	// End MOTOR GUN INIT
 
 	// Start MOTOR RULO GET BALL INIT
@@ -63,78 +63,97 @@ void RB1_VelocityCalculateOfGun()
 
 void RB1_UpdateAccelTickInInterrupt()
 {
-	if (accelStateGun == ACCELERATION || accelStateGun == DECELERATION) {
-		accelTickGun1++;
-		accelTickGun2++;
+	if (accelGun1.lockNumStep == true) {
+		accelGun1.accelTick_ms++;
+	}
+	if (accelGun2.lockNumStep == true) {
+		accelGun2.accelTick_ms++;
 	}
 }
 
-static void CalculateAccelValue(AccelerationState *accelState, uint8_t *accelTick, uint8_t accelTimeStep, float *valueInAccel, float targetValue, uint8_t numStep)
+static float absf(float num)
 {
-	if (*accelTick < accelTimeStep)
+	if (num >= 0)
+		return num;
+	else
+		return num * -1;
+}
+
+static void CalculateAccelValue(Acceleration_t *a)
+{
+	// Lấy số step ban đầu và khóa giá trị step đó lại
+	if (a->lockNumStep == false && (a->targetValue != a->currentOutputValue)) {
+		a->valueStep = absf(a->targetValue - a->currentOutputValue) / a->numStep;
+		a->lockNumStep = true;
+	}
+	// Nếu tick hiện tại chưa đạt tới thời điểm thay đổi giá trị gia tốc thì return
+	if (a->accelTick_ms < a->accelTimeStep_ms)
 		return;
-	float valueStep = targetValue / numStep;
-	if (*accelState == ACCELERATION) {
-		*valueInAccel += valueStep;
-		if (targetValue - *valueInAccel < valueStep) {
-			*valueInAccel = targetValue;
-			*accelState = NO_ACCEL;
-		}
+	// Nếu đang gia tốc và giá trị hiện tại nhỏ hơn giá trị đặt trước
+	if (a->targetValue > a->currentOutputValue)
+		a->currentOutputValue += a->valueStep;
+	// Nếu đang giảm tốc và giá trị đặt nhỏ hơn giá trị hiện tại
+	else if (a->targetValue < a->currentOutputValue)
+		a->currentOutputValue -= a->valueStep;
+	// Nếu giá trị hiện tại xấp xỉ giá trị đặt thì dừng quá trình gia tốc
+	if (absf(a->targetValue - a->currentOutputValue) < a->valueStep) {
+		a->currentOutputValue = a->targetValue;
+		a->lockNumStep = false;
 	}
-	else if (*accelState == DECELERATION) {
-		*valueInAccel -= valueStep;
-		if (*valueInAccel - targetValue < valueStep) {
-			*valueInAccel = targetValue;
-			*accelState = NO_ACCEL;
-		}
-	}
-	*accelTick = 0;
+	a->accelTick_ms = 0;
 }
 
 void RB1_CalculateRuloGunPIDSpeed()
 {
 	float targetSpeed1, targetSpeed2;
 	RB1_VelocityCalculateOfGun();
-	if (accelStateGun == ACCELERATION || accelStateGun == DECELERATION) {
-		CalculateAccelValue(&accelStateGun, &accelTickGun1, ACCEL_TIME_STEP, &speedInAccelGun1, gunTargetSpeed1, 10);
-		targetSpeed1 = speedInAccelGun1;
-		CalculateAccelValue(&accelStateGun, &accelTickGun2, ACCEL_TIME_STEP, &speedInAccelGun2, gunTargetSpeed2, 10);
-		targetSpeed2 = speedInAccelGun2;
-	}
-	else {
-		targetSpeed1 = gunTargetSpeed1;
-		targetSpeed2 = gunTargetSpeed2;
-	}
-	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
-		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
-		pidCurrentTickTimeGun1_ms = 0;
-	}
-	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
-		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
-		pidCurrentTickTimeGun2_ms = 0;
-	}
+	CalculateAccelValue(&accelGun1);
+	targetSpeed1 = accelGun1.currentOutputValue;
+	CalculateAccelValue(&accelGun2);
+	targetSpeed2 = accelGun2.currentOutputValue;
+//	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
+//		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
+//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
+//		pidCurrentTickTimeGun1_ms = 0;
+//	}
+//	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
+//		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
+//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
+//		pidCurrentTickTimeGun2_ms = 0;
+//	}
 }
 
-void RB1_Gun_Start() {
-	accelStateGun = ACCELERATION;
-	accelTickGun1 = 0;
-	accelTickGun2 = 0;
+void RB1_Gun_AccelerateInit() {
+	accelGun1.accelTimeStep_ms = 150;
+	accelGun1.numStep = 20;
+
+	accelGun2.accelTimeStep_ms = 150;
+	accelGun2.numStep = 20;
+}
+
+void RB1_Gun_Start(float gun1TargetSpeed, float gun2TargetSpeed)
+{
+	accelGun1.targetValue = gun1TargetSpeed;
+	accelGun2.targetValue = gun2TargetSpeed;
+	accelGun1.accelTick_ms = 0;
+	accelGun2.accelTick_ms = 0;
 }
 
 void RB1_Gun_Stop() {
-	accelStateGun = DECELERATION;
-	accelTickGun1 = 0;
-	accelTickGun2 = 0;
+	accelGun1.accelTick_ms = 0;
+	accelGun2.accelTick_ms = 0;
+	accelGun1.targetValue = 0;
+	accelGun2.targetValue = 0;
 }
 
-void RB1_SetTargetSpeedGun1(float targetSpeed) {
-	gunTargetSpeed1 = targetSpeed;
+void RB1_SetTargetSpeedGun1(float targetSpeed)
+{
+	accelGun1.targetValue = targetSpeed;
 }
 
-void RB1_SetTargetSpeedGun2(float targetSpeed) {
-	gunTargetSpeed2 = targetSpeed;
+void RB1_SetTargetSpeedGun2(float targetSpeed)
+{
+	accelGun2.targetValue = targetSpeed;
 }
 
 #define COLLECT_BALL_ACCEL_TIME_STEP 150
