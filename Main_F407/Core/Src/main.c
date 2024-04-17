@@ -578,30 +578,8 @@ bool process_ThucHienGapLua() {
 	return gapLuaThanhCong;
 }
 
-void process_LuaBongTrai() {
-	phatHienBongTrai = true;
-}
-void process_LuaBongPhai() {
-	valve_RightCollectBall();
-	osDelay(3000);
-	valve_RightWaitCollectBall();
-}
-
 bool process_ThucHienLuaBongTrai() {
-	bool thucHienThanhCong = false;
-	// Nếu cảm biến lùa bóng trái phát hiện bóng
-	if (phatHienBongTrai) {
-		// Rút xilanh để lùa bóng vào
-		valve_LeftCollectBall();
-		osDelay(3000);
-		// �?ẩy xilanh ra và ch�? cảm biến phát hiện
-		valve_LeftWaitCollectBall();
-		// ch�? bóng bắn xong
-		osDelay(2000);
-		phatHienBongTrai = false;
-		thucHienThanhCong = true;
-	}
-	return thucHienThanhCong;
+	return true;
 }
 
 /* USER CODE END 0 */
@@ -663,7 +641,6 @@ int main(void)
 	RB1_SensorRegisterPin(Sensor4_GPIO_Port, Sensor4_Pin, RB1_SENSOR_COLLECT_BALL_RIGHT);
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
-	RB1_RegisterSensorCallBack(&process_LuaBongTrai, RB1_SENSOR_COLLECT_BALL_LEFT);
 	MainF4Robot1App_Init();
 
 	/* USER CODE END 2 */
@@ -1434,22 +1411,12 @@ void CAN_Bus(void const *argument)
  * @param argument: Not used
  * @retval None
  */
-bool beginToCollectBallLeft = false;
-bool beginToCollectBallRight = false;
 /* USER CODE END Header_Actuator */
 void Actuator(void const *argument)
 {
 	/* USER CODE BEGIN Actuator */
 	/* Infinite loop */
 	for (;;) {
-		if (beginToCollectBallLeft) {
-			valve_LeftWaitCollectBall();
-			beginToCollectBallLeft = false;
-		}
-		if (beginToCollectBallRight) {
-			valve_RightWaitCollectBall();
-			beginToCollectBallRight = false;
-		}
 		RB1_CollectBallMotor_ControlSpeed();
 		RB1_SensorTriggerHandle();
 		RB1_CalculateRuloGunPIDSpeed();
@@ -1658,7 +1625,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	/* USER CODE END Callback 0 */
 	if (htim->Instance == TIM14) {
 		HAL_IncTick();
-		void RB1_GunIncreaseTickTimerInInterrupt();
+		RB1_GunIncreaseTickTimerInInterrupt();
 		RB1_UpdateAccelTickInInterrupt();
 	}
 	/* USER CODE BEGIN Callback 1 */

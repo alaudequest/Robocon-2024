@@ -44,15 +44,6 @@ void valve_Output(uint8_t outputPort, bool on) {
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_TestBlinkAll() {
-	HC595_SetByteOutput(0xff);
-	HC595_ShiftOut(NULL, 1, 1);
-	osDelay(2000);
-	HC595_ClearByteOutput(0xff);
-	HC595_ShiftOut(NULL, 1, 1);
-	osDelay(2000);
-}
-
 void valve_BothCatch()
 {
 	ProcessBegin();
@@ -76,26 +67,30 @@ void valve_BothRelease()
 	ProcessEnd();
 }
 
-void valve_LeftCollectBall() {
+void CloseLeftCollectBall()
+{
 	// thu cơ cấu lùa banh vào
 	HC595_ClearBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_LeftWaitCollectBall() {
+void OpenLeftCollectBall()
+{
 
 	// đẩy cơ cấu lùa banh ra, chờ bắt banh
 	HC595_SetBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_RightCollectBall() {
+void CloseRightCollectBall()
+{
 	// thu cơ cấu lùa banh vào
 	HC595_ClearBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_RightWaitCollectBall() {
+void OpenRightCollectBall()
+{
 	// đẩy cơ cấu lùa banh ra, chờ bắt banh
 	HC595_SetBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
@@ -129,6 +124,38 @@ static inline void HandRelease() {
 	HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
 	HC595_ClearBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // mở tay gắp phải
 	HC595_ShiftOut(NULL, 1, 1);
+}
+
+static inline void ProcessOpenLeftCollectBall(uint8_t expectedStep)
+{
+	if (expectedStep == false)
+		return;
+	OpenLeftCollectBall();
+	valveProcessStep++;
+}
+
+static inline void ProcessOpenRightCollectBall(uint8_t expectedStep)
+{
+	if (expectedStep == false)
+		return;
+	OpenRightCollectBall();
+	valveProcessStep++;
+}
+
+static inline void ProcessCloseLeftCollectBall(uint8_t expectedStep)
+{
+	if (expectedStep == false)
+		return;
+	CloseLeftCollectBall();
+	valveProcessStep++;
+}
+
+static inline void ProcessCloseRightCollectBall(uint8_t expectedStep)
+{
+	if (expectedStep == false)
+		return;
+	CloseRightCollectBall();
+	valveProcessStep++;
 }
 
 static inline void ProcessDelay(uint8_t expectedStep, uint32_t delayMs)
@@ -186,4 +213,66 @@ static inline void ProcessBegin()
 static inline void ProcessEnd()
 {
 	valveProcessStep = 0;
+	true;
+}
+
+void valve_InShootBallTime_Start()
+{
+	ProcessBegin();
+	ProcessArmDown(1);
+	ProcessDelay(2, 200);
+	ProcessHandRelease(3);
+	ProcessDelay(4, 500);
+	ProcessEnd();
+}
+
+void valve_InShootBallTime_Stop()
+{
+	ProcessBegin();
+	ProcessArmUp(1);
+	ProcessDelay(2, 200);
+	ProcessHandRelease(3);
+	ProcessCloseLeftCollectBall(5);
+	ProcessCloseRightCollectBall(6);
+	ProcessEnd();
+}
+
+void valve_InShootBallTime_ReadyLeftCollectBall()
+{
+	ProcessBegin();
+	ProcessOpenLeftCollectBall(1);
+	ProcessDelay(2, 1000);
+	ProcessEnd();
+}
+
+void valve_InShootBallTime_ReadyRightCollectBall()
+{
+	ProcessBegin();
+	ProcessOpenRightCollectBall(1);
+	ProcessDelay(2, 1000);
+	ProcessEnd();
+}
+
+void valve_InShootBallTime_GetBallRight()
+{
+	ProcessBegin();
+	ProcessCloseRightCollectBall(1);
+	ProcessDelay(2, 1000);
+	ProcessOpenRightCollectBall(3);
+	ProcessDelay(4, 1000);
+	ProcessEnd();
+}
+
+void valve_InShootBallTime_GetBallLeft()
+{
+	ProcessBegin();
+	ProcessCloseLeftCollectBall(1);
+	ProcessDelay(2, 1000);
+	ProcessOpenLeftCollectBall(3);
+	ProcessDelay(4, 1000);
+	ProcessEnd();
+}
+
+bool valve_IsProcessEnd() {
+	return !valveProcessStep;
 }
