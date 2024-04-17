@@ -19,7 +19,6 @@
 #define VALVE_HAND_RIGHT_HC595_PIN 1
 
 void valve_TestPin(pinName pin);
-void valve_ArmDown();
 void valve_TestBlinkAll();
 void valve_Output(uint8_t outputPort, bool on);
 void valve_BothCatch();
@@ -27,12 +26,15 @@ void valve_BothRelease();
 void valve_Init();
 void valve_BothHold();
 void valve_OutputAllPin(uint8_t valveArrayOutput);
-void valve_LeftCollectBall();
-void valve_LeftWaitCollectBall();
-void valve_RightCollectBall();
-void valve_RightWaitCollectBall();
-void valve_ArmDownAndHandHold();
-void valve_ArmUp();
-void valve_HandRelease();
-void valve_Reset();
+bool valve_IsProcessEnd();
+void CloseLeftCollectBall();
+void OpenLeftCollectBall();
+void CloseRightCollectBall();
+void OpenRightCollectBall();
+void valve_InShootBallTime_Start();
+void valve_InShootBallTime_Stop();
+void valve_InShootBallTime_GetBallLeft();
+void valve_InShootBallTime_GetBallRight();
+void valve_InShootBallTime_ReadyLeftCollectBall();
+void valve_InShootBallTime_ReadyRightCollectBall();
 #endif /* INC_RB1ACTUATORVALVE_H_ */
