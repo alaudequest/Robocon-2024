@@ -681,6 +681,21 @@ void process_Signal_RotationMatrixTransform(float u, float v, float r)
 	uControlTheta = r;
 }
 
+void process_Signal_RotationMatrixTransform2(float u, float v, float r)
+{
+	float offset_Angle = trajecTheta.Pf;
+	uControlX = -(u * cos(angle_Rad + offset_Angle) - v * sin(angle_Rad + offset_Angle));
+	uControlY = -(u * sin(angle_Rad + offset_Angle) + v * cos(angle_Rad + offset_Angle));
+	uControlTheta = r;
+}
+void process_Signal_RotationMatrixTransform3(float u, float v, float r)
+{
+	float offset_Angle = trajecTheta.Pf;
+	uControlX = (u * cos(angle_Rad + offset_Angle) - v * sin(angle_Rad + offset_Angle));
+	uControlY = (u * sin(angle_Rad + offset_Angle) + v * cos(angle_Rad + offset_Angle));
+	uControlTheta = r;
+}
+
 void process_Error(uint8_t error)
 {
 	if (error == 1)
@@ -779,38 +794,13 @@ bool process_ThucHienGapLua() {
 	return gapLuaThanhCong;
 }
 
-void process_LuaBongTrai() {
-	phatHienBongTrai = true;
-}
-void process_LuaBongPhai() {
-	valve_RightCollectBall();
-	osDelay(3000);
-	valve_RightWaitCollectBall();
-}
-
-bool process_ThucHienLuaBongTrai() {
-	bool thucHienThanhCong = false;
-	// Nếu cảm biến lùa bóng trái phát hiện bóng
-	if (phatHienBongTrai) {
-		// Rút xilanh để lùa bóng vào
-		valve_LeftCollectBall();
-		osDelay(3000);
-		// �?ẩy xilanh ra và ch�? cảm biến phát hiện
-		valve_LeftWaitCollectBall();
-		// ch�? bóng bắn xong
-		osDelay(2000);
-		phatHienBongTrai = false;
-		thucHienThanhCong = true;
-	}
-	return thucHienThanhCong;
-}
 void process_ResetWallAppRoach()
 {
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(20,0.15);
-		if(process_ResetToaDo() == true){
+		process_RunByAngle(180-18,0.15);
+		if(process_ThucHienGapLua()  == true){
 			process_Error(1);
 
 			osDelay(50);
@@ -854,17 +844,13 @@ void process_RiceAppRoach()
 	}
 	else if(process_SubState == 3){
 		process_ResetFloatingEnc();
+		Reset_MPU_Angle();
 		process_SubState = 0;
 		process_Count = 0;
 		step += 1;
 	}
 }
-// Danh cho co cau ban
-void Gun_ShootBall(uint16_t Target1)
-{
-	gun_PIDSpeed1(Target1);
-	gun_PIDSpeed2(Target1);
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -880,7 +866,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -1603,14 +1590,16 @@ void StartDefaultTask(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		for (;;) {
-			if (xaDay == 0)
-					{
-				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-				invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-				invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			}
-			else if (xaDay == 1) {
-				process_WireRelease();
+			if(nodeSwerveSetHomeComplete == 14){
+				if (xaDay == 0)
+						{
+					invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+					invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+					invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+				}
+				else if (xaDay == 1) {
+					process_WireRelease();
+				}
 			}
 			//
 			//
@@ -1695,10 +1684,13 @@ void Actuator(void const *argument)
 {
 	/* USER CODE BEGIN Actuator */
 	/* Infinite loop */
+	valve_ProcessBegin();
+//	valve_BothRelease();
 	for (;;) {
-		RB1_CollectBallMotor_ControlSpeed();
-		RB1_SensorTriggerHandle();
-		RB1_CalculateRuloGunPIDSpeed();
+		valve_BothRelease();
+//		RB1_CollectBallMotor_ControlSpeed();
+//		RB1_SensorTriggerHandle();
+//		RB1_CalculateRuloGunPIDSpeed();
 		osDelay(10);
 	}
 	/* USER CODE END Actuator */
@@ -1710,6 +1702,7 @@ void Actuator(void const *argument)
  * @param argument: Not used
  * @retval None
  */
+int PlusControl;
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -1777,7 +1770,7 @@ void OdometerHandle(void const * argument)
 		else if (step == 1)
 		{
 			process_PD_OnStrainghtPath();
-			process_Accel_FloatingEnc5(-25, 0.5, 3500, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(-32, 0.5, 3200, 0.08, 0, 3);
 		}
 		else if (step == 2)
 		{
@@ -1793,12 +1786,12 @@ void OdometerHandle(void const * argument)
 			process_Accel_FloatingEnc5(-45, 0.5, 11800, 0.08, 90, 3);
 			if(floatingEncCount>1000)
 			{
-				valve_ArmDownAndHandHold();
+				valve_ArmDown();
 			}
 		}
 		else if (step == 5)
 		{
-			process_RunByAngle2(180, 0.2, 750);
+			process_RunByAngle2(180, 0.2, 900);
 		}
 		else if (step == 6)
 		{
@@ -1808,6 +1801,7 @@ void OdometerHandle(void const * argument)
 		else if (step == 7)
 		{
 			Gamepad = 1;
+			PlusControl = 1;
 			if (GamePad.Up)
 			{
 				osDelay(500);
@@ -1817,7 +1811,7 @@ void OdometerHandle(void const * argument)
 //					Reset_MPU_Angle();
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
-
+					PlusControl = 0;
 					Gamepad = 0;
 					step += 1;
 					// tha tay gap
@@ -1836,7 +1830,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 8 )
 		{
-			process_Accel_FloatingEnc5(132, 0.5, 11800, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(132, 0.5, 12000, 0.08, 0, 3);
 		}
 		else if(step == 9)
 		{
@@ -1848,25 +1842,27 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 11)
 		{
-			process_Accel_FloatingEnc5(-60, 0.5, 9900, 0.08, 90, 3);
+			process_Accel_FloatingEnc5(-135, 0.5, 11800, 0.08, 90, 3);
 			if(floatingEncCount>1000)
 			{
-				valve_ArmDownAndHandHold();
+				valve_ArmDown();
 			}
 		}
 
 		else if(step ==12)
 		{
-			process_RunByAngle2(180, 0.2, 800);
+			process_RunByAngle2(0, 0.2, 1000);
 		}
 		else if(step == 13)
 		{
-			valve_ArmDownAndHandHold();
+			valve_ArmDown();
 			step += 1;
 		}
 		else if (step == 14)
 		{
+			PlusControl = 1;
 			Gamepad = 1;
+			process_Error(1);
 			if (GamePad.Up)
 			{
 				osDelay(500);
@@ -1875,7 +1871,7 @@ void OdometerHandle(void const * argument)
 //					Reset_MPU_Angle();
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
-
+					PlusControl = 0;
 					Gamepad = 0;
 					step += 1;
 					// tha tay gap
@@ -1892,10 +1888,37 @@ void OdometerHandle(void const * argument)
 				}
 			}
 		}
-//		else if(step == 13)
-//		{
-//			process_Accel_FloatingEnc5(100, 0.5, 8600, 0.08, 0, 3);
-//		}
+		else if(step == 15)
+		{
+			process_Accel_FloatingEnc5(180, 0.5, 3000, 0.08, 90, 3);
+		}
+		else if (step == 16)
+		{
+			process_Accel_FloatingEnc5(-90, 0.5, 13300, 0.08, 90, 3);
+		}
+		else if (step == 17)
+		{
+			PlusControl = 1;
+			Gamepad = 1;
+			process_Error(1);
+			if (GamePad.Up)
+			{
+				osDelay(500);
+				if (GamePad.Up)
+				{	//Reset thong so enc tha troi va la ban :
+//					Reset_MPU_Angle();
+					process_ResetFloatingEnc();
+					// Set thong so quy hoach quy dao :
+					PlusControl = 0;
+					Gamepad = 0;
+					step += 1;
+				}
+			}
+		}
+		else if(step == 18)
+		{
+			process_Accel_FloatingEnc5(0, 0.5, 5000, 0.08, 90, 3);
+		}
 //		else if(step == 14)
 //		{
 //			process_ResetWallAppRoach();
@@ -2229,17 +2252,44 @@ void OdometerHandle(void const * argument)
 //
 		if (Gamepad == 1)
 		{
-
-			uControlX = -GamePad.XLeftCtr;
-			uControlY = GamePad.YLeftCtr;
-			uControlTheta = GamePad.XRightCtr;
-
-			if (absf(uControlX)>absf(uControlY))
+			if(PlusControl == 0)
 			{
-				uControlY = 0;
-			}else if(absf(uControlX)<absf(uControlY))
+				uControlX = -GamePad.XLeftCtr;
+				uControlY = GamePad.YLeftCtr;
+				uControlTheta = GamePad.XRightCtr;
+			}
+
+			if(PlusControl == 1)
 			{
-				uControlX = 0;
+				process_PD_OnStrainghtPath();
+				use_pidTheta = 1;
+				u = -GamePad.XLeftCtr;
+				v = GamePad.YLeftCtr;
+//				r = GamePad.XRightCtr;
+				process_Signal_RotationMatrixTransform2(u, v, r);
+				if (absf(uControlX)>absf(uControlY))
+				{
+					uControlY = 0;
+				}else if(absf(uControlX)<absf(uControlY))
+				{
+					uControlX = 0;
+				}
+			}
+			if(PlusControl == 2)
+			{
+				process_PD_OnStrainghtPath();
+				use_pidTheta = 1;
+				u = -GamePad.XLeftCtr;
+				v = GamePad.YLeftCtr;
+//				r = GamePad.XRightCtr;
+				process_Signal_RotationMatrixTransform3(u, v, r);
+				if (absf(uControlX)>absf(uControlY))
+				{
+					uControlY = 0;
+				}else if(absf(uControlX)<absf(uControlY))
+				{
+					uControlX = 0;
+				}
 			}
 
 		}
