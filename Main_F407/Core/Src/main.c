@@ -35,6 +35,7 @@
 #include "MainF4Robot1App.h"
 #include "ActuatorGun.h"
 #include "Robot1_Sensor.h"
+#include "Robot1_InShootBallTime.h"
 #include "PositionControl.h"
 #include "Encoder.h"
 /* USER CODE END Includes */
@@ -113,7 +114,7 @@ uint8_t Run, resetParam, breakProtect;
 float uControlX, uControlY, uControlTheta;
 uint8_t stateRun = 0, steadycheck;
 uint8_t xaDay;
-uint8_t ssCheck, stateChange, rst, Gamepad;
+uint8_t ssCheck, stateChange, rst, Manual;
 uint8_t numOfBall = 0;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,6 +152,8 @@ float process_SubState;
 uint8_t process_GetBall_State;
 uint8_t process_SSCheck;
 uint8_t process_Count;
+bool enableValveProcess = false;
+ValveProcessName valveProcessName = 0;
 
 ///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
 trajec_Param trajecTheta;
@@ -349,7 +352,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			RB1_EncGun2_IncreaseCount();
 		return;
 	}
-	RB1_WaitSensorInInterrupt(GPIO_Pin);
+//	RB1_WaitSensorInInterrupt(GPIO_Pin);
 }
 
 float absf(float num)
@@ -839,10 +842,15 @@ void process_RiceAppRoach()
 		process_SubState = 2;
 	}
 	else if(process_SubState == 2){
-		valve_BothCatch();
+		valve_ProcessBegin(ValveProcess_CatchAndHold);
 		process_SubState = 3;
 	}
 	else if(process_SubState == 3){
+		if(valve_IsProcessEnd()){
+			process_SubState = 4;
+		}
+	}
+	else if(process_SubState == 4){
 		process_ResetFloatingEnc();
 		process_SubState = 0;
 		process_Count = 0;
@@ -869,10 +877,16 @@ void process_RiceAppRoach2()
 		process_SubState = 2;
 	}
 	else if(process_SubState == 2){
-		valve_BothCatch();
+		valve_ProcessBegin(ValveProcess_CatchAndHold);
 		process_SubState = 3;
+
 	}
 	else if(process_SubState == 3){
+		if(valve_IsProcessEnd()){
+			process_SubState = 4;
+		}
+	}
+	else if(process_SubState == 4){
 		process_ResetFloatingEnc();
 		process_SubState = 0;
 		process_Count = 0;
@@ -976,7 +990,7 @@ int main(void)
   TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
   /* definition and creation of TaskActuator */
-  osThreadDef(TaskActuator, Actuator, osPriorityBelowNormal, 0, 128);
+  osThreadDef(TaskActuator, Actuator, osPriorityAboveNormal, 0, 128);
   TaskActuatorHandle = osThreadCreate(osThread(TaskActuator), NULL);
 
   /* definition and creation of TaskOdometer */
@@ -1617,7 +1631,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	osDelay(3000);
+	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -1714,11 +1728,16 @@ void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
 	/* Infinite loop */
-	//	valve_BothRelease();
 	for (;;) {
-//		RB1_CollectBallMotor_ControlSpeed();
-//		RB1_SensorTriggerHandle();
-//		RB1_CalculateRuloGunPIDSpeed();
+		if(enableValveProcess){
+			valve_ProcessBegin(valveProcessName);
+			enableValveProcess = 0;
+		}
+		RB1_CollectBallMotor_ControlSpeed();
+		RB1_SensorTriggerHandle();
+		RB1_CalculateRuloGunPIDSpeed();
+		RB1_valve_ProcessManager();
+		ShootBallTime_Handle();
 		osDelay(10);
 	}
   /* USER CODE END Actuator */
@@ -1825,12 +1844,12 @@ void OdometerHandle(void const * argument)
 			process_Accel_FloatingEnc4(-47, 0.5, 11400, 0.08, 90, 3);
 			if(floatingEncCount>1000)
 			{
-				valve_ArmDownAndHandHold();
+				valve_ArmDown();
 			}
 		}
 		else if (step == 6)
 		{
-			Gamepad = 1;
+			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
@@ -1842,7 +1861,7 @@ void OdometerHandle(void const * argument)
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
 					PlusControl = 0;
-					Gamepad = 0;
+					Manual = 0;
 					step += 1;
 					// tha tay gap
 					process_Error(1);
@@ -1880,12 +1899,12 @@ void OdometerHandle(void const * argument)
 			process_Accel_FloatingEnc4(-130, 0.5, 11100, 0.08, 90, 3);
 			if(floatingEncCount>1000)
 			{
-				valve_ArmDownAndHandHold();
+				valve_ArmDown();
 			}
 		}
 		else if (step == 11)
 		{
-			Gamepad = 1;
+			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
@@ -1897,7 +1916,7 @@ void OdometerHandle(void const * argument)
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
 					PlusControl = 0;
-					Gamepad = 0;
+					Manual = 0;
 					step += 1;
 					// tha tay gap
 					process_Error(1);
@@ -1923,7 +1942,31 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 14)
 		{
-			process_Accel_FloatingEnc5(0, 0.5, 6000, 0.08, 90, 3);
+			process_Accel_FloatingEnc4(0, 0.5, 6100, 0.08, 90, 3);
+		}
+		else if(step == 15){
+			ShootBallTime_Start(&GamePad);
+			step++;
+		}
+		else if(step == 16){
+			Manual = 1;
+			PlusControl = 1;
+			if (GamePad.Up)
+			{
+				osDelay(500);
+				if (GamePad.Up)
+				{	//Reset thong so enc tha troi va la ban :
+//					Reset_MPU_Angle();
+					process_ResetFloatingEnc();
+					// Set thong so quy hoach quy dao :
+					PlusControl = 0;
+					Manual = 0;
+					step += 1;
+				}
+				if(IsInShootBallTime() == false){
+					PlusControl = 0;
+				}
+			}
 		}
 //		else if(step == 10)
 //		{
@@ -2086,7 +2129,7 @@ void OdometerHandle(void const * argument)
 			osDelay(100);
 			if(GamePad.Triangle)
 			{
-				valve_Reset();
+				valve_ProcessBegin(ValveProcess_ShootBallTime_Reset);
 			}
 		}
 		if (GamePad.Down && GamePad.Cross)	//Chuyen Sang Che Do GamePad
@@ -2094,7 +2137,7 @@ void OdometerHandle(void const * argument)
 			osDelay(100);
 			if (GamePad.Down && GamePad.Cross)
 					{
-				Gamepad = 1;
+				Manual = 1;
 				PlusControl = 0;
 			}
 		}
@@ -2110,13 +2153,13 @@ void OdometerHandle(void const * argument)
 
 
 //
-		if (Gamepad == 1)
+		if (Manual == 1)
 		{
 			if(PlusControl == 0)
 			{
-				uControlX = -GamePad.XLeftCtr;
-				uControlY = GamePad.YLeftCtr;
-				uControlTheta = GamePad.XRightCtr;
+				uControlX = -GamePad.XLeftCtr*2;
+				uControlY = GamePad.YLeftCtr*1.7;
+				uControlTheta = GamePad.XRightCtr*1.7;
 			}
 
 			if(PlusControl == 1)
@@ -2156,7 +2199,7 @@ void OdometerHandle(void const * argument)
 			}
 
 		}
-		else if (Gamepad == 0) {
+		else if (Manual == 0) {
 			process_Signal_RotationMatrixTransform(u, v, r);
 		}
 //	////////////////////////////////////////////////////////////////////////////////////////////////////////////
