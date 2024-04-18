@@ -38,11 +38,11 @@ void GamepPadHandle(_GamePad *pad,uint8_t *DataTayGame){
 
 	pad->Battery = DataTayGame[7];
 
-	pad->XLeftCtr = ((pad->XLeft-125))*0.3/125;
-	pad->YLeftCtr = ((pad->YLeft-125))*0.3/125;
+	pad->XLeftCtr = ((pad->XLeft-125))*0.2/125;
+	pad->YLeftCtr = ((pad->YLeft-125))*0.2/125;
 	pad->XRightCtr =(((pad->XRight-125))*0.6/125);
 
-	if ((pad->XLeftCtr > -0.05)&&(pad->XLeftCtr < 0.05))pad->XLeftCtr = 0;
-	if ((pad->YLeftCtr > -0.05)&&(pad->YLeftCtr < 0.05))pad->YLeftCtr = 0;
+	if ((pad->XLeftCtr > -0.08)&&(pad->XLeftCtr < 0.08))pad->XLeftCtr = 0;
+	if ((pad->YLeftCtr > -0.08)&&(pad->YLeftCtr < 0.08))pad->YLeftCtr = 0;
 	if ((pad->XRightCtr > -0.1)&&(pad->XRightCtr < 0.1))pad->XRightCtr = 0;
 }

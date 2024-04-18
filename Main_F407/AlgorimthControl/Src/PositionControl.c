@@ -59,3 +59,15 @@ void trajecPlan_SetParam(trajec_Param *trajec,float P0,float Pf,float tf,float v
 	trajec -> v0 = v0;
 	trajec -> vf = vf;
 }
+
+void trajecPlan_ReSetParam(trajec_Param *trajec)
+{
+	trajec -> t = 0;
+	trajec -> P0 = 0;
+	trajec -> Pf = 0;
+	trajec -> tf = 1;
+	trajec -> v0 = 0;
+	trajec -> vf = 0;
+	trajec->xTrajec = 0;
+	trajec->xdottraject = 0;
+}

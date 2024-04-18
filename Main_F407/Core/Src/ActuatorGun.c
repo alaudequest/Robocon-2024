@@ -38,7 +38,7 @@ void RB1_Gun_Init() {
 	PID_SetParameters(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha);
 	PID_SetSaturate(&PID_Gun2, Gun2SumAboveLimit, Gun2SumBelowLimit);
 	encGun2.deltaT = PID_Gun2.deltaT = Gun2DeltaT;
-	RB1_Gun_AccelerateInit();
+//	RB1_Gun_AccelerateInit();
 	// End MOTOR GUN INIT
 
 	// Start MOTOR RULO GET BALL INIT
