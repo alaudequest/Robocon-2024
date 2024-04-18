@@ -43,10 +43,11 @@ static void RelayCommandHandler()
 		RB1_CollectBallMotor_Off();
 
 	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall)) {
-		testTick = true;
+		RB1_EnableRuloShootBall();
 	}
 	else {
-		testTick = false;
+		RB1_SetTargetSpeedGun1(0);
+		RB1_SetTargetSpeedGun2(0);
 	}
 
 }
