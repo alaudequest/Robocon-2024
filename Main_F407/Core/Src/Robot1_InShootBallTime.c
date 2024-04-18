@@ -27,20 +27,20 @@ void ShootBallTime_Handle()
 	if (_gamepad->Up) {
 		// nếu ở hàng banh trên thì đẩy xilanh trái mở sẵn sàng đón banh
 		isRowBallAbove = true;
-		valve_InShootBallTime_ReadyLeftCollectBall();
+		valve_OpenLeftCollectBall();
 	}
 	else if (_gamepad->Down) {
 		isRowBallAbove = false;
-		valve_InShootBallTime_ReadyRightCollectBall();
+		valve_OpenRightCollectBall();
 	}
 
 	if (_gamepad->Circle && valve_IsProcessEnd()) {
-		// nếu ở hàng banh trên thì đưa banh vào 
+		// nếu ở hàng banh trên thì đưa banh vào
 		if (isRowBallAbove) {
-			valve_InShootBallTime_GetBallLeft();
+			valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallLeft);
 		}
 		else {
-			valve_InShootBallTime_GetBallRight();
+			valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallRight);
 		}
 	}
 	if (_gamepad->Cross)

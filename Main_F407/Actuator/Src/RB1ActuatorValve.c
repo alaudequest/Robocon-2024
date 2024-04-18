@@ -9,16 +9,19 @@
 #include "stdbool.h"
 #include "cmsis_os.h"
 static HC595 valve;
-static uint32_t valveDelayTick = 0;
 static uint8_t valveProcessStep = 0;
+static ValveProcessName valveProcessName = 0;
 
-static inline void ProcessArmUp(uint8_t expectedStep);
-static inline void ProcessArmDown(uint8_t expectedStep);
-static inline void ProcessHandHold(uint8_t expectedStep);
-static inline void ProcessHandRelease(uint8_t expectedStep);
-static inline void ProcessBegin();
 static inline void ProcessEnd();
-static inline void ProcessDelay(uint8_t expectedStep, uint32_t delayMs);
+static inline void ProcessDelay(uint32_t delayMs);
+
+void valve_ProcessBegin(ValveProcessName _valveProcessName)
+{
+	if (valveProcessStep != 0)
+		return;
+	valveProcessName = _valveProcessName;
+	valveProcessStep = 1;
+}
 
 void valve_Init() {
 	HC595_AssignPin(&valve, HC595_CLK_GPIO_Port, HC595_CLK_Pin, HC595_CLK);
@@ -44,233 +47,267 @@ void valve_Output(uint8_t outputPort, bool on) {
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_BothCatch()
+void ProcessCatchAndHold()
 {
-	ProcessBegin();
-	ProcessArmDown(1);
-	ProcessDelay(2, 500);
-	ProcessHandHold(3);
-	ProcessDelay(4, 500);
-	ProcessArmUp(5);
-	ProcessDelay(6, 500);
-	ProcessEnd();
+	if (valveProcessName != ValveProcess_CatchAndHold)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_ArmDown();
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			break;
+		case 2:
+			ProcessDelay(500);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valve_HandHold();
+			valveProcessStep++;
+			break;
+		case 4:
+			ProcessDelay(500);
+			break;
+		case 5:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			valve_ArmUp();
+			valveProcessStep++;
+			break;
+		case 6:
+			ProcessDelay(2000);
+			break;
+		case 7:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valve_ArmDown();
+			valveProcessStep++;
+			break;
+		case 8:
+			ProcessEnd();
+			break;
+	}
 }
 
-void valve_BothRelease()
+static void InShootBallTime_ProcessStart()
 {
-	ProcessBegin();
-	ProcessArmDown(1);
-	ProcessDelay(2, 500);
-	ProcessHandRelease(4);
-	ProcessDelay(5, 500);
-	ProcessArmUp(6);
-	ProcessEnd();
+	if (valveProcessName != ValveProcess_ShootBallTime_Start)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_ArmDown();
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			break;
+		case 2:
+			ProcessDelay(1000);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valve_HandRelease();
+			valveProcessStep++;
+			break;
+		case 4:
+			ProcessEnd();
+			break;
+	}
+
 }
 
-void CloseLeftCollectBall()
+static void InShootBallTime_ProcessStop()
+{
+	if (valveProcessName != ValveProcess_ShootBallTime_Stop)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_ArmUp();
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			break;
+		case 2:
+			ProcessDelay(1000);
+			break;
+		case 3:
+			HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
+			HC595_ClearBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // mở tay gắp phải
+			HC595_ClearBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
+			HC595_ClearBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			break;
+		case 4:
+			ProcessEnd();
+			break;
+	}
+}
+
+static void InShootBallTime_ProcessGetBallRight()
+{
+	if (valveProcessName != ValveProcess_ShootBallTime_GetBallRight)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_CloseRightCollectBall();
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			valveProcessStep++;
+			break;
+		case 2:
+			ProcessDelay(1000);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valve_OpenRightCollectBall();
+			valveProcessStep++;
+			break;
+		case 4:
+			ProcessEnd();
+			break;
+	}
+}
+
+static void InShootBallTime_ProcessGetBallLeft()
+{
+	if (valveProcessName != ValveProcess_ShootBallTime_GetBallLeft)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_CloseLeftCollectBall();
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			break;
+		case 2:
+			ProcessDelay(1000);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valve_OpenLeftCollectBall();
+			valveProcessStep++;
+			break;
+		case 4:
+			ProcessEnd();
+			break;
+	}
+}
+
+static void InShootBallTime_ProcessReset()
+{
+	if (valveProcessName != ValveProcess_ShootBallTime_Reset)
+		return;
+	switch (valveProcessStep) {
+		case 1:
+			valve_ArmDown();
+			valveProcessStep++;
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			break;
+		case 2:
+			ProcessDelay(500);
+			break;
+		case 3:
+			valve_HandRelease();
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
+			valveProcessStep++;
+			break;
+		case 4:
+			ProcessDelay(500);
+			break;
+		case 5:
+			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+			valve_ArmUp();
+			valveProcessStep++;
+			break;
+		case 6:
+			ProcessEnd();
+			break;
+	}
+}
+
+void RB1_valve_ProcessManager()
+{
+	ProcessCatchAndHold();
+	InShootBallTime_ProcessStart();
+	InShootBallTime_ProcessStop();
+	InShootBallTime_ProcessGetBallRight();
+	InShootBallTime_ProcessGetBallLeft();
+	InShootBallTime_ProcessReset();
+}
+
+void valve_ArmUp()
+{
+	// nâng cánh tay trái và phải
+	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_ArmDown()
+{
+	// hạ cánh tay trái và phải
+	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
+	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_HandHold()
+{
+	HC595_SetBitOutput(VALVE_HAND_LEFT_HC595_PIN); // kẹp tay gắp trái
+	HC595_SetBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // kẹp tay gắp phải
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_HandRelease()
+{
+	HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
+	HC595_ClearBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // mở tay gắp phải
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_OpenLeftCollectBall()
+{
+	// đẩy cơ cấu lùa banh ra, chờ bắt banh
+	HC595_SetBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
+	HC595_ShiftOut(NULL, 1, 1);
+}
+
+void valve_CloseLeftCollectBall()
 {
 	// thu cơ cấu lùa banh vào
 	HC595_ClearBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void OpenLeftCollectBall()
-{
-
-	// đẩy cơ cấu lùa banh ra, chờ bắt banh
-	HC595_SetBitOutput(VALVE_COLLECT_BALL_LEFT_HC595_PIN);
-	HC595_ShiftOut(NULL, 1, 1);
-}
-
-void CloseRightCollectBall()
+void valve_CloseRightCollectBall()
 {
 	// thu cơ cấu lùa banh vào
 	HC595_ClearBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void OpenRightCollectBall()
+void valve_OpenRightCollectBall()
 {
 	// đẩy cơ cấu lùa banh ra, chờ bắt banh
 	HC595_SetBitOutput(VALVE_COLLECT_BALL_RIGHT_HC595_PIN);
 	HC595_ShiftOut(NULL, 1, 1);
 }
 
-void valve_TestPin(pinName pin) {
-	HC595_TestPin(pin);
-}
-
-static inline void ArmUp() {
-	// nâng cánh tay trái và phải
-	HC595_SetBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_SetBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
-	HC595_ShiftOut(NULL, 1, 1);
-}
-
-static inline void ArmDown() {
-	// hạ cánh tay trái và phải
-	HC595_ClearBitOutput(VALVE_ARM_LEFT_HC595_PIN);
-	HC595_ClearBitOutput(VALVE_ARM_RIGHT_HC595_PIN);
-	HC595_ShiftOut(NULL, 1, 1);
-}
-
-static inline void HandHold() {
-	HC595_SetBitOutput(VALVE_HAND_LEFT_HC595_PIN); // kẹp tay gắp trái
-	HC595_SetBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // kẹp tay gắp phải
-	HC595_ShiftOut(NULL, 1, 1);
-}
-
-static inline void HandRelease() {
-	HC595_ClearBitOutput(VALVE_HAND_LEFT_HC595_PIN); // mở tay gắp trái
-	HC595_ClearBitOutput(VALVE_HAND_RIGHT_HC595_PIN); // mở tay gắp phải
-	HC595_ShiftOut(NULL, 1, 1);
-}
-
-static inline void ProcessOpenLeftCollectBall(uint8_t expectedStep)
+static inline void ProcessEnd()
 {
-	if (expectedStep == false)
-		return;
-	OpenLeftCollectBall();
-	valveProcessStep++;
+	valveProcessStep = 0;
 }
 
-static inline void ProcessOpenRightCollectBall(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	OpenRightCollectBall();
-	valveProcessStep++;
-}
-
-static inline void ProcessCloseLeftCollectBall(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	CloseLeftCollectBall();
-	valveProcessStep++;
-}
-
-static inline void ProcessCloseRightCollectBall(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	CloseRightCollectBall();
-	valveProcessStep++;
-}
-
-static inline void ProcessDelay(uint8_t expectedStep, uint32_t delayMs)
+static inline void ProcessDelay(uint32_t delayMs)
 {
 	static bool isOnDelay = false;
-	if (expectedStep == false)
-		return;
+	static uint32_t valveDelayTick = 0;
 	if (isOnDelay != true) {
 		valveDelayTick = HAL_GetTick();
 		isOnDelay = true;
 	}
-	if (HAL_GetTick() - valveDelayTick >= delayMs) {
+	if (HAL_GetTick() - valveDelayTick >= delayMs && isOnDelay) {
 		isOnDelay = false;
 		valveProcessStep++;
 	}
 }
 
-static inline void ProcessArmUp(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	ArmUp();
-	valveProcessStep++;
-}
-
-static inline void ProcessArmDown(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	ArmDown();
-	valveProcessStep++;
-}
-
-static inline void ProcessHandHold(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	HandHold();
-	valveProcessStep++;
-}
-
-static inline void ProcessHandRelease(uint8_t expectedStep)
-{
-	if (expectedStep == false)
-		return;
-	HandRelease();
-	valveProcessStep++;
-}
-
-static inline void ProcessBegin()
-{
-	valveProcessStep = 1;
-}
-
-static inline void ProcessEnd()
-{
-	valveProcessStep = 0;
-	true;
-}
-
-void valve_InShootBallTime_Start()
-{
-	ProcessBegin();
-	ProcessArmDown(1);
-	ProcessDelay(2, 200);
-	ProcessHandRelease(3);
-	ProcessDelay(4, 500);
-	ProcessEnd();
-}
-
-void valve_InShootBallTime_Stop()
-{
-	ProcessBegin();
-	ProcessArmUp(1);
-	ProcessDelay(2, 200);
-	ProcessHandRelease(3);
-	ProcessCloseLeftCollectBall(5);
-	ProcessCloseRightCollectBall(6);
-	ProcessEnd();
-}
-
-void valve_InShootBallTime_ReadyLeftCollectBall()
-{
-	ProcessBegin();
-	ProcessOpenLeftCollectBall(1);
-	ProcessDelay(2, 1000);
-	ProcessEnd();
-}
-
-void valve_InShootBallTime_ReadyRightCollectBall()
-{
-	ProcessBegin();
-	ProcessOpenRightCollectBall(1);
-	ProcessDelay(2, 1000);
-	ProcessEnd();
-}
-
-void valve_InShootBallTime_GetBallRight()
-{
-	ProcessBegin();
-	ProcessCloseRightCollectBall(1);
-	ProcessDelay(2, 1000);
-	ProcessOpenRightCollectBall(3);
-	ProcessDelay(4, 1000);
-	ProcessEnd();
-}
-
-void valve_InShootBallTime_GetBallLeft()
-{
-	ProcessBegin();
-	ProcessCloseLeftCollectBall(1);
-	ProcessDelay(2, 1000);
-	ProcessOpenLeftCollectBall(3);
-	ProcessDelay(4, 1000);
-	ProcessEnd();
+void valve_TestPin(pinName pin) {
+	HC595_TestPin(pin);
 }
 
 bool valve_IsProcessEnd() {

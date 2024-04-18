@@ -46,10 +46,19 @@ void RB1_Gun_Init() {
 	// End MOTOR RULO GET BALL INIT
 }
 
+static void VelocityCalculate(Encoder_t *enc)
+{
+
+	enc->vel_Real = ((enc->count_X1 - enc->count_Pre) / enc->deltaT) / (DCEncoderPerRound) * 60;
+	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real + 0.0728 * enc->vel_Pre;
+	enc->vel_Pre = enc->vel_Real;
+	enc->count_Pre = enc->count_X1;
+}
+
 void RB1_VelocityCalculateOfGun()
 {
-	encoder_GetSpeed(&encGun1);
-	encoder_GetSpeed(&encGun2);
+	VelocityCalculate(&encGun1);
+	VelocityCalculate(&encGun2);
 }
 
 void RB1_UpdateAccelTickInInterrupt()

@@ -569,7 +569,7 @@ bool process_ThucHienGapLua() {
 				soLanPhatHienLuaPhai = 0;
 		}
 		if (soLanPhatHienLuaTrai > 1800 && soLanPhatHienLuaPhai > 1800) {
-			valve_BothCatch();
+			valve_ProcessBegin(ValveProcess_CatchAndHold);
 			gapLuaThanhCong = true;
 		}
 		phatHienLuaTrai = false;
@@ -1312,6 +1312,8 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  */
 
 /* USER CODE END Header_StartDefaultTask */
+
+ValveProcessName valveProcessName = ValveProcess_CatchAndHold;
 void StartDefaultTask(void const *argument)
 {
 	/* USER CODE BEGIN 5 */
@@ -1319,10 +1321,12 @@ void StartDefaultTask(void const *argument)
 	RB1_Gun_Start(1000, 500);
 	RB1_SetTargetSpeedGun1(1000);
 	RB1_SetTargetSpeedGun2(500);
+
 	osDelay(3000);
 	/* Infinite loop */
 	for (;;) {
 		for (;;) {
+
 			if (xaDay == 0)
 					{
 				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
@@ -1358,9 +1362,16 @@ void StartDefaultTask(void const *argument)
 void InverseKinematic(void const *argument)
 {
 	/* USER CODE BEGIN InverseKinematic */
+	valve_ProcessBegin(valveProcessName);
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		if (valve_IsProcessEnd()) {
+			if (valveProcessName < ValveProcess_ShootBallTime_GetBallRight)
+				valveProcessName++;
+			osDelay(1000);
+		}
+		valve_ProcessBegin(valveProcessName);
+		osDelay(10);
 	}
 	/* USER CODE END InverseKinematic */
 }
@@ -1420,6 +1431,7 @@ void Actuator(void const *argument)
 		RB1_CollectBallMotor_ControlSpeed();
 		RB1_SensorTriggerHandle();
 		RB1_CalculateRuloGunPIDSpeed();
+		RB1_valve_ProcessManager();
 		osDelay(10);
 	}
 	/* USER CODE END Actuator */
