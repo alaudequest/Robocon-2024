@@ -46,10 +46,19 @@ void RB1_Gun_Init() {
 	// End MOTOR RULO GET BALL INIT
 }
 
+static void VelocityCalculate(Encoder_t *enc)
+{
+
+	enc->vel_Real = ((enc->count_X1 - enc->count_Pre) / enc->deltaT) / (DCEncoderPerRound) * 60;
+	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real + 0.0728 * enc->vel_Pre;
+	enc->vel_Pre = enc->vel_Real;
+	enc->count_Pre = enc->count_X1;
+}
+
 void RB1_VelocityCalculateOfGun()
 {
-	encoder_GetSpeed(&encGun1);
-	encoder_GetSpeed(&encGun2);
+	VelocityCalculate(&encGun1);
+	VelocityCalculate(&encGun2);
 }
 
 void RB1_UpdateAccelTickInInterrupt()
@@ -103,16 +112,16 @@ void RB1_CalculateRuloGunPIDSpeed()
 	CalculateAccelValue(&accelGun2);
 	targetSpeed2 = accelGun2.currentOutputValue;
 
-//	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
-//		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
-//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
-//		pidCurrentTickTimeGun1_ms = 0;
-//	}
-//	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
-//		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
-//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
-//		pidCurrentTickTimeGun2_ms = 0;
-//	}
+	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
+		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
+		pidCurrentTickTimeGun1_ms = 0;
+	}
+	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
+		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
+		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
+		pidCurrentTickTimeGun2_ms = 0;
+	}
 }
 
 void RB1_Gun_AccelerateInit() {

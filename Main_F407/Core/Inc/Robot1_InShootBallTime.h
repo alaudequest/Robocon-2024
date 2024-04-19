@@ -15,5 +15,6 @@
 void ShootBallTime_Stop();
 void ShootBallTime_Start(_GamePad *gamepad);
 void ShootBallTime_Handle();
+bool IsInShootBallTime();
 
 #endif /* INC_ROBOT1_INSHOOTBALLTIME_H_ */
