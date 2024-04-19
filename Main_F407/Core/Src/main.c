@@ -2157,8 +2157,8 @@ void OdometerHandle(void const * argument)
 					if (step == 0)
 						{	// Ra lenh cho co Cau lay bong di xuong
 							process_setVal_PutBall(4);
-							process_RunByAngle(-43, 0.001);
 							step+=1;
+							process_RunByAngle(-43, 0.001);
 						}
 					else if (step == 1)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
@@ -2178,29 +2178,32 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 2)
 						{
-							float speedtest = 8;
+							float speedtest = 4;
+							if(floatingEncCount > 800)
+							{
+								speedtest = 2;
+							}
+							if(floatingEncCount > 1000)
+							{
+								speedtest = 1;
+							}
+							process_Accel_FloatingEnc3(-42, speedtest, 10000, 0.1, 0, 3);
 
-//							if(floatingEncCount > 2000)
-//							{
-//								speedtest = 1.2;
-//							}
-							process_Accel_FloatingEnc3(-43, speedtest, 2000, 0.8, 0, 3);
-//							if(floatingEncCount > 9000)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//						process_Accel_FloatingEnc3(-43, 8, 2000, 0.8, 0, 3);
+							if(floatingEncCount > 9000)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
 						}
-//					else if (step == 3)
-//						{
-//							process_Accel_FloatingEnc3( -10, 1, 10000, 0.1, 0, 3);
+					else if (step == 3)
+						{
+							process_Accel_FloatingEnc3( -10, 1, 5000, 0.1, 0, 3);
 //							if(floatingEncCount > 5000)
 //							{
 //								step += 1;
 //								process_SubState = 0;
 //							}
-//						}
+						}
 //					else if (step == 4)
 //						{
 //							process_Accel_FloatingEnc3( 45, 1, 10000, 0.1, 0, 3);
