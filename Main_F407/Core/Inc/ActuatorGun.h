@@ -63,6 +63,8 @@ void RB1_SetTargetSpeedGun1(float targetSpeed);
 void RB1_SetTargetSpeedGun2(float targetSpeed);
 void RB1_EnableRuloShootBall();
 void RB1_DisableRuloShootBall();
+float RB1_GetSpeedRuloShootBall1();
+float RB1_GetSpeedRuloShootBall2();
 
 void RB1_CalculateRuloGunPIDSpeed();
 void RB1_VelocityCalculateOfGun();
@@ -72,6 +74,7 @@ void RB1_UpdateAccelTickInInterrupt();
 
 void RB1_CollectBallMotor_Init();
 void RB1_CollectBallMotor_ControlSpeed();
+void RB1_CollectBallMotor_IdleSpeed();
 void RB1_CollectBallMotor_On();
 void RB1_CollectBallMotor_Off();
 

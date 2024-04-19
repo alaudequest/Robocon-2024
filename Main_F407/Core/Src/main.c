@@ -531,7 +531,7 @@ void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel*5;
+			chasis_Vector_TargetSpeed -= accel*10;
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
 		{
@@ -588,7 +588,7 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel*5;
+			chasis_Vector_TargetSpeed -= accel*10;
 		}if(floatingEncCount > (s - 150)) {
 			use_pidTheta = 0;
 			r = 0;
@@ -1861,7 +1861,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(26, 0.6, 1000, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(28, 0.9, 900, 0.5, 0, 3);
 
 		}
 		else if (step == 3)
@@ -1878,7 +1878,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 5)
 		{
-			process_Accel_FloatingEnc4(-46, 1, 11700, 1, 90, 1.5);
+			process_Accel_FloatingEnc4(-46, 1, 11550, 1, 90, 1.5);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
@@ -1900,24 +1900,20 @@ void OdometerHandle(void const * argument)
 					// Set thong so quy hoach quy dao :
 					PlusControl = 0;
 					Manual = 0;
-					step += 1;
 					// tha tay gap
 					process_Error(1);
 					valve_HandRelease();
-					osDelay(50);
 					process_Error(0);
-					osDelay(50);
-					process_Error(1);
 					osDelay(50);
 					valve_ArmUp();
-					osDelay(50);
-					process_Error(0);
+					osDelay(120);
+					step += 1;
 				}
 			}
 		}
 		else if(step == 7 )
 		{
-			process_Accel_FloatingEnc5(117, 0.8,10700, 1, 0, 2.5);
+			process_Accel_FloatingEnc5(114, 0.8,10600, 1, 0, 2.5);
 		}
 		else if(step == 8)
 		{
@@ -1934,7 +1930,7 @@ void OdometerHandle(void const * argument)
 
 		else if(step == 10)
 		{
-			process_Accel_FloatingEnc4(-130, 0.5, 11100, 0.08, 90, 3);
+			process_Accel_FloatingEnc4(-128, 1, 11100, 1, 90, 2);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
@@ -1972,15 +1968,15 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 12)
 		{
-			process_Accel_FloatingEnc5(180, 0.5, 3000, 0.08, 90, 3);
+			process_Accel_FloatingEnc5(180, 0.6, 3100, 0.08, 90, 3);
 		}
 		else if(step == 13)
 		{
-			process_Accel_FloatingEnc5(-88, 0.5, 11800, 0.08, 90, 3);
+			process_Accel_FloatingEnc5(-88, 0.8, 11600, 0.5 , 90, 3);
 		}
 		else if(step == 14)
 		{
-			process_Accel_FloatingEnc4(0, 0.5, 6100, 0.08, 90, 3);
+			process_Accel_FloatingEnc4(0, 0.8, 6100, 0.5, 90, 3);
 		}
 		else if(step == 15){
 			ShootBallTime_Start(&GamePad);
@@ -2227,7 +2223,7 @@ void OdometerHandle(void const * argument)
 //				process_Signal_RotationMatrixTransform3(u, v, r);
 				uControlX = -GamePad.XLeftCtr*1.2;
 				uControlY = GamePad.YLeftCtr*1.2;
-				uControlTheta = GamePad.XRightCtr*1;
+				uControlTheta = GamePad.XRightCtr*2;
 				if (absf(uControlX)>absf(uControlY))
 				{
 					uControlY = 0;

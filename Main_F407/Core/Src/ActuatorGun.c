@@ -112,7 +112,7 @@ static void CalculateAccelValue(Acceleration_t *a)
 
 void RB1_CalculateRuloGunPIDSpeed()
 {
-	if(enableRuloShootBall == false) return;
+//	if(enableRuloShootBall == false) return;
 	float targetSpeed1, targetSpeed2;
 	RB1_VelocityCalculateOfGun();
 	CalculateAccelValue(&accelGun1);
@@ -213,6 +213,12 @@ static void CollectBallMotorSpeedDown()
 	}
 }
 
+void RB1_CollectBallMotor_IdleSpeed()
+{
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 150);
+	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 150);
+}
+
 void RB1_CollectBallMotor_ControlSpeed()
 {
 	if (accelStateCollectBall != ACCELERATION && accelStateCollectBall != DECELERATION)
@@ -249,6 +255,16 @@ void RB1_GunIncreaseTickTimerInInterrupt()
 {
 	pidCurrentTickTimeGun1_ms++;
 	pidCurrentTickTimeGun2_ms++;
+}
+
+float RB1_GetSpeedRuloShootBall1()
+{
+	return encGun1.vel_Fil;
+}
+
+float RB1_GetSpeedRuloShootBall2()
+{
+	return encGun2.vel_Fil;
 }
 
 static void EncoderResetCount(Encoder_t *enc)
