@@ -1170,7 +1170,6 @@ int main(void)
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
-
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -2118,16 +2117,16 @@ void OdometerHandle(void const * argument)
 				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-//				if (step == 1){
-//					UART5_Start_To_Raspberry();
-//					step += 1;
-//				}if (step == 2)
-//				{
-//					if((UART5_Is_Received() == HAL_OK))
-//					{
-//						step+=1;
-//					}
-//				}
+				if (step == 50){
+					UART5_Start_To_Raspberry();
+					step += 1;
+				}if (step == 51)
+				{
+					if((UART5_Is_Received() == HAL_OK))
+					{
+						step+=1;
+					}
+				}
 
 
 
