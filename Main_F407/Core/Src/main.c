@@ -532,7 +532,7 @@ void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel;
+			chasis_Vector_TargetSpeed -= accel*5;
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
 		{
@@ -589,7 +589,7 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel;
+			chasis_Vector_TargetSpeed -= accel*5;
 		}if(floatingEncCount > (s - 150)) {
 			use_pidTheta = 0;
 			r = 0;
@@ -615,7 +615,54 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 	}
 
 }
+void process_Accel_FloatingEnc6(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime)
+{
+	if (process_SubState == 0)
+			{
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
+		use_pidTheta = 1;
+		process_SubState = 1;
+	}
+	else {
 
+		if ((floatingEncCount < (s/2)) && (chasis_Vector_TargetSpeed < maxSpeed))
+				{
+			chasis_Vector_TargetSpeed += accel;
+		}
+		if ((floatingEncCount > 500) && (floatingEncCount < (s - 500)))
+				{
+			chasis_Vector_TargetSpeed = maxSpeed;
+				}
+		if(floatingEncCount > (s/2))
+		{
+			chasis_Vector_TargetSpeed -= accel;
+		}
+		if(floatingEncCount > (s - 150)) {
+			use_pidTheta = 0;
+			r = 0;
+		}
+		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
+		{
+
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			u = 0;
+			v = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+
+		}
+		else {
+			u = cos(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
+			v = sin(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
+
+		}
+	}
+
+}
 void process_RunByAngle(float Angle, float speed)
 {
 	u = cos(Angle * M_PI / 180) * speed;
@@ -828,11 +875,9 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(12,0.15);
+		process_RunByAngle(12,0.25);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
-
-//			osDelay(20);
 			process_SubState = 1;
 		}
 	}
@@ -863,7 +908,7 @@ void process_RiceAppRoach2()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(180-14,0.15);
+		process_RunByAngle(180-14,0.25);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
 
@@ -1631,7 +1676,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	ShootBallTime_Start(&GamePad);
+//	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -1816,15 +1861,15 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 1)
 		{
-			process_Accel_FloatingEnc5(-27, 0.6, 4000, 0.08, 0, 3);
-			if(floatingEncCount>3200){
+			process_Accel_FloatingEnc5(-27, 1, 4000, 0.1, 0, 3);
+			if(floatingEncCount>2600){
 				process_SubState = 0;
 				step+=1;
 			}
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(26, 0.6, 1400, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(26, 0.6, 1000, 0.08, 0, 3);
 
 		}
 		else if (step == 3)
@@ -1841,7 +1886,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 5)
 		{
-			process_Accel_FloatingEnc4(-47, 0.5, 11400, 0.08, 90, 3);
+			process_Accel_FloatingEnc4(-46, 1, 11700, 1, 90, 1.5);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
@@ -1879,7 +1924,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 7 )
 		{
-			process_Accel_FloatingEnc5(117, 0.5,10300 , 0.08, 0, 3);
+			process_Accel_FloatingEnc5(117, 0.8,10700, 1, 0, 2.5);
 		}
 		else if(step == 8)
 		{
@@ -1950,7 +1995,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 16){
 			Manual = 1;
-			PlusControl = 1;
+			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				osDelay(500);
