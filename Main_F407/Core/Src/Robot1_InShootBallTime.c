@@ -114,9 +114,9 @@ void ShootBallTime_Handle()
 			// nếu ở hàng banh trên thì đưa banh vào
 			if (isRowBallAbove) {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallRight);
-				RB1_SetTargetSpeedGun1(aboveRowSpeed);
-				RB1_SetTargetSpeedGun2(aboveRowSpeed);
-				isTriangleButtonPress = true;
+//				RB1_SetTargetSpeedGun1(aboveRowSpeed);
+//				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+//				isTriangleButtonPress = true;
 			}
 			else {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallLeft);
@@ -124,9 +124,9 @@ void ShootBallTime_Handle()
 		}
 	}
 
-	if(isTriangleButtonPress){
-		RowBallAboveProcess();
-	}
+//	if(isTriangleButtonPress){
+//		RowBallAboveProcess();
+//	}
 	if(_gamepad->Circle){
 		osDelay(100);
 		if(_gamepad->Circle){

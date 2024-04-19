@@ -1672,7 +1672,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-//	ShootBallTime_Start(&GamePad);
+	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -1861,7 +1861,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(28, 0.9, 900, 0.5, 0, 3);
+			process_Accel_FloatingEnc5(29, 0.9, 1000, 0.5, 0, 3);
 
 		}
 		else if (step == 3)
@@ -1878,7 +1878,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 5)
 		{
-			process_Accel_FloatingEnc4(-46, 1, 11550, 1, 90, 1.5);
+			process_Accel_FloatingEnc4(-47, 1, 11550, 1, 90, 1.5);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
