@@ -74,7 +74,7 @@ void startPutBall(uint8_t state)
 
 		if (putBall.count<30*50)
 		{
-			MotorDC_Drive(&putBall.mdc,400);
+			MotorDC_Drive(&putBall.mdc,450);
 			MotorDC_Drive(&getBall.mdc, -1000);
 		}else {
 			MotorDC_Drive(&putBall.mdc,100);
@@ -111,6 +111,22 @@ void startPutBall(uint8_t state)
 			MotorDC_Drive(&putBall.mdc, -150);
 			MotorDC_Drive(&getBall.mdc, -1000);
 		}
+	}else if(state == 4)
+	{
+		putBall.putBall_SScheck = 0;
+		putBall.count += 1;
+		putBall.StopPutFlag = 0;
+		if(putBall.count < 30*50)
+		{
+			MotorDC_Drive(&putBall.mdc, -200);
+			putBall.flag = 0;
+		}
+		else
+		{
+			MotorDC_Drive(&putBall.mdc, 0);
+			putBall.flag = 1;
+		}
+		MotorDC_Drive(&getBall.mdc, 0);
 	}
 }
 
