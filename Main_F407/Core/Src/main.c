@@ -1115,7 +1115,7 @@ void process_ApproachWall2()
 	else if(process_SubState == 1)
 		{
 			process_Count++;
-			if (process_Count > 15)
+			if (process_Count > 35)
 			{
 				process_Count = 0;
 				process_SubState = 0;
@@ -2029,8 +2029,9 @@ void InverseKinematic(void const * argument)
 			if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
 				__HAL_UART_ENABLE(&huart3);
 			}
-			osDelay(50);
+
 		}
+		osDelay(50);
 	}
   /* USER CODE END InverseKinematic */
 }
@@ -2185,11 +2186,11 @@ void OdometerHandle(void const * argument)
 							}
 							if(floatingEncCount > 1000)
 							{
-								speedtest = 1;
+								speedtest = 1.8;
 							}
 							process_Accel_FloatingEnc3(-42, speedtest, 10000, 0.1, 0, 3);
 
-							if(floatingEncCount > 9000)
+							if(floatingEncCount > 8000)
 							{
 								step += 1;
 								process_SubState = 0;
@@ -2197,61 +2198,113 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 3)
 						{
-							process_Accel_FloatingEnc3( -10, 1, 5000, 0.1, 0, 3);
-//							if(floatingEncCount > 5000)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
+							process_Accel_FloatingEnc3( -20, 2, 8000, 0.1, 0, 3);
+							if(floatingEncCount > 3500)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
 						}
-//					else if (step == 4)
-//						{
-//							process_Accel_FloatingEnc3( 45, 1, 10000, 0.1, 0, 3);
-//							if(floatingEncCount > 5700)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//						}
-//					else if (step == 5)
-//					{
-//						process_Accel_FloatingEnc3( -45, 1, 10000, 0.1, 0, 3);
-//						if(floatingEncCount > 4800)
-//						{
-//							step += 1;
-//							process_SubState = 0;
-//						}
-//					}
-//					else if (step == 6)
-//					{
-//						process_Accel_FloatingEnc3( -135, 0.6, 1200, 0.1, 0, 3);
-//					}
-//					else if (step == 7)
-//						{
-//							process_Accel_FloatingEnc3( 200, 0.6, 2000, 0.1, 0, 3);
-//						}
-//					else if (step == 8)
-//						{
-//							process_Accel_FloatingEnc3( 213, 0.3, 2600, 0.1, 0, 3);
-//						}
-//					else if (step == 9)
-//						{
-//							Reset_MPU_Angle();
-//							step+= 1;
-//						}
-//					else if (step == 10)
-//						{
-//							process_setVal_PutBall(1);
-//							process_Accel_FloatingEnc3( -90, 0.5, 2200, 0.1, 0, 3);
-//						}
-//					else if (step == 11)
-//						{
-//							process_Ball_Approach3(0);
-//						}
-//					else if (step == 12)
-//						{
-//							process_getBall();
-//						}
+					else if (step == 4)
+						{
+							process_Accel_FloatingEnc3( 45, 1.8, 10000, 0.1, 0, 3);
+							if(floatingEncCount > 5600)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+						}
+					else if (step == 5)
+					{
+						process_Accel_FloatingEnc3( -45, 1.5, 10000, 0.1, 0, 3);
+						if(floatingEncCount > 4400)
+						{
+							step += 1;
+							process_SubState = 0;
+						}
+					}
+					else if (step == 6)
+					{
+						process_Accel_FloatingEnc3( -135, 1, 10000, 0.1, 0, 3);
+						if(floatingEncCount > 3000)
+						{
+							step += 1;
+							process_SubState = 0;
+						}
+					}
+					else if (step == 7)
+						{
+							process_Accel_FloatingEnc3( -160, 0.6, 10000, 0.1, 0, 3);
+							if(floatingEncCount > 2100)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+						}
+					else if (step == 8)
+						{
+							process_Accel_FloatingEnc3( -140, 0.3, 2300, 0.1, 0, 3);
+						}
+					else if (step == 9)
+						{
+							Reset_MPU_Angle();
+							step+= 1;
+						}
+					else if (step == 10)
+						{
+							process_setVal_PutBall(1);
+							process_Accel_FloatingEnc3( -90, 0.6, 2200, 0.1, 0, 3);
+						}
+					else if (step == 11)
+						{
+							process_Ball_Approach3(0);
+						}
+					else if (step == 12)
+						{
+							process_getBall();
+
+						}
+					else if (step == 13)
+						{
+							stop += 1;
+							step += 1;
+						}
+					else if (step == 14)
+						{
+							AngleNow = -225;
+							process_Accel_FloatingEnc3( -225, 0.8,1500 , 0.1, 0, 3);
+						}
+					else if(step == 15)
+						{
+							process_ApproachWall2();
+						}
+					else if(step == 16)
+						{
+							AngleNow = 48;
+							process_Accel_FloatingEnc3( 48, 1,10000 , 0.1, 0, 3);
+							if ((floatingEncCount>2000) && (floatingEncCount<2100))
+							{
+								Reset_MPU_Angle();
+							}
+							if (floatingEncCount>3000)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+//							process_ApproachWall2();
+						}
+					else if(step == 17)
+					{
+						process_Accel_FloatingEnc3( 45, 1,1500 , 0.1, 0, 3);
+					}
+					else if(step == 18)
+					{
+						process_ApproachWall();
+					}
+					else if(step == 19)
+					{
+						process_ReleaseBall();
+					}
 //					else if (step == 13)
 //						{
 //							if(stop ==1)
