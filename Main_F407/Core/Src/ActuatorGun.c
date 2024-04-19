@@ -10,37 +10,35 @@
 #include "Encoder.h"
 extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim9;
-Encoder_t ENC_Gun1;
-Encoder_t ENC_Gun2;
-PID_Param PID_Gun1;
-PID_Param PID_Gun2;
+static Encoder_t encGun1;
+static Encoder_t encGun2;
+static PID_Param PID_Gun1;
+static PID_Param PID_Gun2;
 
-uint16_t collectBallPWM = 0;
-uint32_t collectBallTickTime = 0;
-uint8_t accelState = 0;
+static uint16_t collectBallPWM = 0;
+static uint32_t collectBallTickTime = 0;
+static uint8_t pidCurrentTickTimeGun1_ms = 0;
+static uint8_t pidCurrentTickTimeGun2_ms = 0;
+static AccelerationState accelStateCollectBall = NO_ACCEL;
+static Acceleration_t accelGun1, accelGun2;
 
-void gun_PIDSetParam(PID_Param *pid, float kP, float kI, float kD, float alpha, float deltaT, float u_AboveLimit, float u_BelowLimit)
-{
-//----------------------Term-----------------------//
-	pid->kP = kP;
-	pid->kI = kI;
-	pid->kD = kD;
-	pid->alpha = alpha;
-	pid->kB = 1 / deltaT;
-//----------------------Sample Time----------------//
-	pid->deltaT = deltaT;
-//----------------------Limit----------------------//
-	pid->u_AboveLimit = u_AboveLimit;
-	pid->u_BelowLimit = u_BelowLimit;
-}
+static void RB1_Gun_AccelerateInit();
 
-void gun_Init() {
+#define ACCEL_TIME_STEP (0.01 * 1000 * 15) // GunDeltaT * 1000ms * 15 = 0.01 * 1000 * 15 = 150ms
+
+void RB1_Gun_Init() {
 	// Start MOTOR GUN INIT
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 
-	gun_PIDSetParam(&PID_Gun1, Gun1Proportion, Gun1Integral, Gun1Derivatite, Gun1Alpha, Gun1DeltaT, Gun1SumAboveLimit, Gun1SumBelowLimit);
-	gun_PIDSetParam(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha, Gun2DeltaT, Gun2SumAboveLimit, Gun2SumBelowLimit);
+	PID_SetParameters(&PID_Gun1, Gun1Proportion, Gun1Integral, Gun1Derivatite, Gun1Alpha);
+	PID_SetSaturate(&PID_Gun1, Gun1SumAboveLimit, Gun1SumBelowLimit);
+	encGun1.deltaT = PID_Gun1.deltaT = Gun1DeltaT;
+
+	PID_SetParameters(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha);
+	PID_SetSaturate(&PID_Gun2, Gun2SumAboveLimit, Gun2SumBelowLimit);
+	encGun2.deltaT = PID_Gun2.deltaT = Gun2DeltaT;
+	RB1_Gun_AccelerateInit();
 	// End MOTOR GUN INIT
 
 	// Start MOTOR RULO GET BALL INIT
@@ -48,41 +46,110 @@ void gun_Init() {
 	// End MOTOR RULO GET BALL INIT
 }
 
-void encoderGun_ResetCount(Encoder_t *enc, int *count_X1)
+void RB1_VelocityCalculateOfGun()
 {
-	count_X1 = 0;
-	enc->vel_Real = 0;
-	enc->vel_Pre = 0;
+	encoder_GetSpeed(&encGun1);
+	encoder_GetSpeed(&encGun2);
 }
 
-void gun_ResetEncoder(int *gunCount1, int *gunCount2)
+void RB1_UpdateAccelTickInInterrupt()
 {
-	encoderGun_ResetCount(&ENC_Gun1, gunCount1);
-	encoderGun_ResetCount(&ENC_Gun2, gunCount2);
+	if (accelGun1.lockNumStep == true) {
+		accelGun1.accelTick_ms++;
+	}
+	if (accelGun2.lockNumStep == true) {
+		accelGun2.accelTick_ms++;
+	}
 }
 
-void gun_VelCal(int gunCount1, int gunCount2) {
-	VelCal(&ENC_Gun1, gunCount1, DCEncoderPerRound, Gun1DeltaT);
-	VelCal(&ENC_Gun2, gunCount2, DCEncoderPerRound, Gun2DeltaT);
-}
-
-void gun_PIDSpeed1(float Target1) {
-	PID_Calculate(&PID_Gun1, Target1, ENC_Gun1.vel_Real);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, PID_Gun1.uHat);
-}
-
-void gun_PIDSpeed2(float Target2) {
-	PID_Calculate(&PID_Gun2, Target2, ENC_Gun2.vel_Real);
-	__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, PID_Gun2.uHat);
-}
-
-void VelCal(Encoder_t *enc, int count_X1, uint32_t count_PerRevol, float deltaT)
+static float absf(float num)
 {
-	enc->vel_Real = ((count_X1 - enc->count_Pre) / deltaT) / (count_PerRevol) * 60;
-	enc->vel_Fil = 0.854 * enc->vel_Fil + 0.0728 * enc->vel_Real + 0.0728 * enc->vel_Pre;
-	enc->vel_Pre = enc->vel_Real;
-	enc->count_Pre = count_X1;
+	if (num >= 0)
+		return num;
+	else
+		return num * -1;
 }
+
+static void CalculateAccelValue(Acceleration_t *a)
+{
+	// Lấy số step ban đầu và khóa giá trị step đó lại
+	if (a->lockNumStep == false && (a->targetValue != a->currentOutputValue)) {
+		a->valueStep = absf(a->targetValue - a->currentOutputValue) / a->numStep;
+		a->lockNumStep = true;
+	}
+	// Nếu tick hiện tại chưa đạt tới thời điểm thay đổi giá trị gia tốc thì return
+	if (a->accelTick_ms < a->accelTimeStep_ms)
+		return;
+	// Nếu đang gia tốc và giá trị hiện tại nhỏ hơn giá trị đặt trước
+	if (a->targetValue > a->currentOutputValue)
+		a->currentOutputValue += a->valueStep;
+	// Nếu đang giảm tốc và giá trị đặt nhỏ hơn giá trị hiện tại
+	else if (a->targetValue < a->currentOutputValue)
+		a->currentOutputValue -= a->valueStep;
+	// Nếu giá trị hiện tại xấp xỉ giá trị đặt thì dừng quá trình gia tốc
+	if (absf(a->targetValue - a->currentOutputValue) < a->valueStep) {
+		a->currentOutputValue = a->targetValue;
+		a->lockNumStep = false;
+	}
+	a->accelTick_ms = 0;
+}
+
+void RB1_CalculateRuloGunPIDSpeed()
+{
+	float targetSpeed1, targetSpeed2;
+	RB1_VelocityCalculateOfGun();
+	CalculateAccelValue(&accelGun1);
+	targetSpeed1 = accelGun1.currentOutputValue;
+	CalculateAccelValue(&accelGun2);
+	targetSpeed2 = accelGun2.currentOutputValue;
+
+//	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
+//		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
+//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
+//		pidCurrentTickTimeGun1_ms = 0;
+//	}
+//	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
+//		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
+//		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, uHat);
+//		pidCurrentTickTimeGun2_ms = 0;
+//	}
+}
+
+void RB1_Gun_AccelerateInit() {
+	accelGun1.accelTimeStep_ms = 150;
+	accelGun1.numStep = 20;
+
+	accelGun2.accelTimeStep_ms = 150;
+	accelGun2.numStep = 20;
+}
+
+void RB1_Gun_Start(float gun1TargetSpeed, float gun2TargetSpeed)
+{
+	accelGun1.targetValue = gun1TargetSpeed;
+	accelGun2.targetValue = gun2TargetSpeed;
+	accelGun1.accelTick_ms = 0;
+	accelGun2.accelTick_ms = 0;
+}
+
+void RB1_Gun_Stop() {
+	accelGun1.accelTick_ms = 0;
+	accelGun2.accelTick_ms = 0;
+	accelGun1.targetValue = 0;
+	accelGun2.targetValue = 0;
+}
+
+void RB1_SetTargetSpeedGun1(float targetSpeed)
+{
+	accelGun1.targetValue = targetSpeed;
+}
+
+void RB1_SetTargetSpeedGun2(float targetSpeed)
+{
+	accelGun2.targetValue = targetSpeed;
+}
+
+#define COLLECT_BALL_ACCEL_TIME_STEP 150
+#define COLLECT_BALL_MAX_SPEED 1000
 
 void RB1_CollectBallMotor_Init()
 {
@@ -92,14 +159,14 @@ void RB1_CollectBallMotor_Init()
 
 static void CollectBallMotorSpeedUp()
 {
-	if (HAL_GetTick() - collectBallTickTime > 150 && collectBallPWM <= 1000) {
+	if (HAL_GetTick() - collectBallTickTime > COLLECT_BALL_ACCEL_TIME_STEP && collectBallPWM <= COLLECT_BALL_MAX_SPEED) {
 		collectBallTickTime = HAL_GetTick();
 		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, collectBallPWM);
 		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, collectBallPWM);
 		collectBallPWM += 100;
 
 		if (collectBallPWM > 1000) {
-			accelState = 0;
+			accelStateCollectBall = 0;
 		}
 	}
 
@@ -117,31 +184,69 @@ static void CollectBallMotorSpeedDown()
 			collectBallPWM -= 100;
 
 		if (collectBallPWM <= 0) {
-			accelState = 0;
+			accelStateCollectBall = 0;
 		}
 	}
 }
 
 void RB1_CollectBallMotor_ControlSpeed()
 {
-	if (accelState == 1) {
+	if (accelStateCollectBall != ACCELERATION || accelStateCollectBall != DECELERATION)
+		return;
+	if (accelStateCollectBall == ACCELERATION) {
 		CollectBallMotorSpeedUp();
 	}
-	else if (accelState == 2) {
+	else if (accelStateCollectBall == DECELERATION) {
 		CollectBallMotorSpeedDown();
-	}
-	else {
-
 	}
 }
 
 void RB1_CollectBallMotor_On()
 {
-	accelState = 1;
+	accelStateCollectBall = ACCELERATION;
 }
 
 void RB1_CollectBallMotor_Off()
 {
-	accelState = 2;
+	accelStateCollectBall = DECELERATION;
 }
 
+void RB1_GunIncreaseTickTimerInInterrupt()
+{
+	pidCurrentTickTimeGun1_ms++;
+	pidCurrentTickTimeGun2_ms++;
+}
+
+static void EncoderResetCount(Encoder_t *enc)
+{
+	enc->vel_Real = 0;
+	enc->vel_Pre = 0;
+	enc->count_X1 = 0;
+	enc->count_X4 = 0;
+}
+
+void RB1_EncGun1_IncreaseCount()
+{
+	encGun1.count_X1++;
+}
+
+void RB1_EncGun1_DecreaseCount()
+{
+	encGun1.count_X1--;
+}
+
+void RB1_EncGun2_IncreaseCount()
+{
+	encGun2.count_X1++;
+}
+
+void RB1_EncGun2_DecreaseCount()
+{
+	encGun2.count_X1++;
+}
+
+void RB1_EncoderGun_ResetCount()
+{
+	EncoderResetCount(&encGun1);
+	EncoderResetCount(&encGun2);
+}

@@ -50,9 +50,10 @@ void swer0_CalVector(float u, float v, float r){
 //	vct.wheelVelY = sin(alpha)*(u + ROBOT_WIDTH_METER*r) + cos(alpha)*(v + ROBOT_LENGHT_METER*r);
 //	swer_SetWheelVector(MODULE_ID_4, vct);
 //}
+float Angle1 = 45.5,Angle2 = 138,Angle3 = 88;
 void swer1_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 45*M_PI/180;
+	float alpha = Angle1*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY1*r) - sin(alpha)*(v + DX1*r);
 	vct.wheelVelY = sin(alpha)*(u - DY1*r) + cos(alpha)*(v + DX1*r);
 	swer_SetWheelVector(MODULE_ID_1, vct);
@@ -60,7 +61,7 @@ void swer1_CalVector(float u, float v, float r){
 
 void swer2_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 135*M_PI/180;
+	float alpha = Angle2*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY2*r) - sin(alpha)*(v + DX2*r);
 	vct.wheelVelY = sin(alpha)*(u - DY2*r) + cos(alpha)*(v + DX2*r);
 	swer_SetWheelVector(MODULE_ID_2, vct);
@@ -68,7 +69,7 @@ void swer2_CalVector(float u, float v, float r){
 
 void swer3_CalVector(float u, float v, float r){
 	WheelVector vct;
-	float alpha = 90*M_PI/180;
+	float alpha = Angle3*M_PI/180;
 	vct.wheelVelX = cos(alpha)*(u - DY3*r) - sin(alpha)*(v + DX3*r);
 	vct.wheelVelY = sin(alpha)*(u - DY3*r) + cos(alpha)*(v + DX3*r);
 	swer_SetWheelVector(MODULE_ID_3, vct);
