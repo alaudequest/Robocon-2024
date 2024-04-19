@@ -669,6 +669,62 @@ void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,f
 	}
 
 }
+void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime)
+{
+	if (process_SubState == 0)
+			{
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
+		use_pidTheta = 1;
+		process_SubState = 1;
+	}
+	else {
+		if(chasis_Vector_TargetSpeed>maxSpeed)chasis_Vector_TargetSpeed=maxSpeed;
+		if ((floatingEncCount < 500) && (chasis_Vector_TargetSpeed < maxSpeed))
+				{
+			chasis_Vector_TargetSpeed += accel;
+		}
+		if ((floatingEncCount > 500) && (floatingEncCount < (s - 500)))
+				{
+			chasis_Vector_TargetSpeed = maxSpeed;
+		}
+		if (floatingEncCount > (s - 500) && floatingEncCount < (s - 400)) {
+			chasis_Vector_TargetSpeed = maxSpeed / 2;
+		}
+		if (floatingEncCount > (s - 400)) {
+			chasis_Vector_TargetSpeed -= accel*5;
+		}
+		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
+		{
+			u = 0;
+			v = 0;
+			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+			{
+				process_SSCheck ++;
+			}else{
+				process_SSCheck = 0;
+			}
+
+
+			if(process_SSCheck > 10)
+			{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			process_SSCheck = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+			}
+		}
+		else {
+			u = cos(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
+			v = sin(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
+
+		}
+	}
+
+}
 void process_LineFollow(){
 //    KtLineY=0;
 //   for(int i=0;i<=7;i++)
@@ -2170,8 +2226,13 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 13)
 						{
+							if(stop ==1)
+							{
+								step = 20;
+							}else{
 							process_setVal_PutBall(1);
 							process_Accel_FloatingEnc3( 45, 0.8,8300 , 0.1, -5, 3);
+							}
 						}
 					else if(step == 14)
 						{
@@ -2200,22 +2261,27 @@ void OdometerHandle(void const * argument)
 						{
 							step = 10;
 							stop ++;
-							if (stop>1){
-								step =20;
+							if (stop>2){
+								step =100;
 							}
 						}
-//					else if (step == 11)
-//						{
-//							process_Accel_FloatingEnc3(83, 1, 3000, 0.08, -5, 3);
-//						}
-//					else if (step == 12)
-//						{
-//							process_ApproachWall();
-//						}
-//					else if (step == 13)
-//						{
-//							process_ReleaseBall();
-//						}
+					else if (step == 20)
+						{
+							process_Accel_FloatingEnc4(180, 1, 2000, 0.08, 0, 3);
+						}
+					else if (step == 21)
+						{
+							process_ReleaseBall();
+						}
+					else if (step == 22)
+						{
+							process_Ball_Approach3(0);
+						}
+					else if (step == 23)
+						{
+							stop ++;
+							step = 10;
+						}
 //					else if (step == 14)
 //						{
 //							process_Accel_FloatingEnc3(-120, 1, 4200, 0.08, -45, 3);
