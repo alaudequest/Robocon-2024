@@ -464,7 +464,7 @@ void process_Init()
 
 void process_PD_OnStrainghtPath()
 {
-	pid_Angle.kP = 2.5;
+	pid_Angle.kP = 1.2;
 	pid_Angle.kI = 0;
 	pid_Angle.kD = 0;
 	pid_Angle.alpha = 0;
@@ -476,7 +476,7 @@ void process_PD_OnStrainghtPath()
 
 void process_PD_OnTrajecPath()
 {
-	pid_Angle.kP = 1.2;
+	pid_Angle.kP = 0.7;
 	pid_Angle.kI = 0;
 	pid_Angle.kD = 0;
 	pid_Angle.alpha = 0;
@@ -1144,15 +1144,15 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of TaskInvKine */
-  osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityLow, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
+  osThreadStaticDef(TaskInvKine, InverseKinematic, osPriorityNormal, 0, 256, TaskInvKineBuffer, &TaskInvKineControlBlock);
   TaskInvKineHandle = osThreadCreate(osThread(TaskInvKine), NULL);
 
   /* definition and creation of TaskCAN */
-  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityBelowNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
+  osThreadStaticDef(TaskCAN, CAN_Bus, osPriorityAboveNormal, 0, 128, TaskCANBuffer, &TaskCANControlBlock);
   TaskCANHandle = osThreadCreate(osThread(TaskCAN), NULL);
 
   /* definition and creation of TaskOdometer */
-  osThreadDef(TaskOdometer, OdometerHandle, osPriorityHigh, 0, 256);
+  osThreadDef(TaskOdometer, OdometerHandle, osPriorityNormal, 0, 256);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -1863,32 +1863,14 @@ uint8_t SetHomeFlag, check;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-	swer_Init();
-	osDelay(3000);
+
 //	while (SetHomeFlag == 0)
 //	{
 //		osDelay(1);
 //	}
 	/* Infinite loop */
 	for (;;) {
-		if(xaDay == 0 )
-		{
-			invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-		}else if (xaDay == 1){
-			process_WireRelease();
-		}
-//
-//
-		if (gamepadRxIsBusy) {
-			gamepadRxIsBusy = 0;
-			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
-		}
-		if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
-			__HAL_UART_ENABLE(&huart3);
-		}
-		osDelay(50);
+		osDelay(1);
 	}
   /* USER CODE END 5 */
 }
@@ -1904,13 +1886,30 @@ void StartDefaultTask(void const * argument)
 void InverseKinematic(void const * argument)
 {
   /* USER CODE BEGIN InverseKinematic */
-	uint32_t value = 0;
+	swer_Init();
 	/* Infinite loop */
 	for (;;) {
-		if(xTaskNotifyWait(pdFALSE, pdFALSE, &value, portMAX_DELAY)){
-			Send_Data();
+		if(nodeSwerveSetHomeComplete == 14)
+		{
+			if(xaDay == 0 )
+			{
+				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+				invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+				invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			}else if (xaDay == 1){
+				process_WireRelease();
+			}
+	//
+	//
+			if (gamepadRxIsBusy) {
+				gamepadRxIsBusy = 0;
+				HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
+			}
+			if ((huart3.Instance->CR1 & USART_CR1_UE) == 0) {
+				__HAL_UART_ENABLE(&huart3);
+			}
+			osDelay(50);
 		}
-		osDelay(1);
 	}
   /* USER CODE END InverseKinematic */
 }
@@ -2020,42 +2019,80 @@ void OdometerHandle(void const * argument)
 				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-				if (step == 1){
-					UART5_Start_To_Raspberry();
-					step += 1;
-				}if (step == 2)
-				{
-					if((UART5_Is_Received() == HAL_OK))
+//				if (step == 1){
+//					UART5_Start_To_Raspberry();
+//					step += 1;
+//				}if (step == 2)
+//				{
+//					if((UART5_Is_Received() == HAL_OK))
+//					{
+//						step+=1;
+//					}
+//				}
+
+
+
+					if (step == 0)
+						{	// Ra lenh cho co Cau lay bong di xuong
+							process_getBall();
+						}
+					else if (step == 1)
+						{	//Ra lenh cho co Cau lay bong di len cham chu U
+							process_setVal_PutBall(1);
+
+							if (GamePad.Up)
+							{
+								osDelay(500);
+								if(GamePad.Up)
+								{	//Reset thong so enc tha troi va la ban :
+									Reset_MPU_Angle();
+									process_ResetFloatingEnc();
+									// Set thong so quy hoach quy dao :
+									step = 2;
+								}
+							}
+						}
+					else if (step == 2)
+						{
+							process_Accel_FloatingEnc3(-43, 1, 15000, 0.1, 0, 3);
+							if(floatingEncCount > 9000)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+						}
+					else if (step == 3)
+						{
+							process_Accel_FloatingEnc3( -10, 1, 10000, 0.1, 0, 3);
+							if(floatingEncCount > 5000)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+						}
+					else if (step == 4)
+						{
+							process_Accel_FloatingEnc3( 45, 1, 10000, 0.1, 0, 3);
+							if(floatingEncCount > 5200)
+							{
+								step += 1;
+								process_SubState = 0;
+							}
+						}
+					else if (step == 5)
 					{
-						step+=1;
+						process_Accel_FloatingEnc3( -45, 1, 10000, 0.1, 0, 3);
+						if(floatingEncCount > 5500)
+						{
+							step += 1;
+							process_SubState = 0;
+						}
 					}
-				}
-//					if (step == 0)
-//						{	// Ra lenh cho co Cau lay bong di xuong
-////
-//							process_getBall();
-//
-//						}
-//					else if (step == 1)
-//						{	//Ra lenh cho co Cau lay bong di len cham chu U
-//							process_setVal_PutBall(1);
-//
-//							if (GamePad.Up)
-//							{
-//								osDelay(500);
-//								if(GamePad.Up)
-//								{	//Reset thong so enc tha troi va la ban :
-//									Reset_MPU_Angle();
-//									process_ResetFloatingEnc();
-//									// Set thong so quy hoach quy dao :
-//									step = 2;
-//								}
-//							}
-//						}
-//					else if (step == 2)
-//						{
-//							process_Accel_FloatingEnc3(-22, 1, 5300, 0.08, -45, 3);
-//						}
+					else if (step == 6)
+					{
+						process_Accel_FloatingEnc3( 200, 0.6, 7000, 0.1, 0, 3);
+					}
+
 //					else if (step == 3)
 //						{
 //							process_Ball_Approach3(0);
