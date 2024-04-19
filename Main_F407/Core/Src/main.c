@@ -531,7 +531,7 @@ void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel;
+			chasis_Vector_TargetSpeed -= accel*5;
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
 		{
@@ -588,7 +588,7 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel;
+			chasis_Vector_TargetSpeed -= accel*5;
 		}if(floatingEncCount > (s - 150)) {
 			use_pidTheta = 0;
 			r = 0;
@@ -827,11 +827,9 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(12,0.15);
+		process_RunByAngle(12,0.25);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
-
-//			osDelay(20);
 			process_SubState = 1;
 		}
 	}
@@ -862,7 +860,7 @@ void process_RiceAppRoach2()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(180-14,0.15);
+		process_RunByAngle(180-14,0.25);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
 
@@ -1855,15 +1853,15 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 1)
 		{
-			process_Accel_FloatingEnc5(-27, 0.6, 4000, 0.08, 0, 3);
-			if(floatingEncCount>3200){
+			process_Accel_FloatingEnc5(-27, 1, 4000, 0.1, 0, 3);
+			if(floatingEncCount>2600){
 				process_SubState = 0;
 				step+=1;
 			}
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(26, 0.6, 1400, 0.08, 0, 3);
+			process_Accel_FloatingEnc5(26, 0.6, 1000, 0.08, 0, 3);
 
 		}
 		else if (step == 3)
@@ -1880,7 +1878,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 5)
 		{
-			process_Accel_FloatingEnc4(-47, 0.5, 11400, 0.08, 90, 3);
+			process_Accel_FloatingEnc4(-46, 1, 11700, 1, 90, 1.5);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
@@ -1919,7 +1917,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 7 )
 		{
-			process_Accel_FloatingEnc5(117, 0.5,10300 , 0.08, 0, 3);
+			process_Accel_FloatingEnc5(117, 0.8,10700, 1, 0, 2.5);
 		}
 		else if(step == 8)
 		{
