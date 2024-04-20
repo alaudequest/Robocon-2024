@@ -614,7 +614,76 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 	}
 
 }
+float AngleNow,AngleTargetPre,AngleTarget,AngleFlag;
+void process_Accel_FloatingEnc6(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime)
+{
+	if (process_SubState == 0)
+	{
+		AngleTarget = Angle;
+		if (AngleTarget > AngleTargetPre){
+			AngleFlag = 1;
+		}else{
+			AngleFlag = 2;
+		}
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
+		process_SubState = 1;
+	}else{
+		if(AngleFlag == 1)
+		{
+			AngleNow += 5;
+			if (AngleNow > AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}else if (AngleFlag == 2){
+			AngleNow -= 5;
+			if (AngleNow < AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}
 
+		AngleTargetPre = AngleTarget;
+
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
+			chasis_Vector_TargetSpeed += accel;
+		}
+		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+		{
+			chasis_Vector_TargetSpeed = maxSpeed;
+		}
+		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
+			chasis_Vector_TargetSpeed = maxSpeed/2		;
+			}
+		if (floatingEncCount > (s - 400)){
+			chasis_Vector_TargetSpeed -= accel ;
+		}
+//		if (floatingEncCount < (s - 1)){
+//			use_pidTheta = 0;
+//			r = 0;
+//		}
+
+		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+		{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			u = 0;
+			v = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+		}else{
+			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+
+		}
+	}
+
+}
 void process_RunByAngle(float Angle, float speed)
 {
 	u = cos(Angle * M_PI / 180) * speed;
@@ -1672,7 +1741,8 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	ShootBallTime_Start(&GamePad);
+//	ShootBallTime_Start(&GamePad);
+
 	/* Infinite loop */
 	for (;;) {
 
@@ -1853,7 +1923,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 1)
 		{
-			process_Accel_FloatingEnc5(-27, 1, 4000, 0.1, 0, 3);
+			process_Accel_FloatingEnc6(-27, 1, 4000, 0.1, 0, 3);
 			if(floatingEncCount>2600){
 				process_SubState = 0;
 				step+=1;
@@ -1861,7 +1931,8 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(29, 0.9, 1000, 0.5, 0, 3);
+			AngleNow = -29;
+			process_Accel_FloatingEnc6(29, 0.9, 1000, 0.5, 0, 3);
 
 		}
 		else if (step == 3)
@@ -1906,7 +1977,7 @@ void OdometerHandle(void const * argument)
 					process_Error(0);
 					osDelay(50);
 					valve_ArmUp();
-					osDelay(120);
+					osDelay(250);
 					step += 1;
 				}
 			}
@@ -1930,7 +2001,7 @@ void OdometerHandle(void const * argument)
 
 		else if(step == 10)
 		{
-			process_Accel_FloatingEnc4(-128, 1, 11100, 1, 90, 2);
+			process_Accel_FloatingEnc4(-129, 1, 11100, 1, 90, 2);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
@@ -1968,15 +2039,17 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 12)
 		{
-			process_Accel_FloatingEnc5(180, 0.6, 3100, 0.08, 90, 3);
+			AngleNow = -180;
+			process_Accel_FloatingEnc6(-180, 1, 1600, 0.08, 90, 3);
+
 		}
 		else if(step == 13)
 		{
-			process_Accel_FloatingEnc5(-88, 0.8, 11600, 0.5 , 90, 3);
+			process_Accel_FloatingEnc6(-88, 1, 11000, 0.5 , 90, 3);
 		}
 		else if(step == 14)
 		{
-			process_Accel_FloatingEnc4(0, 0.8, 6100, 0.5, 90, 3);
+			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 90, 3);
 		}
 		else if(step == 15){
 			ShootBallTime_Start(&GamePad);
