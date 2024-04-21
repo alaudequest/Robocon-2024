@@ -1064,7 +1064,7 @@ void process_RiceAppRoach()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(15,0.25);
-		if(process_ThucHienGapLua() == true){
+		if((process_ThucHienGapLua() == true) || GamePad.Down){
 			process_Error(1);
 			process_SubState = 1;
 		}
@@ -1108,7 +1108,7 @@ void process_RiceAppRoach2()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(180-14,0.25);
-		if(process_ThucHienGapLua() == true){
+		if((process_ThucHienGapLua() == true) || GamePad.Down){
 			process_Error(1);
 			process_SubState = 1;
 		}
@@ -1152,7 +1152,7 @@ void process_RiceAppRoach3()
 	{
 		use_pidTheta = 1;
 		process_RunByAngle(180-16,0.25);
-		if(process_ThucHienGapLua1() == true){
+		if((process_ThucHienGapLua1() == true) || GamePad.Down){
 			process_Error(1);
 
 			process_SubState = 1;
@@ -2259,7 +2259,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-180, 1, 12800, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6000)
+			if(floatingEncCount> 6100)
 			{
 				process_SubState = 0;
 				step++;
@@ -2330,7 +2330,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 7900)
+			if(floatingEncCount> 8700)
 			{
 				process_SubState = 0;
 				step++;
@@ -2400,7 +2400,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6400)
+			if(floatingEncCount> 6500)
 			{
 				process_SubState = 0;
 				step++;
@@ -2513,7 +2513,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 41)
 		{
-			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(35, 1, 12000, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 42)
 		{
@@ -2540,7 +2540,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-185, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6500)
+			if(floatingEncCount> 6100)
 			{
 				process_SubState = 0;
 				step++;
@@ -2548,7 +2548,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 46)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 90, 3, 5);
 		}
 		else if (step == 47)
 		{
@@ -2575,8 +2575,21 @@ void OdometerHandle(void const * argument)
 				}
 			}
 		}
+		// Chay len khu 2
+		else if(step == 48)
+		{
+			AngleNow = -180;
+			process_Accel_FloatingEnc6(-180, 1, 1400, 0.08, 90, 3, 5);
 
-
+		}
+		else if(step == 49)
+		{
+			process_Accel_FloatingEnc6(-88, 1, 11000, 0.5 , 90, 3, 5);
+		}
+		else if(step == 50)
+		{
+			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 90, 3, 5);
+		}
 ///////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 
 
