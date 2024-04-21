@@ -90,7 +90,6 @@ void ShootBallTime_Handle()
 			valve_OpenLeftCollectBall();
 			valve_CloseRightCollectBall();
 			valve_ArmDown();
-			RB1_CollectBallMotor_IdleSpeed();
 		}
 
 	}

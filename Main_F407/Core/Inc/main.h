@@ -105,11 +105,6 @@ void Error_Handler(void);
 #define Enc2A_Pin GPIO_PIN_15
 #define Enc2A_GPIO_Port GPIOD
 #define Enc2A_EXTI_IRQn EXTI15_10_IRQn
-#define Enc1B_Pin GPIO_PIN_8
-#define Enc1B_GPIO_Port GPIOC
-#define Enc1A_Pin GPIO_PIN_9
-#define Enc1A_GPIO_Port GPIOC
-#define Enc1A_EXTI_IRQn EXTI9_5_IRQn
 #define RelayRulo_Pin GPIO_PIN_8
 #define RelayRulo_GPIO_Port GPIOB
 

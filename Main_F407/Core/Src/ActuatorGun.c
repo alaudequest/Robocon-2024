@@ -9,9 +9,10 @@
 #include "PID.h"
 #include "Encoder.h"
 extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim4;
-extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim9;
+extern TIM_HandleTypeDef htim8;
 static Encoder_t encGun1;
 static Encoder_t encGun2;
 static PID_Param PID_Gun1;
@@ -32,15 +33,14 @@ void RB1_Gun_Init() {
 	// Start MOTOR GUN INIT
 
 	// Bắn 2
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_1);
 	// Bắn 1
-	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
 
+	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+	encoder_Init(&encGun1, &htim2, 200, Gun1DeltaT);
 	PID_SetParameters(&PID_Gun1, Gun1Proportion, Gun1Integral, Gun1Derivatite, Gun1Alpha);
 	PID_SetSaturate(&PID_Gun1, Gun1SumAboveLimit, Gun1SumBelowLimit);
-	encGun1.deltaT = PID_Gun1.deltaT = Gun1DeltaT;
 
 	PID_SetParameters(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha);
 	PID_SetSaturate(&PID_Gun2, Gun2SumAboveLimit, Gun2SumBelowLimit);
@@ -64,7 +64,7 @@ static void VelocityCalculate(Encoder_t *enc)
 
 void RB1_VelocityCalculateOfGun()
 {
-	VelocityCalculate(&encGun1);
+	encoder_GetSpeed(&encGun1);
 	VelocityCalculate(&encGun2);
 }
 
@@ -122,14 +122,12 @@ void RB1_CalculateRuloGunPIDSpeed()
 
 	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
 		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, uHat);
-		__HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, uHat);
 		pidCurrentTickTimeGun1_ms = 0;
 	}
 	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
 		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, uHat);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, uHat);
 		pidCurrentTickTimeGun2_ms = 0;
 	}
 }
@@ -170,34 +168,11 @@ void RB1_SetTargetSpeedGun2(float targetSpeed)
 #define COLLECT_BALL_ACCEL_TIME_STEP 150
 #define COLLECT_BALL_MAX_SPEED 1000
 
-void RB1_CollectBallMotor_Init()
-{
-	// Cuốn bóng trái
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);// channel này là thuận
-//	// Cuốn bóng phải
-//	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_1);
-//	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);
-
-}
-
-void RB1_CollectBallMotorOnMax()
-{
-	HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, SET);
-	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1000);
-}
-
-void RB1_CollectBallMotorOffForce()
-{
-	HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, RESET);
-	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-}
-
 static void CollectBallMotorSpeedUp()
 {
 	if (HAL_GetTick() - collectBallTickTime > COLLECT_BALL_ACCEL_TIME_STEP && collectBallPWM <= COLLECT_BALL_MAX_SPEED) {
 		collectBallTickTime = HAL_GetTick();
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, collectBallPWM);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, collectBallPWM);
 		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, collectBallPWM);
 		collectBallPWM += 100;
 
@@ -212,7 +187,7 @@ static void CollectBallMotorSpeedDown()
 {
 	if (HAL_GetTick() - collectBallTickTime > 150 && collectBallPWM >= 0) {
 		collectBallTickTime = HAL_GetTick();
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, collectBallPWM);
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, collectBallPWM);
 		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, collectBallPWM);
 		if (collectBallPWM < 100)
 			collectBallPWM = 100;
@@ -225,10 +200,12 @@ static void CollectBallMotorSpeedDown()
 	}
 }
 
-void RB1_CollectBallMotor_IdleSpeed()
+void RB1_CollectBallMotor_Init()
 {
-	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 150);
-	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 150);
+	// Cuốn bóng trái
+	HAL_TIM_PWM_Start(&htim9, TIM_CHANNEL_2);
+	// Cuốn bóng phải
+	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
 }
 
 void RB1_CollectBallMotor_ControlSpeed()
@@ -243,26 +220,14 @@ void RB1_CollectBallMotor_ControlSpeed()
 	}
 }
 
-void RB1_EnableRuloShootBall()
-{
-	enableRuloShootBall = true;
-}
-
-void RB1_DisableRuloShootBall()
-{
-	enableRuloShootBall = false;
-}
-
 void RB1_CollectBallMotor_On()
 {
 	accelStateCollectBall = ACCELERATION;
-	HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, SET);
 }
 
 void RB1_CollectBallMotor_Off()
 {
 	accelStateCollectBall = DECELERATION;
-	HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, RESET);
 }
 
 void RB1_GunIncreaseTickTimerInInterrupt()
