@@ -61,7 +61,6 @@ typedef enum MainEvent {
 CAN_HandleTypeDef hcan1;
 
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
@@ -192,7 +191,6 @@ static void MX_TIM5_Init(void);
 static void MX_TIM9_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_TIM2_Init(void);
 static void MX_TIM8_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
@@ -339,6 +337,14 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 /*=============================== GPIO EXTI ===============================*/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
+	if (GPIO_Pin == Enc1A_Pin) {
+		if (HAL_GPIO_ReadPin(Enc1B_GPIO_Port, Enc1B_Pin)) {
+			RB1_EncGun1_DecreaseCount();
+		}
+		else
+			RB1_EncGun1_IncreaseCount();
+		return;
+	}
 	if (GPIO_Pin == Enc2A_Pin) {
 		if (HAL_GPIO_ReadPin(Enc2B_GPIO_Port, Enc2B_Pin)) {
 			RB1_EncGun2_DecreaseCount();
@@ -347,7 +353,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			RB1_EncGun2_IncreaseCount();
 		return;
 	}
-//	RB1_WaitSensorInInterrupt(GPIO_Pin);
 }
 
 float absf(float num)
@@ -480,19 +485,17 @@ void process_Accel_FloatingEnc3(float Angle, float maxSpeed, float s, float acce
 		if (floatingEncCount > (s - 400)) {
 			chasis_Vector_TargetSpeed -= accel;
 		}
-			if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
-			{
+		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
+				{
 
-
-
-				chasis_Vector_TargetSpeed = 0;
-				process_ResetFloatingEnc();
-				r = 0;
-				u = 0;
-				v = 0;
-				use_pidTheta = 0;
-				process_SubState = 0;
-				step += 1;
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			u = 0;
+			v = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
 
 		}
 		else {
@@ -514,7 +517,8 @@ void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float acce
 		process_SubState = 1;
 	}
 	else {
-		if(chasis_Vector_TargetSpeed>maxSpeed)chasis_Vector_TargetSpeed=maxSpeed;
+		if (chasis_Vector_TargetSpeed > maxSpeed)
+			chasis_Vector_TargetSpeed = maxSpeed;
 		if ((floatingEncCount < 500) && (chasis_Vector_TargetSpeed < maxSpeed))
 				{
 			chasis_Vector_TargetSpeed += accel;
@@ -527,29 +531,29 @@ void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel*5;
+			chasis_Vector_TargetSpeed -= accel * 5;
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
-		{
+				{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
-			{
-				process_SSCheck ++;
-			}else{
+			if (absf(trajecTheta.Pf - angle_Rad) < 2 * M_PI / 180)
+					{
+				process_SSCheck++;
+			}
+			else {
 				process_SSCheck = 0;
 			}
 
-
-			if(process_SSCheck > 10)
-			{
-			chasis_Vector_TargetSpeed = 0;
-			process_ResetFloatingEnc();
-			r = 0;
-			process_SSCheck = 0;
-			use_pidTheta = 0;
-			process_SubState = 0;
-			step += 1;
+			if (process_SSCheck > 10)
+					{
+				chasis_Vector_TargetSpeed = 0;
+				process_ResetFloatingEnc();
+				r = 0;
+				process_SSCheck = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				step += 1;
 			}
 		}
 		else {
@@ -584,32 +588,33 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 			chasis_Vector_TargetSpeed = maxSpeed / 2;
 		}
 		if (floatingEncCount > (s - 400)) {
-			chasis_Vector_TargetSpeed -= accel*5;
-		}if(floatingEncCount > (s - 150)) {
+			chasis_Vector_TargetSpeed -= accel * 5;
+		}
+		if (floatingEncCount > (s - 150)) {
 			use_pidTheta = 0;
 			r = 0;
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
-		{
+				{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
-			{
-				process_SSCheck ++;
-			}else{
+			if (absf(trajecTheta.Pf - angle_Rad) < 2 * M_PI / 180)
+					{
+				process_SSCheck++;
+			}
+			else {
 				process_SSCheck = 0;
 			}
 
-
-			if(process_SSCheck > 10)
-			{
-			chasis_Vector_TargetSpeed = 0;
-			process_ResetFloatingEnc();
-			r = 0;
-			process_SSCheck = 0;
-			use_pidTheta = 0;
-			process_SubState = 0;
-			step += 1;
+			if (process_SSCheck > 10)
+					{
+				chasis_Vector_TargetSpeed = 0;
+				process_ResetFloatingEnc();
+				r = 0;
+				process_SSCheck = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				step += 1;
 			}
 		}
 		else {
@@ -620,32 +625,35 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 	}
 
 }
-float AngleNow,AngleTargetPre,AngleTarget,AngleFlag;
-void process_Accel_FloatingEnc6(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime,float AccelAngle)
+float AngleNow, AngleTargetPre, AngleTarget, AngleFlag;
+void process_Accel_FloatingEnc6(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime, float AccelAngle)
 {
 	if (process_SubState == 0)
-	{
+			{
 		AngleTarget = Angle;
-		if (AngleTarget > AngleTargetPre){
+		if (AngleTarget > AngleTargetPre) {
 			AngleFlag = 1;
-		}else{
+		}
+		else {
 			AngleFlag = 2;
 		}
-		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
 		process_ResetFloatingEnc();
 		process_SubState = 1;
-	}else{
-		if(AngleFlag == 1)
-		{
+	}
+	else {
+		if (AngleFlag == 1)
+				{
 			AngleNow += AccelAngle;
 			if (AngleNow > AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
-		}else if (AngleFlag == 2){
+		}
+		else if (AngleFlag == 2) {
 			AngleNow -= AccelAngle;
 			if (AngleNow < AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
 		}
@@ -653,27 +661,27 @@ void process_Accel_FloatingEnc6(float Angle,float maxSpeed,float s,float accel,f
 		AngleTargetPre = AngleTarget;
 
 		use_pidTheta = 1;
-		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
-		{
+		if ((floatingEncCount < 500) && (chasis_Vector_TargetSpeed < maxSpeed))
+				{
 			chasis_Vector_TargetSpeed += accel;
 		}
-		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
-		{
+		if ((floatingEncCount > 500) && (floatingEncCount < (s - 500)))
+				{
 			chasis_Vector_TargetSpeed = maxSpeed;
 		}
-		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
-			chasis_Vector_TargetSpeed = maxSpeed/2		;
-			}
-		if (floatingEncCount > (s - 400)){
-			chasis_Vector_TargetSpeed -= accel ;
+		if (floatingEncCount > (s - 500) && floatingEncCount < (s - 400)) {
+			chasis_Vector_TargetSpeed = maxSpeed / 2;
+		}
+		if (floatingEncCount > (s - 400)) {
+			chasis_Vector_TargetSpeed -= accel;
 		}
 //		if (floatingEncCount < (s - 1)){
 //			use_pidTheta = 0;
 //			r = 0;
 //		}
 
-		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
-		{
+		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
+				{
 			chasis_Vector_TargetSpeed = 0;
 			process_ResetFloatingEnc();
 			r = 0;
@@ -682,40 +690,44 @@ void process_Accel_FloatingEnc6(float Angle,float maxSpeed,float s,float accel,f
 			use_pidTheta = 0;
 			process_SubState = 0;
 			step += 1;
-		}else{
-			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
-			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+		}
+		else {
+			u = cos(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
+			v = sin(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
 
 		}
 	}
 
 }
 
-void process_Accel_FloatingEnc7(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime,float AccelAngle)
+void process_Accel_FloatingEnc7(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime, float AccelAngle)
 {
 	if (process_SubState == 0)
-	{
+			{
 		AngleTarget = Angle;
-		if (AngleTarget > AngleTargetPre){
+		if (AngleTarget > AngleTargetPre) {
 			AngleFlag = 1;
-		}else{
+		}
+		else {
 			AngleFlag = 2;
 		}
-		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
 		process_ResetFloatingEnc();
 		process_SubState = 1;
-	}else{
-		if(AngleFlag == 1)
-		{
+	}
+	else {
+		if (AngleFlag == 1)
+				{
 			AngleNow += AccelAngle;
 			if (AngleNow > AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
-		}else if (AngleFlag == 2){
+		}
+		else if (AngleFlag == 2) {
 			AngleNow -= AccelAngle;
 			if (AngleNow < AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
 		}
@@ -723,81 +735,85 @@ void process_Accel_FloatingEnc7(float Angle,float maxSpeed,float s,float accel,f
 		AngleTargetPre = AngleTarget;
 
 		use_pidTheta = 1;
-		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
-		{
+		if ((floatingEncCount < 500) && (chasis_Vector_TargetSpeed < maxSpeed))
+				{
 			chasis_Vector_TargetSpeed += accel;
 		}
-		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
-		{
+		if ((floatingEncCount > 500) && (floatingEncCount < (s - 500)))
+				{
 			chasis_Vector_TargetSpeed = maxSpeed;
 		}
-		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
-			chasis_Vector_TargetSpeed = maxSpeed/2		;
-			}
-		if (floatingEncCount > (s - 400)){
-			chasis_Vector_TargetSpeed -= accel ;
+		if (floatingEncCount > (s - 500) && floatingEncCount < (s - 400)) {
+			chasis_Vector_TargetSpeed = maxSpeed / 2;
+		}
+		if (floatingEncCount > (s - 400)) {
+			chasis_Vector_TargetSpeed -= accel;
 		}
 //		if (floatingEncCount < (s - 1)){
 //			use_pidTheta = 0;
 //			r = 0;
 //		}
 
-		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
-		{
+		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
+				{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
-			{
-				process_SSCheck ++;
-			}else{
+			if (absf(trajecTheta.Pf - angle_Rad) < 2 * M_PI / 180)
+					{
+				process_SSCheck++;
+			}
+			else {
 				process_SSCheck = 0;
 			}
 
-
-			if(process_SSCheck > 10)
-			{
-			chasis_Vector_TargetSpeed = 0;
-			process_ResetFloatingEnc();
-			r = 0;
-			process_SSCheck = 0;
-			use_pidTheta = 0;
-			process_SubState = 0;
-			step += 1;
+			if (process_SSCheck > 10)
+					{
+				chasis_Vector_TargetSpeed = 0;
+				process_ResetFloatingEnc();
+				r = 0;
+				process_SSCheck = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				step += 1;
 			}
-		}else{
-			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
-			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+		}
+		else {
+			u = cos(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
+			v = sin(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
 
 		}
 	}
 
 }
 
-void process_Accel_FloatingEnc8(float Angle,float maxSpeed,float s,float accel,float sDeaccel,float deaccel,float TargetAngle,float RotateTime,float AccelAngle)
+void process_Accel_FloatingEnc8(float Angle, float maxSpeed, float s, float accel, float sDeaccel, float deaccel, float TargetAngle, float RotateTime, float AccelAngle)
 {
 	if (process_SubState == 0)
-	{
+			{
 		AngleTarget = Angle;
-		if (AngleTarget > AngleTargetPre){
+		if (AngleTarget > AngleTargetPre) {
 			AngleFlag = 1;
-		}else{
+		}
+		else {
 			AngleFlag = 2;
 		}
-		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
 		process_ResetFloatingEnc();
 		process_SubState = 1;
-	}else{
-		if(AngleFlag == 1)
-		{
+	}
+	else {
+		if (AngleFlag == 1)
+				{
 			AngleNow += AccelAngle;
 			if (AngleNow > AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
-		}else if (AngleFlag == 2){
+		}
+		else if (AngleFlag == 2) {
 			AngleNow -= AccelAngle;
 			if (AngleNow < AngleTarget)
-			{
+					{
 				AngleNow = AngleTarget;
 			}
 		}
@@ -805,19 +821,19 @@ void process_Accel_FloatingEnc8(float Angle,float maxSpeed,float s,float accel,f
 		AngleTargetPre = AngleTarget;
 
 		use_pidTheta = 1;
-		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
-		{
+		if ((floatingEncCount < 500) && (chasis_Vector_TargetSpeed < maxSpeed))
+				{
 			chasis_Vector_TargetSpeed += accel;
 		}
-		if ((floatingEncCount > 500)&&(floatingEncCount < (sDeaccel)))
-		{
+		if ((floatingEncCount > 500) && (floatingEncCount < (sDeaccel)))
+				{
 			chasis_Vector_TargetSpeed = maxSpeed;
 		}
-		if (floatingEncCount > sDeaccel){
+		if (floatingEncCount > sDeaccel) {
 			chasis_Vector_TargetSpeed -= deaccel;
-			}
-		if (chasis_Vector_TargetSpeed < 0.2){
-			chasis_Vector_TargetSpeed = 0.2 ;
+		}
+		if (chasis_Vector_TargetSpeed < 0.2) {
+			chasis_Vector_TargetSpeed = 0.2;
 		}
 //		if (floatingEncCount < (s - 1)){
 //			use_pidTheta = 0;
@@ -828,27 +844,28 @@ void process_Accel_FloatingEnc8(float Angle,float maxSpeed,float s,float accel,f
 		{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
-			{
-				process_SSCheck ++;
-			}else{
+			if (absf(trajecTheta.Pf - angle_Rad) < 2 * M_PI / 180)
+					{
+				process_SSCheck++;
+			}
+			else {
 				process_SSCheck = 0;
 			}
 
-
-			if(process_SSCheck > 10)
-			{
-			chasis_Vector_TargetSpeed = 0;
-			process_ResetFloatingEnc();
-			r = 0;
-			process_SSCheck = 0;
-			use_pidTheta = 0;
-			process_SubState = 0;
-			step += 1;
+			if (process_SSCheck > 10)
+					{
+				chasis_Vector_TargetSpeed = 0;
+				process_ResetFloatingEnc();
+				r = 0;
+				process_SSCheck = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				step += 1;
 			}
-		}else{
-			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
-			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+		}
+		else {
+			u = cos(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
+			v = sin(AngleNow * M_PI / 180) * chasis_Vector_TargetSpeed;
 
 		}
 	}
@@ -865,22 +882,23 @@ void process_RunByAngle2(float Angle, float speed, float time)
 	use_pidTheta = 1;
 	process_Count++;
 	process_RunByAngle(Angle, speed);
-	if (process_Count > time/50)
-	{
+	if (process_Count > time / 50)
+			{
 		process_RunByAngle(Angle, 0);
 
-		if(absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
-		{
+		if (absf(trajecTheta.Pf - angle_Rad) < 2 * M_PI / 180)
+				{
 			process_SSCheck++;
-		}else{
+		}
+		else {
 			process_SSCheck = 0;
 		}
 
-		if(process_SSCheck>10)
-		{
+		if (process_SSCheck > 10)
+				{
 			process_Count = 0;
 			process_ResetFloatingEnc();
-			process_SSCheck =0;
+			process_SSCheck = 0;
 			use_pidTheta = 0;
 			step += 1;
 			r = 0;
@@ -890,32 +908,31 @@ void process_RunByAngle2(float Angle, float speed, float time)
 }
 void process_RunByAngle3(float Angle, float speed, float s)
 {
-	if(process_SubState == 0)
-	{
+	if (process_SubState == 0)
+			{
 		process_ResetFloatingEnc();
 		process_SubState = 1;
 		use_pidTheta = 1;
 	}
-	else if(process_SubState == 1)
-	{
+	else if (process_SubState == 1)
+			{
 		process_RunByAngle(Angle, speed);
-		if(floatingEncCount >= s -100)
-		{
+		if (floatingEncCount >= s - 100)
+				{
 			use_pidTheta = 0;
 			r = 0;
 
 		}
-		if(floatingEncCount >= s)
-		{
+		if (floatingEncCount >= s)
+				{
 			process_RunByAngle(Angle, 0);
 			process_ResetFloatingEnc();
-			process_SubState =0;
+			process_SubState = 0;
 			step += 1;
 
 		}
 	}
 }
-
 
 void process_Signal_RotationMatrixTransform(float u, float v, float r)
 {
@@ -976,9 +993,9 @@ bool process_ResetToaDo() {
 	// sau khi đ�?c tín hiệu ngắt cả 2 cảm biến
 //		uint16_t soLanPhatHienLuaTrai = 0;
 //		uint16_t soLanPhatHienLuaPhai = 0;
-		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
-		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
-		//đ�?c liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
+	Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
+	Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
+	//đ�?c liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
 //		for (uint16_t i = 0; i < soLanDoc; i++) {
 //			if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
 //				soLanPhatHienLuaTrai++;
@@ -995,10 +1012,10 @@ bool process_ResetToaDo() {
 //			valve_BothCatch();
 //			gapLuaThanhCong = true;
 //		}
-		if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
+	if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
 //			valve_BothCatch();
-			gapLuaThanhCong = true;
-		}
+		gapLuaThanhCong = true;
+	}
 
 	return gapLuaThanhCong;
 }
@@ -1010,9 +1027,9 @@ bool process_ThucHienGapLua() {
 	// sau khi đ�?c tín hiệu ngắt cả 2 cảm biến
 //		uint16_t soLanPhatHienLuaTrai = 0;
 //		uint16_t soLanPhatHienLuaPhai = 0;
-		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
-		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
-		//đ�?c liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
+	Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
+	Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
+	//đ�?c liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
 //		for (uint16_t i = 0; i < soLanDoc; i++) {
 //			if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
 //				soLanPhatHienLuaTrai++;
@@ -1029,10 +1046,10 @@ bool process_ThucHienGapLua() {
 //			valve_BothCatch();
 //			gapLuaThanhCong = true;
 //		}
-		if (HAL_GPIO_ReadPin(camBienLuaPhai.sensorPort, camBienLuaPhai.sensorPin)) {
+	if (HAL_GPIO_ReadPin(camBienLuaPhai.sensorPort, camBienLuaPhai.sensorPin)) {
 //			valve_BothCatch();
-			gapLuaThanhCong = true;
-		}
+		gapLuaThanhCong = true;
+	}
 
 	return gapLuaThanhCong;
 }
@@ -1043,35 +1060,35 @@ bool process_ThucHienGapLua1() {
 	// sau khi đ�?c tín hiệu ngắt cả 2 cảm biến
 //		uint16_t soLanPhatHienLuaTrai = 0;
 //		uint16_t soLanPhatHienLuaPhai = 0;
-		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
-		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
+	Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
+	Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
 
-		if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
+	if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
 //			valve_BothCatch();
-			gapLuaThanhCong = true;
-		}
+		gapLuaThanhCong = true;
+	}
 
 	return gapLuaThanhCong;
 }
 void process_ResetWallAppRoach()
 {
-	if(process_SubState == 0)
-	{
+	if (process_SubState == 0)
+			{
 		use_pidTheta = 1;
-		process_RunByAngle(180-18,0.1);
-		if(process_ThucHienGapLua()  == true){
+		process_RunByAngle(180 - 18, 0.1);
+		if (process_ThucHienGapLua() == true) {
 			process_Error(1);
 
 			osDelay(50);
 			process_SubState = 1;
 		}
 	}
-	else if(process_SubState == 1){
+	else if (process_SubState == 1) {
 		process_Error(0);
-		process_RunByAngle(90,0.01);
+		process_RunByAngle(90, 0.01);
 		process_SubState = 2;
 	}
-	else if(process_SubState == 2){
+	else if (process_SubState == 2) {
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
@@ -1081,30 +1098,30 @@ void process_ResetWallAppRoach()
 
 void process_RiceAppRoach()
 {
-	if(process_SubState == 0)
-	{
+	if (process_SubState == 0)
+			{
 		use_pidTheta = 1;
-		process_RunByAngle(15,0.25);
-		if(process_ThucHienGapLua() == true){
+		process_RunByAngle(15, 0.25);
+		if (process_ThucHienGapLua() == true) {
 			process_Error(1);
 			process_SubState = 1;
 		}
 	}
-	else if(process_SubState == 1){
+	else if (process_SubState == 1) {
 		process_Error(0);
-		process_RunByAngle(90,0.22);
+		process_RunByAngle(90, 0.22);
 		process_SubState = 2;
 	}
-	else if(process_SubState == 2){
+	else if (process_SubState == 2) {
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
 		process_SubState = 3;
 	}
-	else if(process_SubState == 3){
-		if(valve_IsProcessEnd()){
+	else if (process_SubState == 3) {
+		if (valve_IsProcessEnd()) {
 			process_SubState = 4;
 		}
 	}
-	else if(process_SubState == 4){
+	else if (process_SubState == 4) {
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
@@ -1115,33 +1132,33 @@ void process_RiceAppRoach()
 
 void process_RiceAppRoach2()
 {
-	if(process_SubState == 0)
-	{
+	if (process_SubState == 0)
+			{
 		use_pidTheta = 1;
-		process_RunByAngle(180-14,0.25);
-		if(process_ThucHienGapLua() == true){
+		process_RunByAngle(180 - 14, 0.25);
+		if (process_ThucHienGapLua() == true) {
 			process_Error(1);
 
 //			osDelay(20);
 			process_SubState = 1;
 		}
 	}
-	else if(process_SubState == 1){
+	else if (process_SubState == 1) {
 		process_Error(0);
-		process_RunByAngle(90,0.22);
+		process_RunByAngle(90, 0.22);
 		process_SubState = 2;
 	}
-	else if(process_SubState == 2){
+	else if (process_SubState == 2) {
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
 		process_SubState = 3;
 
 	}
-	else if(process_SubState == 3){
-		if(valve_IsProcessEnd()){
+	else if (process_SubState == 3) {
+		if (valve_IsProcessEnd()) {
 			process_SubState = 4;
 		}
 	}
-	else if(process_SubState == 4){
+	else if (process_SubState == 4) {
 		Reset_MPU_Angle();
 		process_ResetFloatingEnc();
 		process_SubState = 0;
@@ -1151,32 +1168,32 @@ void process_RiceAppRoach2()
 }
 void process_RiceAppRoach3()
 {
-	if(process_SubState == 0)
-	{
+	if (process_SubState == 0)
+			{
 		use_pidTheta = 1;
-		process_RunByAngle(180-16,0.25);
-		if(process_ThucHienGapLua1() == true){
+		process_RunByAngle(180 - 16, 0.25);
+		if (process_ThucHienGapLua1() == true) {
 			process_Error(1);
 
 			process_SubState = 1;
 		}
 	}
-	else if(process_SubState == 1){
+	else if (process_SubState == 1) {
 		process_Error(0);
-		process_RunByAngle(90,0.22);
+		process_RunByAngle(90, 0.22);
 		process_SubState = 2;
 	}
-	else if(process_SubState == 2){
+	else if (process_SubState == 2) {
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
 		process_SubState = 3;
 
 	}
-	else if(process_SubState == 3){
-		if(valve_IsProcessEnd()){
+	else if (process_SubState == 3) {
+		if (valve_IsProcessEnd()) {
 			process_SubState = 4;
 		}
 	}
-	else if(process_SubState == 4){
+	else if (process_SubState == 4) {
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
@@ -1229,7 +1246,6 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM4_Init();
   MX_TIM3_Init();
-  MX_TIM2_Init();
   MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
 
@@ -1443,55 +1459,6 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-
-}
-
-/**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_Encoder_InitTypeDef sConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -2036,6 +2003,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(Enc2A_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Enc1B_Pin */
+  GPIO_InitStruct.Pin = Enc1B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Enc1B_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Enc1A_Pin */
+  GPIO_InitStruct.Pin = Enc1A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Enc1A_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : RelayRulo_Pin */
   GPIO_InitStruct.Pin = RelayRulo_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -2044,6 +2023,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(RelayRulo_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -2082,7 +2064,7 @@ void StartDefaultTask(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 
-			osDelay(50);
+		osDelay(50);
 	}
   /* USER CODE END 5 */
 }
@@ -2100,7 +2082,7 @@ void InverseKinematic(void const * argument)
   /* USER CODE BEGIN InverseKinematic */
 	/* Infinite loop */
 	for (;;) {
-		if(nodeSwerveSetHomeComplete == 14){
+		if (nodeSwerveSetHomeComplete == 14) {
 			if (xaDay == 0)
 					{
 				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
@@ -2248,7 +2230,7 @@ void OdometerHandle(void const * argument)
 //
 		if (step == 0)
 				{	//Ra lenh cho co Cau lay bong di len cham chu U
-			process_RunByAngle(-25,0.001);
+			process_RunByAngle(-25, 0.001);
 			if (GamePad.Up)
 			{
 				osDelay(500);
@@ -2262,42 +2244,42 @@ void OdometerHandle(void const * argument)
 			}
 		}
 		else if (step == 1)
-		{
+				{
 			AngleNow = -27;
 			process_Accel_FloatingEnc6(-27, 1, 3000, 0.5, 0, 3, 5);
 		}
 		else if (step == 2)
-		{
+				{
 			process_Accel_FloatingEnc6(40, 0.8, 2500, 0.5, 0, 3, 5);
 		}
 		else if (step == 3)
-		{
+				{
 			process_Accel_FloatingEnc6(18, 0.6, 800, 0.5, 0, 3, 5);
 
 		}
 		else if (step == 4)
-		{
+				{
 			process_RiceAppRoach();
 		}
-		else if(step == 5)
-		{
+		else if (step == 5)
+				{
 			AngleNow = -90;
-			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
-			if(floatingEncCount>300){
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3, 5);
+			if (floatingEncCount > 300) {
 				process_SubState = 0;
-				step+=1;
+				step += 1;
 			}
 		}
-		else if(step == 6)
-		{
-			if(floatingEncCount>1000)
-			{
+		else if (step == 6)
+				{
+			if (floatingEncCount > 1000)
+					{
 				valve_ArmDown();
 			}
 			process_Accel_FloatingEnc8(-36, 1, 11300, 0.08, 6000, 0.01, 90, 1.3, 5);
 		}
 		else if (step == 7)
-		{
+				{
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
@@ -2321,54 +2303,54 @@ void OdometerHandle(void const * argument)
 				}
 			}
 		}
-		else if(step == 8)
-		{
+		else if (step == 8)
+				{
 			AngleNow = 180;
 			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
 		}
-		else if(step == 9)
-		{
+		else if (step == 9)
+				{
 			process_Accel_FloatingEnc6(33, 1, 12400, 0.5, 0, 3.5, 10);
 		}
-		else if(step == 10)
-		{
-			process_Accel_FloatingEnc6(180-33, 0.8, 1000, 0.5, 0, 3, 5);
+		else if (step == 10)
+				{
+			process_Accel_FloatingEnc6(180 - 33, 0.8, 1000, 0.5, 0, 3, 5);
 		}
-		else if(step == 11)
-		{
+		else if (step == 11)
+				{
 			process_RiceAppRoach3();
 		}
-		else if(step == 12)
-		{
+		else if (step == 12)
+				{
 			AngleNow = -90;
-			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
-			if(floatingEncCount>300){
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3, 5);
+			if (floatingEncCount > 300) {
 				process_SubState = 0;
-				step+=1;
+				step += 1;
 			}
 		}
-		else if(step == 13)
-		{
-			if(floatingEncCount>1000)
-			{
+		else if (step == 13)
+				{
+			if (floatingEncCount > 1000)
+					{
 				valve_ArmDown();
 			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
 //			process_Accel_FloatingEnc6(-170, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6300)
-			{
+			if (floatingEncCount > 6300)
+					{
 				process_SubState = 0;
 				step++;
 			}
 		}
-		else if(step == 14)
-		{
+		else if (step == 14)
+				{
 
 			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
 		}
 		else if (step == 15)
-		{
+				{
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
@@ -2392,42 +2374,42 @@ void OdometerHandle(void const * argument)
 				}
 			}
 		}
-		else if(step == 16)
-		{
+		else if (step == 16)
+				{
 			AngleNow = 180;
 			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
 		}
-		else if(step == 17)
-		{
+		else if (step == 17)
+				{
 			process_Accel_FloatingEnc6(33, 1, 12600, 0.5, 0, 3.5, 10);
 		}
-		else if(step == 18)
-		{
-			process_Accel_FloatingEnc6(180-33, 0.8, 1000, 0.5, 0, 3, 5);
+		else if (step == 18)
+				{
+			process_Accel_FloatingEnc6(180 - 33, 0.8, 1000, 0.5, 0, 3, 5);
 		}
-		else if(step == 19)
-		{
+		else if (step == 19)
+				{
 			process_RiceAppRoach3();
 		}
-		else if(step == 30)
-		{
+		else if (step == 30)
+				{
 			AngleNow = -90;
-			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
-			if(floatingEncCount>300){
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3, 5);
+			if (floatingEncCount > 300) {
 				process_SubState = 0;
-				step+=1;
+				step += 1;
 			}
 		}
-		else if(step == 31)
-		{
-			if(floatingEncCount>1000)
-			{
+		else if (step == 31)
+				{
+			if (floatingEncCount > 1000)
+					{
 				valve_ArmDown();
 			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6300)
-			{
+			if (floatingEncCount > 6300)
+					{
 				process_SubState = 0;
 				step++;
 			}
@@ -2651,9 +2633,6 @@ void OdometerHandle(void const * argument)
 //			process_Accel_FloatingEnc5(90, 0.5, 4500, 0.08, 0, 3);
 //		}
 
-
-
-
 //		else if(step == 13)
 //		{
 ////			process_Accel_FloatingEnc3(0, 0.5, 8200, 0.08, 0, 3);
@@ -2709,18 +2688,12 @@ void OdometerHandle(void const * argument)
 //
 //		}
 
-
-
-
-
 //	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 
-
-
-		if(GamePad.Triangle)
+		if (GamePad.Triangle)
 		{
 			osDelay(300);
-			if(GamePad.Triangle)
+			if (GamePad.Triangle)
 			{
 				valve_ProcessBegin(ValveProcess_ShootBallTime_Reset);
 			}
@@ -2744,49 +2717,50 @@ void OdometerHandle(void const * argument)
 			}
 		}
 
-
 //
 		if (Manual == 1)
-		{
-			if(PlusControl == 0)
-			{
-				uControlX = -GamePad.XLeftCtr*2;
-				uControlY = GamePad.YLeftCtr*1.7;
-				uControlTheta = GamePad.XRightCtr*1.7;
+				{
+			if (PlusControl == 0)
+					{
+				uControlX = -GamePad.XLeftCtr * 2;
+				uControlY = GamePad.YLeftCtr * 1.7;
+				uControlTheta = GamePad.XRightCtr * 1.7;
 			}
 
-			if(PlusControl == 1)
-			{
+			if (PlusControl == 1)
+					{
 				process_PD_OnStrainghtPath();
 				use_pidTheta = 1;
 				u = -GamePad.XLeftCtr;
 				v = GamePad.YLeftCtr;
 //				r = GamePad.XRightCtr;
 				process_Signal_RotationMatrixTransform2(u, v, r);
-				if (absf(uControlX)>absf(uControlY))
-				{
+				if (absf(uControlX) > absf(uControlY))
+						{
 					uControlY = 0;
-				}else if(absf(uControlX)<absf(uControlY))
-				{
+				}
+				else if (absf(uControlX) < absf(uControlY))
+						{
 					uControlX = 0;
 				}
 			}
-			if(PlusControl == 2)
-			{
+			if (PlusControl == 2)
+					{
 //				process_PD_OnStrainghtPath();
 //				use_pidTheta = 1;
 //				u = -GamePad.XLeftCtr;
 //				v = GamePad.YLeftCtr;
 ////				r = GamePad.XRightCtr;
 //				process_Signal_RotationMatrixTransform3(u, v, r);
-				uControlX = -GamePad.XLeftCtr*1.2;
-				uControlY = GamePad.YLeftCtr*1.2;
-				uControlTheta = GamePad.XRightCtr*2;
-				if (absf(uControlX)>absf(uControlY))
-				{
+				uControlX = -GamePad.XLeftCtr * 1.2;
+				uControlY = GamePad.YLeftCtr * 1.2;
+				uControlTheta = GamePad.XRightCtr * 2;
+				if (absf(uControlX) > absf(uControlY))
+						{
 					uControlY = 0;
-				}else if(absf(uControlX)<absf(uControlY))
-				{
+				}
+				else if (absf(uControlX) < absf(uControlY))
+						{
 					uControlX = 0;
 				}
 			}
@@ -2825,7 +2799,7 @@ void TaskRunProcess(void const * argument)
 //			__NOP();
 //		}
 		osDelay(100);
-		}
+	}
   /* USER CODE END TaskRunProcess */
 }
 
@@ -2858,10 +2832,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-/* User can add his own implementation to report the HAL error return state */
-__disable_irq();
-while (1) {
-}
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 

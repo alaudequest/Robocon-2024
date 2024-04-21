@@ -9,7 +9,6 @@
 #include "PID.h"
 #include "Encoder.h"
 extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim9;
 extern TIM_HandleTypeDef htim8;
@@ -27,8 +26,6 @@ static Acceleration_t accelGun1, accelGun2;
 static bool enableRuloShootBall = false;
 static void RB1_Gun_AccelerateInit();
 
-#define ACCEL_TIME_STEP (0.01 * 1000 * 15) // GunDeltaT * 1000ms * 15 = 0.01 * 1000 * 15 = 150ms
-
 void RB1_Gun_Init() {
 	// Start MOTOR GUN INIT
 
@@ -37,10 +34,9 @@ void RB1_Gun_Init() {
 	// Bắn 1
 	HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
 
-	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-	encoder_Init(&encGun1, &htim2, 200, Gun1DeltaT);
 	PID_SetParameters(&PID_Gun1, Gun1Proportion, Gun1Integral, Gun1Derivatite, Gun1Alpha);
 	PID_SetSaturate(&PID_Gun1, Gun1SumAboveLimit, Gun1SumBelowLimit);
+	encGun1.deltaT = PID_Gun1.deltaT = Gun1DeltaT;
 
 	PID_SetParameters(&PID_Gun2, Gun2Proportion, Gun2Integral, Gun2Derivatite, Gun2Alpha);
 	PID_SetSaturate(&PID_Gun2, Gun2SumAboveLimit, Gun2SumBelowLimit);
@@ -64,7 +60,7 @@ static void VelocityCalculate(Encoder_t *enc)
 
 void RB1_VelocityCalculateOfGun()
 {
-	encoder_GetSpeed(&encGun1);
+	VelocityCalculate(&encGun1);
 	VelocityCalculate(&encGun2);
 }
 
