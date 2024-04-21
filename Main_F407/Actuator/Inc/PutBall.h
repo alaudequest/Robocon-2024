@@ -34,5 +34,5 @@ typedef struct GetParam_t{
 
 void startPutBall(uint8_t status);
 uint8_t PutBall_getFlag();
-
+uint8_t putBall_getStopFlag();
 #endif /* INC_PUTBALL_H_ */

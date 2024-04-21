@@ -134,3 +134,8 @@ uint8_t PutBall_getFlag()
 {
 	return putBall.flag;
 }
+
+uint8_t putBall_getStopFlag()
+{
+	return putBall.StopPutFlag;
+}
