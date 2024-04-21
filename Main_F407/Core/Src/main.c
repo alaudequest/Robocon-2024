@@ -61,8 +61,8 @@ typedef enum MainEvent {
 CAN_HandleTypeDef hcan1;
 
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim9;
 TIM_HandleTypeDef htim10;
@@ -152,7 +152,6 @@ float process_SubState;
 uint8_t process_GetBall_State;
 uint8_t process_SSCheck;
 uint8_t process_Count;
-bool enableValveProcess = false;
 ValveProcessName valveProcessName = 0;
 
 ///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
@@ -182,8 +181,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_CAN1_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM10_Init(void);
@@ -191,6 +188,8 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM9_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_TIM3_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -596,16 +595,26 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 		}
 		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
 		{
+			u = 0;
+			v = 0;
+			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+			{
+				process_SSCheck ++;
+			}else{
+				process_SSCheck = 0;
+			}
 
+
+			if(process_SSCheck > 10)
+			{
 			chasis_Vector_TargetSpeed = 0;
 			process_ResetFloatingEnc();
 			r = 0;
-			u = 0;
-			v = 0;
+			process_SSCheck = 0;
 			use_pidTheta = 0;
 			process_SubState = 0;
 			step += 1;
-
+			}
 		}
 		else {
 			u = cos(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
@@ -615,36 +624,60 @@ void process_Accel_FloatingEnc5(float Angle, float maxSpeed, float s, float acce
 	}
 
 }
-void process_Accel_FloatingEnc6(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime)
+float AngleNow,AngleTargetPre,AngleTarget,AngleFlag;
+void process_Accel_FloatingEnc6(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime,float AccelAngle)
 {
 	if (process_SubState == 0)
-			{
-		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle * M_PI / 180, RotateTime, 0, 0);
+	{
+		AngleTarget = Angle;
+		if (AngleTarget > AngleTargetPre){
+			AngleFlag = 1;
+		}else{
+			AngleFlag = 2;
+		}
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
 		process_ResetFloatingEnc();
-		use_pidTheta = 1;
 		process_SubState = 1;
-	}
-	else {
+	}else{
+		if(AngleFlag == 1)
+		{
+			AngleNow += AccelAngle;
+			if (AngleNow > AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}else if (AngleFlag == 2){
+			AngleNow -= AccelAngle;
+			if (AngleNow < AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}
 
-		if ((floatingEncCount < (s/2)) && (chasis_Vector_TargetSpeed < maxSpeed))
-				{
+		AngleTargetPre = AngleTarget;
+
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
 			chasis_Vector_TargetSpeed += accel;
 		}
-		if ((floatingEncCount > 500) && (floatingEncCount < (s - 500)))
-				{
+		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+		{
 			chasis_Vector_TargetSpeed = maxSpeed;
-				}
-		if(floatingEncCount > (s/2))
-		{
-			chasis_Vector_TargetSpeed -= accel;
 		}
-		if(floatingEncCount > (s - 150)) {
-			use_pidTheta = 0;
-			r = 0;
+		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
+			chasis_Vector_TargetSpeed = maxSpeed/2		;
+			}
+		if (floatingEncCount > (s - 400)){
+			chasis_Vector_TargetSpeed -= accel ;
 		}
-		if ((chasis_Vector_TargetSpeed <= 0) || (floatingEncCount > s))
-		{
+//		if (floatingEncCount < (s - 1)){
+//			use_pidTheta = 0;
+//			r = 0;
+//		}
 
+		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+		{
 			chasis_Vector_TargetSpeed = 0;
 			process_ResetFloatingEnc();
 			r = 0;
@@ -653,11 +686,173 @@ void process_Accel_FloatingEnc6(float Angle, float maxSpeed, float s, float acce
 			use_pidTheta = 0;
 			process_SubState = 0;
 			step += 1;
+		}else{
+			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
 
 		}
-		else {
-			u = cos(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
-			v = sin(Angle * M_PI / 180) * chasis_Vector_TargetSpeed;
+	}
+
+}
+
+void process_Accel_FloatingEnc7(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime,float AccelAngle)
+{
+	if (process_SubState == 0)
+	{
+		AngleTarget = Angle;
+		if (AngleTarget > AngleTargetPre){
+			AngleFlag = 1;
+		}else{
+			AngleFlag = 2;
+		}
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
+		process_SubState = 1;
+	}else{
+		if(AngleFlag == 1)
+		{
+			AngleNow += AccelAngle;
+			if (AngleNow > AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}else if (AngleFlag == 2){
+			AngleNow -= AccelAngle;
+			if (AngleNow < AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}
+
+		AngleTargetPre = AngleTarget;
+
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
+			chasis_Vector_TargetSpeed += accel;
+		}
+		if ((floatingEncCount > 500)&&(floatingEncCount < (s - 500)))
+		{
+			chasis_Vector_TargetSpeed = maxSpeed;
+		}
+		if (floatingEncCount > (s - 500)&&floatingEncCount < (s - 400)){
+			chasis_Vector_TargetSpeed = maxSpeed/2		;
+			}
+		if (floatingEncCount > (s - 400)){
+			chasis_Vector_TargetSpeed -= accel ;
+		}
+//		if (floatingEncCount < (s - 1)){
+//			use_pidTheta = 0;
+//			r = 0;
+//		}
+
+		if ((chasis_Vector_TargetSpeed<=0)||(floatingEncCount > s))
+		{
+			u = 0;
+			v = 0;
+			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+			{
+				process_SSCheck ++;
+			}else{
+				process_SSCheck = 0;
+			}
+
+
+			if(process_SSCheck > 10)
+			{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			process_SSCheck = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+			}
+		}else{
+			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+
+		}
+	}
+
+}
+
+void process_Accel_FloatingEnc8(float Angle,float maxSpeed,float s,float accel,float sDeaccel,float deaccel,float TargetAngle,float RotateTime,float AccelAngle)
+{
+	if (process_SubState == 0)
+	{
+		AngleTarget = Angle;
+		if (AngleTarget > AngleTargetPre){
+			AngleFlag = 1;
+		}else{
+			AngleFlag = 2;
+		}
+		trajecPlan_SetParam(&trajecTheta, angle_Rad, TargetAngle*M_PI/180, RotateTime, 0, 0);
+		process_ResetFloatingEnc();
+		process_SubState = 1;
+	}else{
+		if(AngleFlag == 1)
+		{
+			AngleNow += AccelAngle;
+			if (AngleNow > AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}else if (AngleFlag == 2){
+			AngleNow -= AccelAngle;
+			if (AngleNow < AngleTarget)
+			{
+				AngleNow = AngleTarget;
+			}
+		}
+
+		AngleTargetPre = AngleTarget;
+
+		use_pidTheta = 1;
+		if ((floatingEncCount < 500)&&(chasis_Vector_TargetSpeed<maxSpeed))
+		{
+			chasis_Vector_TargetSpeed += accel;
+		}
+		if ((floatingEncCount > 500)&&(floatingEncCount < (sDeaccel)))
+		{
+			chasis_Vector_TargetSpeed = maxSpeed;
+		}
+		if (floatingEncCount > sDeaccel){
+			chasis_Vector_TargetSpeed -= deaccel;
+			}
+		if (chasis_Vector_TargetSpeed < 0.2){
+			chasis_Vector_TargetSpeed = 0.2 ;
+		}
+//		if (floatingEncCount < (s - 1)){
+//			use_pidTheta = 0;
+//			r = 0;
+//		}
+
+		if ((floatingEncCount > s))
+		{
+			u = 0;
+			v = 0;
+			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+			{
+				process_SSCheck ++;
+			}else{
+				process_SSCheck = 0;
+			}
+
+
+			if(process_SSCheck > 10)
+			{
+			chasis_Vector_TargetSpeed = 0;
+			process_ResetFloatingEnc();
+			r = 0;
+			process_SSCheck = 0;
+			use_pidTheta = 0;
+			process_SubState = 0;
+			step += 1;
+			}
+		}else{
+			u = cos(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
+			v = sin(AngleNow*M_PI/180)*chasis_Vector_TargetSpeed ;
 
 		}
 	}
@@ -724,6 +919,8 @@ void process_RunByAngle3(float Angle, float speed, float s)
 		}
 	}
 }
+
+
 void process_Signal_RotationMatrixTransform(float u, float v, float r)
 {
 	uControlX = u * cos(angle_Rad) - v * sin(angle_Rad);
@@ -843,7 +1040,23 @@ bool process_ThucHienGapLua() {
 
 	return gapLuaThanhCong;
 }
+bool process_ThucHienGapLua1() {
 
+	bool gapLuaThanhCong = false;
+//	uint8_t soLanDoc = 10;
+	// sau khi đ�?c tín hiệu ngắt cả 2 cảm biến
+//		uint16_t soLanPhatHienLuaTrai = 0;
+//		uint16_t soLanPhatHienLuaPhai = 0;
+		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
+		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
+
+		if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
+//			valve_BothCatch();
+			gapLuaThanhCong = true;
+		}
+
+	return gapLuaThanhCong;
+}
 void process_ResetWallAppRoach()
 {
 	if(process_SubState == 0)
@@ -875,7 +1088,7 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(12,0.25);
+		process_RunByAngle(15,0.25);
 		if(process_ThucHienGapLua() == true){
 			process_Error(1);
 			process_SubState = 1;
@@ -883,7 +1096,7 @@ void process_RiceAppRoach()
 	}
 	else if(process_SubState == 1){
 		process_Error(0);
-		process_RunByAngle(90,0.1);
+		process_RunByAngle(90,0.22);
 		process_SubState = 2;
 	}
 	else if(process_SubState == 2){
@@ -897,6 +1110,7 @@ void process_RiceAppRoach()
 	}
 	else if(process_SubState == 4){
 		process_ResetFloatingEnc();
+		Reset_MPU_Angle();
 		process_SubState = 0;
 		process_Count = 0;
 		step += 1;
@@ -932,7 +1146,43 @@ void process_RiceAppRoach2()
 		}
 	}
 	else if(process_SubState == 4){
+		Reset_MPU_Angle();
 		process_ResetFloatingEnc();
+		process_SubState = 0;
+		process_Count = 0;
+		step += 1;
+	}
+}
+void process_RiceAppRoach3()
+{
+	if(process_SubState == 0)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle(180-16,0.25);
+		if(process_ThucHienGapLua1() == true){
+			process_Error(1);
+
+			process_SubState = 1;
+		}
+	}
+	else if(process_SubState == 1){
+		process_Error(0);
+		process_RunByAngle(90,0.22);
+		process_SubState = 2;
+	}
+	else if(process_SubState == 2){
+		valve_ProcessBegin(ValveProcess_CatchAndHold);
+		process_SubState = 3;
+
+	}
+	else if(process_SubState == 3){
+		if(valve_IsProcessEnd()){
+			process_SubState = 4;
+		}
+	}
+	else if(process_SubState == 4){
+		process_ResetFloatingEnc();
+		Reset_MPU_Angle();
 		process_SubState = 0;
 		process_Count = 0;
 		step += 1;
@@ -974,8 +1224,6 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_CAN1_Init();
-  MX_TIM2_Init();
-  MX_TIM3_Init();
   MX_USART3_UART_Init();
   MX_TIM1_Init();
   MX_TIM10_Init();
@@ -983,6 +1231,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM5_Init();
   MX_TIM9_Init();
+  MX_TIM4_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -1002,6 +1252,7 @@ int main(void)
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
+	RB1_CollectBallMotorOffForce();
 
   /* USER CODE END 2 */
 
@@ -1199,55 +1450,6 @@ static void MX_TIM1_Init(void)
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_Encoder_InitTypeDef sConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 65535;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
   * @brief TIM3 Initialization Function
   * @param None
   * @retval None
@@ -1259,28 +1461,29 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
-  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 80-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
+  htim3.Init.Period = 1000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
-  if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1290,9 +1493,85 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 80-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 1000-1;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
 
 }
 
@@ -1588,6 +1867,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : Buzzer_Pin */
   GPIO_InitStruct.Pin = Buzzer_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1641,6 +1923,29 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(Enc1A_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RelayRulo_Pin */
+  GPIO_InitStruct.Pin = RelayRulo_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RelayRulo_GPIO_Port, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
@@ -1670,7 +1975,7 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  * @param  argument: Not used
  * @retval None
  */
-
+//kiểm tra trên bàn anh có mạch nạp ko
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -1772,12 +2077,12 @@ void CAN_Bus(void const * argument)
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
+//	RB1_CollectBallMotorOffForce();
+//	osDelay(3000);
+//	RB1_CollectBallMotorOnMax();
+//	osDelay(1000);
 	/* Infinite loop */
 	for (;;) {
-		if(enableValveProcess){
-			valve_ProcessBegin(valveProcessName);
-			enableValveProcess = 0;
-		}
 		RB1_CollectBallMotor_ControlSpeed();
 		RB1_SensorTriggerHandle();
 		RB1_CalculateRuloGunPIDSpeed();
@@ -1861,93 +2166,40 @@ void OdometerHandle(void const * argument)
 		}
 		else if (step == 1)
 		{
-			process_Accel_FloatingEnc5(-27, 1, 4000, 0.1, 0, 3);
-			if(floatingEncCount>2600){
-				process_SubState = 0;
-				step+=1;
-			}
+			AngleNow = -27;
+			process_Accel_FloatingEnc6(-27, 1, 3000, 0.5, 0, 3, 5);
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc5(26, 0.6, 1000, 0.08, 0, 3);
-
+			process_Accel_FloatingEnc6(40, 0.8, 2500, 0.5, 0, 3, 5);
 		}
 		else if (step == 3)
 		{
-			process_RiceAppRoach();
+			process_Accel_FloatingEnc6(18, 0.6, 800, 0.5, 0, 3, 5);
+
 		}
 		else if (step == 4)
 		{
-			process_Accel_FloatingEnc5(-90, 0.6, 500, 1.2, 0, 3);
-			if(floatingEncCount>300){
-				process_SubState = 0;
-				step+=1;
-			}
+			process_RiceAppRoach();
 		}
 		else if(step == 5)
 		{
-			process_Accel_FloatingEnc4(-46, 1, 11700, 1, 90, 1.5);
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
-		}
-		else if (step == 6)
-		{
-			Manual = 1;
-			PlusControl = 2;
-			if (GamePad.Up)
-			{
-				osDelay(500);
-				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
-				if (GamePad.Up)
-				{	//Reset thong so enc tha troi va la ban :
-//					Reset_MPU_Angle();
-					process_ResetFloatingEnc();
-					// Set thong so quy hoach quy dao :
-					PlusControl = 0;
-					Manual = 0;
-					step += 1;
-					// tha tay gap
-					process_Error(1);
-					valve_HandRelease();
-					osDelay(50);
-					process_Error(0);
-					osDelay(50);
-					process_Error(1);
-					osDelay(50);
-					valve_ArmUp();
-					osDelay(50);
-					process_Error(0);
-				}
-			}
-		}
-		else if(step == 7 )
-		{
-			process_Accel_FloatingEnc5(117, 0.8,10700, 1, 0, 2.5);
-		}
-		else if(step == 8)
-		{
-			process_RiceAppRoach2();
-		}
-		else if (step == 9)
-		{
-			process_Accel_FloatingEnc5(-90, 0.6, 500, 1.2, 0, 3);
+			AngleNow = -90;
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
 			if(floatingEncCount>300){
 				process_SubState = 0;
 				step+=1;
 			}
 		}
-
-		else if(step == 10)
+		else if(step == 6)
 		{
-			process_Accel_FloatingEnc4(-130, 0.5, 11100, 0.08, 90, 3);
 			if(floatingEncCount>1000)
 			{
 				valve_ArmDown();
 			}
+			process_Accel_FloatingEnc8(-36, 1, 11300, 0.08, 6000, 0.01, 90, 1.3, 5);
 		}
-		else if (step == 11)
+		else if (step == 7)
 		{
 			Manual = 1;
 			PlusControl = 2;
@@ -1956,63 +2208,262 @@ void OdometerHandle(void const * argument)
 				osDelay(500);
 				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 				if (GamePad.Up)
-				{	//Reset thong so enc tha troi va la ban :
-//					Reset_MPU_Angle();
+				{
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
 					PlusControl = 0;
 					Manual = 0;
-					step += 1;
 					// tha tay gap
 					process_Error(1);
 					valve_HandRelease();
-					osDelay(50);
 					process_Error(0);
-					osDelay(50);
-					process_Error(1);
 					osDelay(50);
 					valve_ArmUp();
-					osDelay(50);
-					process_Error(0);
+					osDelay(250);
+					step += 1;
 				}
 			}
 		}
+		else if(step == 8)
+		{
+			AngleNow = 180;
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+		}
+		else if(step == 9)
+		{
+			process_Accel_FloatingEnc6(33, 1, 12400, 0.5, 0, 3.5, 10);
+		}
+		else if(step == 10)
+		{
+			process_Accel_FloatingEnc6(180-33, 0.8, 1000, 0.5, 0, 3, 5);
+		}
+		else if(step == 11)
+		{
+			process_RiceAppRoach3();
+		}
 		else if(step == 12)
 		{
-			process_Accel_FloatingEnc5(180, 0.5, 3000, 0.08, 90, 3);
+			AngleNow = -90;
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
+			if(floatingEncCount>300){
+				process_SubState = 0;
+				step+=1;
+			}
 		}
 		else if(step == 13)
 		{
-			process_Accel_FloatingEnc5(-88, 0.5, 11800, 0.08, 90, 3);
+			if(floatingEncCount>1000)
+			{
+				valve_ArmDown();
+			}
+			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
+//			process_Accel_FloatingEnc6(-170, 1, 13000, 0.08, 90, 1.3, 5);
+
+			if(floatingEncCount> 6300)
+			{
+				process_SubState = 0;
+				step++;
+			}
 		}
 		else if(step == 14)
 		{
-			process_Accel_FloatingEnc4(0, 0.5, 6100, 0.08, 90, 3);
+
+			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
 		}
-		else if(step == 15){
-			ShootBallTime_Start(&GamePad);
-			step++;
-		}
-		else if(step == 16){
+		else if (step == 15)
+		{
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				osDelay(500);
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 				if (GamePad.Up)
-				{	//Reset thong so enc tha troi va la ban :
-//					Reset_MPU_Angle();
+				{
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
 					PlusControl = 0;
 					Manual = 0;
-					step += 1;
-				}
-				if(IsInShootBallTime() == false){
-					PlusControl = 0;
+					// tha tay gap
+					process_Error(1);
+					valve_HandRelease();
+					process_Error(0);
+					osDelay(50);
+					valve_ArmUp();
+					osDelay(250);
+					step++;
 				}
 			}
 		}
+		else if(step == 16)
+		{
+			AngleNow = 180;
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+		}
+		else if(step == 17)
+		{
+			process_Accel_FloatingEnc6(33, 1, 12600, 0.5, 0, 3.5, 10);
+		}
+		else if(step == 18)
+		{
+			process_Accel_FloatingEnc6(180-33, 0.8, 1000, 0.5, 0, 3, 5);
+		}
+		else if(step == 19)
+		{
+			process_RiceAppRoach3();
+		}
+		else if(step == 30)
+		{
+			AngleNow = -90;
+			process_Accel_FloatingEnc6(-90, 0.6, 10000, 1.2, 0, 3,5);
+			if(floatingEncCount>300){
+				process_SubState = 0;
+				step+=1;
+			}
+		}
+		else if(step == 31)
+		{
+			if(floatingEncCount>1000)
+			{
+				valve_ArmDown();
+			}
+			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
+
+			if(floatingEncCount> 6300)
+			{
+				process_SubState = 0;
+				step++;
+			}
+		}
+
+//		else if (step == 10)
+//		{
+//			AngleNow = -90;
+//			process_Accel_FloatingEnc6(-90, 0.6, 500, 1.2, 0, 3, 5);
+//			if(floatingEncCount>300){
+//				process_SubState = 0;
+//				step+=1;
+//			}
+//		}
+//		else if(step == 11)
+//		{
+//			AngleNow = -135;
+//			process_Accel_FloatingEnc6(-128, 0.6, 10800, 1, 90, 1.5,5);
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
+//		}
+//		else if (step == 12)
+//		{
+//			Manual = 1;
+//			PlusControl = 2;
+//			if (GamePad.Up)
+//			{
+//
+//				osDelay(500);
+//				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+//				if (GamePad.Up)
+//				{	//Reset thong so enc tha troi va la ban :
+////					Reset_MPU_Angle();
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//					PlusControl = 0;
+//					Manual = 0;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					process_Error(0);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(250);
+//					step += 1;
+//				}
+//			}
+//		}
+
+//		else if(step == 7 )
+//		{
+//			process_Accel_FloatingEnc5(114, 0.8,10600, 1, 0, 2.5);
+//		}
+//		else if(step == 8)
+//		{
+//			process_RiceAppRoach2();
+//		}
+//		else if (step == 9)
+//		{
+//			process_Accel_FloatingEnc5(-90, 0.6, 500, 1.2, 0, 3);
+//			if(floatingEncCount>300){
+//				process_SubState = 0;
+//				step+=1;
+//			}
+//		}
+//
+//		else if(step == 10)
+//		{
+//			process_Accel_FloatingEnc4(-129, 1, 11100, 1, 90, 2);
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
+//		}
+//		else if (step == 11)
+//		{
+//			Manual = 1;
+//			PlusControl = 2;
+//			if (GamePad.Up)
+//			{
+//				osDelay(500);
+//				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+//				if (GamePad.Up)
+//				{	//Reset thong so enc tha troi va la ban :
+////					Reset_MPU_Angle();
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//					PlusControl = 0;
+//					Manual = 0;
+//					step += 1;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					osDelay(50);
+//					process_Error(0);
+//					osDelay(50);
+//					process_Error(1);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(50);
+//					process_Error(0);
+//				}
+//			}
+//		}
+//		else if(step == 12)
+//		{
+//			AngleNow = -180;
+//			process_Accel_FloatingEnc6(-180, 1, 1600, 0.08, 90, 3);
+//
+//		}
+//		else if(step == 13)
+//		{
+//			process_Accel_FloatingEnc6(-88, 1, 11000, 0.5 , 90, 3);
+//		}
+//		else if(step == 14)
+//		{
+//			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 90, 3);
+//		}
+//		else if(step == 15){
+//			ShootBallTime_Start(&GamePad);
+//			step++;
+//		}
+//		else if(step == 16){
+//			Manual = 1;
+//			PlusControl = 2;
+//			if(IsInShootBallTime() == false){
+//				PlusControl = 0;
+//				step += 1;
+//			}
+//		}
+
 //		else if(step == 10)
 //		{
 //			process_RunByAngle3(-90,0.5,200);
@@ -2171,7 +2622,7 @@ void OdometerHandle(void const * argument)
 
 		if(GamePad.Triangle)
 		{
-			osDelay(100);
+			osDelay(300);
 			if(GamePad.Triangle)
 			{
 				valve_ProcessBegin(ValveProcess_ShootBallTime_Reset);
@@ -2231,9 +2682,9 @@ void OdometerHandle(void const * argument)
 //				v = GamePad.YLeftCtr;
 ////				r = GamePad.XRightCtr;
 //				process_Signal_RotationMatrixTransform3(u, v, r);
-				uControlX = -GamePad.XLeftCtr*0.6;
-				uControlY = GamePad.YLeftCtr*0.6;
-				uControlTheta = GamePad.XRightCtr*0.8;
+				uControlX = -GamePad.XLeftCtr*1.2;
+				uControlY = GamePad.YLeftCtr*1.2;
+				uControlTheta = GamePad.XRightCtr*2;
 				if (absf(uControlX)>absf(uControlY))
 				{
 					uControlY = 0;
@@ -2295,6 +2746,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14) {
+	RB1_GunIncreaseTickTimerInInterrupt();
+	RB1_UpdateAccelTickInInterrupt();
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

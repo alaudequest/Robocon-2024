@@ -58,7 +58,7 @@ void ProcessCatchAndHold()
 			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
 			break;
 		case 2:
-			ProcessDelay(500);
+			ProcessDelay(600);
 			break;
 		case 3:
 			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
