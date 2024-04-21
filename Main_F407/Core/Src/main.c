@@ -933,7 +933,7 @@ void process_Ball_Approach3(uint8_t Ball)
 	{
 		process_RunByAngle(0,0.15);
 		use_pidTheta = 1;
-		if (distance<0.6)
+		if (distance<0.8)
 		{
 			process_ResetFloatingEnc();
 			process_SubState = 2;
@@ -954,8 +954,8 @@ void process_Ball_Approach3(uint8_t Ball)
 	else if (process_SubState == 3)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(90,-0.1);
-		if(distance < 0.15)
+		process_RunByAngle(90,-0.08);
+		if(distance < 0.14)
 		{
 			process_Count ++;
 		}else{
@@ -976,8 +976,8 @@ void process_Ball_Approach3(uint8_t Ball)
 	else if (process_SubState == 4)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(90,0.1);
-		if(distance > 0.1)
+		process_RunByAngle(90,0.08);
+		if(distance > 0.08)
 		{
 			process_Count ++;
 		}else{
@@ -1019,11 +1019,11 @@ void process_ApproachWall()
 	else if(process_SubState == 1)
 		{
 			process_Count++;
-			if (process_Count > 20)
+			if (process_Count > 301)
 			{
 				process_Count = 0;
 				process_SubState = 2;
-				process_RunByAngle(-40,0.16);
+				process_RunByAngle(-36,0.16);
 			}
 		}
 	else if(process_SubState == 2)
@@ -2042,7 +2042,7 @@ void InverseKinematic(void const * argument)
  * @param argument: Not used
  * @retval None
  */
-int stop;
+int column,row;
 /* USER CODE END Header_CAN_Bus */
 void CAN_Bus(void const * argument)
 {
@@ -2142,16 +2142,20 @@ void OdometerHandle(void const * argument)
 				process_Error(check);
 	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
 
-//				if (step == 50){
-//					UART5_Start_To_Raspberry();
-//					step += 1;
-//				}if (step == 51)
-//				{
-//					if((UART5_Is_Received() == HAL_OK))
-//					{
-//						step+=1;
-//					}
-//				}
+				if (step == 49)
+				{
+					process_Ball_Approach3(0);
+				}
+				if (step == 50){
+					UART5_Start_To_Raspberry();
+					step += 1;
+				}if (step == 51)
+				{
+					if((UART5_Is_Received() == HAL_OK))
+					{
+						step+=1;
+					}
+				}
 
 
 
@@ -2198,7 +2202,8 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 3)
 						{
-							process_Accel_FloatingEnc3( -20, 2, 8000, 0.1, 0, 3);
+						process_setVal_PutBall(1);
+							process_Accel_FloatingEnc3( -20, 1.8, 8000, 0.1, 0, 3);
 							if(floatingEncCount > 3500)
 							{
 								step += 1;
@@ -2207,8 +2212,8 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 4)
 						{
-							process_Accel_FloatingEnc3( 45, 1.8, 10000, 0.1, 0, 3);
-							if(floatingEncCount > 5600)
+							process_Accel_FloatingEnc3( 45, 1.5, 10000, 0.1, 0, 3);
+							if(floatingEncCount >6200)
 							{
 								step += 1;
 								process_SubState = 0;
@@ -2257,7 +2262,7 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 11)
 						{
-							process_Ball_Approach3(0);
+							process_Ball_Approach3(column);
 						}
 					else if (step == 12)
 						{
@@ -2266,8 +2271,18 @@ void OdometerHandle(void const * argument)
 						}
 					else if (step == 13)
 						{
-							stop += 1;
-							step += 1;
+
+							if ((column == 10)||(column == 20))
+							{
+								step = 26;
+							}else{
+								column += 1;
+								step += 1;
+								if (column>=4)
+								{
+									column = 0;
+								}
+							}
 						}
 					else if (step == 14)
 						{
@@ -2280,12 +2295,13 @@ void OdometerHandle(void const * argument)
 						}
 					else if(step == 16)
 						{
+{
 							AngleNow = 48;
 							process_Accel_FloatingEnc3( 48, 1,10000 , 0.1, 0, 3);
-							if ((floatingEncCount>2000) && (floatingEncCount<2100))
-							{
-								Reset_MPU_Angle();
-							}
+//							if ((floatingEncCount>2000) && (floatingEncCount<2100))
+//							{
+//								Reset_MPU_Angle();
+//							}
 							if (floatingEncCount>3000)
 							{
 								step += 1;
@@ -2293,9 +2309,10 @@ void OdometerHandle(void const * argument)
 							}
 //							process_ApproachWall2();
 						}
+						}
 					else if(step == 17)
 					{
-						process_Accel_FloatingEnc3( 45, 1,1500 , 0.1, 0, 3);
+						process_Accel_FloatingEnc3( 45, 1,3500 , 0.1, -5, 3);
 					}
 					else if(step == 18)
 					{
@@ -2304,17 +2321,53 @@ void OdometerHandle(void const * argument)
 					else if(step == 19)
 					{
 						process_ReleaseBall();
+						Reset_MPU_Angle();
 					}
-//					else if (step == 13)
-//						{
-//							if(stop ==1)
-//							{
-//								step = 20;
-//							}else{
-//							process_setVal_PutBall(1);
-//							process_Accel_FloatingEnc3( 45, 0.8,8300 , 0.1, -5, 3);
-//							}
-//						}
+					else if (step == 20)
+					{
+						AngleNow = -135;
+						process_Accel_FloatingEnc3( -135, 1,10000 , 0.1, 0, 3);
+						if (floatingEncCount>5000)
+						{
+							step += 1;
+							process_SubState = 0;
+						}
+					}
+					else if (step == 21)
+					{
+						process_Accel_FloatingEnc3(-225,1,1500,0.1,0,3);
+					}
+					else if (step == 22)
+					{
+						process_ApproachWall2();
+					}
+					else if (step == 23)
+					{
+						process_Accel_FloatingEnc3( -140, 0.3, 2300, 0.1, 0, 3);
+					}
+					else if (step == 24)
+					{
+						step = 10;
+					}
+					else if (step == 26)
+					{
+						process_ReleaseBall();
+
+					}
+					else if (step == 27)
+					{
+						column += 1;
+						if (column>=4)
+						{
+							column = 0;
+						}
+//						process_Accel_FloatingEnc3( -140, 0.3, 200, 0.1, 0, 3);
+						step += 1;
+					}
+					else if (step == 28)
+					{
+						step = 11;
+					}
 //					else if(step == 14)
 //						{
 //							process_ApproachWall();
