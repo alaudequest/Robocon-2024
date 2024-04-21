@@ -13,13 +13,17 @@
 #include "Motor.h"
 #include "Encoder.h"
 #include "BoardParameter.h"
+#include "AngleOptimizer.h"
 #include "stdbool.h"
 #include "cmsis_os.h"
 
 void PID_BLDC_CalSpeed(float Target_set);
 void PID_DC_CalSpeed(float Target_set);
 void PID_DC_CalPos(float Target_set);
-void PID_ALL_Enable(bool Mode);
+
+void PID_BLDC_OnLowSpeed();
+void PID_BLDC_OnHightSpeed();
+void PID_DC_UntangleWireBLDC();
 void PID_BLDC_BreakProtection(bool Mode);
-void PID_DC_XaDay();
+
 #endif /* INC_PID_SWERVEMODULE_H_ */

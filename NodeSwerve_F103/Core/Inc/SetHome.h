@@ -37,5 +37,4 @@ void sethome_SetFlag(SetHomeEvent e);
 bool sethome_CheckFlag(SetHomeEvent e);
 void sethome_ClearFlag(SetHomeEvent e);
 bool sethome_IsComplete();
-void sethome_fake();
 #endif /* INC_SETHOME_H_ */
