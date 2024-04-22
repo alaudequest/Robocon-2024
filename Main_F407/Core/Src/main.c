@@ -64,6 +64,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim9;
 TIM_HandleTypeDef htim10;
 
@@ -191,6 +192,7 @@ static void MX_TIM5_Init(void);
 static void MX_TIM9_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM8_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -338,10 +340,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	if (GPIO_Pin == Enc1A_Pin) {
 		if (HAL_GPIO_ReadPin(Enc1B_GPIO_Port, Enc1B_Pin)) {
-			RB1_EncGun1_DecreaseCount();
+			RB1_EncGun1_IncreaseCount();
 		}
 		else
-			RB1_EncGun1_IncreaseCount();
+			RB1_EncGun1_DecreaseCount();
 		return;
 	}
 	if (GPIO_Pin == Enc2A_Pin) {
@@ -352,7 +354,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 			RB1_EncGun2_IncreaseCount();
 		return;
 	}
-//	RB1_WaitSensorInInterrupt(GPIO_Pin);
 }
 
 float absf(float num)
@@ -1232,6 +1233,7 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM4_Init();
   MX_TIM3_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
 
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -1251,7 +1253,10 @@ int main(void)
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
-	RB1_CollectBallMotorOffForce();
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 500);
+	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, 500);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, 500);
+	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 500);
 
   /* USER CODE END 2 */
 
@@ -1638,6 +1643,85 @@ static void MX_TIM5_Init(void)
 }
 
 /**
+  * @brief TIM8 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM8_Init(void)
+{
+
+  /* USER CODE BEGIN TIM8_Init 0 */
+
+  /* USER CODE END TIM8_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM8_Init 1 */
+
+  /* USER CODE END TIM8_Init 1 */
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 80-1;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim8.Init.Period = 1000-1;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = 0;
+  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim8, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim8, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM8_Init 2 */
+
+  /* USER CODE END TIM8_Init 2 */
+  HAL_TIM_MspPostInit(&htim8);
+
+}
+
+/**
   * @brief TIM9 Initialization Function
   * @param None
   * @retval None
@@ -1922,22 +2006,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(Enc1A_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /*Configure GPIO pin : RelayRulo_Pin */
   GPIO_InitStruct.Pin = RelayRulo_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1946,6 +2014,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(RelayRulo_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -1980,11 +2051,11 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-//	ShootBallTime_Start(&GamePad);
+	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
-			osDelay(50);
+		osDelay(50);
 	}
   /* USER CODE END 5 */
 }
@@ -2717,11 +2788,10 @@ void TaskRunProcess(void const * argument)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM14) {
 	RB1_GunIncreaseTickTimerInInterrupt();
 	RB1_UpdateAccelTickInInterrupt();
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM14) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
