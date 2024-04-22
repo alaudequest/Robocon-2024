@@ -7,7 +7,6 @@
 #include"AngleOptimizer.h"
 Angle_Opt_Param opt;
 
-
 float absf(float num)
 {
 	if (num>=0)return num;
@@ -130,7 +129,8 @@ void angopt_Cal(float input)
 		preAngle = input;
 		preCal = calInput;
 		currentAngle += deltaAngle;
-		if(currentAngle>=1080) currentAngle-=360;
+		if(currentAngle>=360*5) currentAngle-=360;
+		else if(currentAngle <= - 360*5) currentAngle += 360;
 	}
 }
 
