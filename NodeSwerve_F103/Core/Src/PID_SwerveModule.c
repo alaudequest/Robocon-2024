@@ -6,6 +6,7 @@
  */
 
 #include "PID_SwerveModule.h"
+pErrorPID pErrPID;
 bool isBreakProtectionDone = false;
 
 void PID_DC_CalSpeed(float Target_set)
@@ -22,6 +23,7 @@ void PID_DC_CalSpeed(float Target_set)
 
 	if (absf(result)>500)
 	{
+		// Nếu số xung encoder trước và sau không thay đổi thì EncCheck tăng
 		if (safeDC.ValueNow == safeDC.ValuePre)
 			{
 			if(safeDC.SaftyFlag == 0){
@@ -33,9 +35,10 @@ void PID_DC_CalSpeed(float Target_set)
 				safeDC.EncCheckForDC = 0;
 			}
 	}
-
+	// Nếu số xung không đổi với tốc cao thì có khả năng lỗi encoder
 	if (safeDC.EncCheckForDC>=10){
 		safeDC.SaftyFlag = 1;
+		pErrPID(ERROR_PID_FEEDBACK_ERROR);
 	}
 	safeDC.ValuePre = safeDC.ValueNow;
 
@@ -130,4 +133,9 @@ void PID_BLDC_OnHightSpeed()
 	pid.kP = 0.03;
 	pid.kI = 5;
 	brd_SetPID(pid, PID_BLDC_SPEED);
+}
+
+void PID_RegisterErrorCallback(void (*pErrorPID)(ErrorPID))
+{
+	pErrPID = pErrorPID;
 }

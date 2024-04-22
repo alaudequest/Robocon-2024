@@ -128,6 +128,14 @@ void startPutBall(uint8_t state)
 		}
 		MotorDC_Drive(&getBall.mdc, 0);
 	}
+	else if(state == 5)
+		{
+			MotorDC_Drive(&getBall.mdc, -1000);
+		}
+	else if(state == 6)
+		{
+			MotorDC_Drive(&getBall.mdc, 0);
+		}
 }
 
 uint8_t PutBall_getFlag()
