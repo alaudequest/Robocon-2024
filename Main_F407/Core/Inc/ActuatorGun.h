@@ -20,7 +20,7 @@
 #define Gun1Derivatite			0
 #define Gun1Alpha				0
 #define Gun1DeltaT				0.01
-#define Gun1SumAboveLimit 		600
+#define Gun1SumAboveLimit 		240
 #define Gun1SumBelowLimit		0
 
 /*-----------------------------End:PID GUN1 Macro(SPEED)------------------------*/
@@ -31,7 +31,7 @@
 #define Gun2Derivatite			0
 #define Gun2Alpha				0
 #define Gun2DeltaT				0.01
-#define Gun2SumAboveLimit 		600
+#define Gun2SumAboveLimit 		240
 #define Gun2SumBelowLimit		0
 
 /*-----------------------------End:PID GUN2 Macro(SPEED)------------------------*/

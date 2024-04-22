@@ -43,7 +43,6 @@ static void RelayCommandHandler()
 		RB1_CollectBallMotor_Off();
 
 	if (CHECKFLAG(relayCommand, RelayCmd_RunRuloShootBall)) {
-
 	}
 	else {
 		RB1_SetTargetSpeedGun1(0);

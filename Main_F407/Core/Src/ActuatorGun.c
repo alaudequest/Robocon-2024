@@ -24,6 +24,7 @@ static uint8_t pidCurrentTickTimeGun2_ms = 0;
 static AccelerationState accelStateCollectBall = NO_ACCEL;
 static Acceleration_t accelGun1, accelGun2;
 static bool enableRuloShootBall = false;
+float gun1TargetSpeed, gun2TargetSpeed;
 static void RB1_Gun_AccelerateInit();
 
 void RB1_Gun_Init() {
@@ -108,22 +109,22 @@ static void CalculateAccelValue(Acceleration_t *a)
 
 void RB1_CalculateRuloGunPIDSpeed()
 {
-//	if(enableRuloShootBall == false) return;
-	float targetSpeed1, targetSpeed2;
+//	float targetSpeed1, targetSpeed2;
 	RB1_VelocityCalculateOfGun();
-	CalculateAccelValue(&accelGun1);
-	targetSpeed1 = accelGun1.currentOutputValue;
-	CalculateAccelValue(&accelGun2);
-	targetSpeed2 = accelGun2.currentOutputValue;
+//	CalculateAccelValue(&accelGun1);
+//	targetSpeed1 = accelGun1.currentOutputValue;
+//	CalculateAccelValue(&accelGun2);
+//	targetSpeed2 = accelGun2.currentOutputValue;
+
+	float uHat = PID_Calculate(&PID_Gun1, gun1TargetSpeed, encGun1.vel_Real);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, uHat);
+	uHat = PID_Calculate(&PID_Gun2, gun2TargetSpeed, encGun2.vel_Real);
+	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, uHat);
 
 	if (pidCurrentTickTimeGun1_ms >= Gun1DeltaT * 1000) { // DeltaT = 0.01s = 10ms
-		float uHat = PID_Calculate(&PID_Gun1, targetSpeed1, encGun1.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, uHat);
 		pidCurrentTickTimeGun1_ms = 0;
 	}
 	if (pidCurrentTickTimeGun2_ms >= Gun2DeltaT * 1000) {
-		float uHat = PID_Calculate(&PID_Gun2, targetSpeed2, encGun2.vel_Real);
-		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, uHat);
 		pidCurrentTickTimeGun2_ms = 0;
 	}
 }
@@ -153,27 +154,39 @@ void RB1_Gun_Stop() {
 
 void RB1_SetTargetSpeedGun1(float targetSpeed)
 {
-	accelGun1.targetValue = targetSpeed;
+//	accelGun1.targetValue = targetSpeed;
+	gun1TargetSpeed = targetSpeed;
 }
 
 void RB1_SetTargetSpeedGun2(float targetSpeed)
 {
-	accelGun2.targetValue = targetSpeed;
+//	accelGun2.targetValue = targetSpeed;
+	gun2TargetSpeed = targetSpeed;
 }
 
 #define COLLECT_BALL_ACCEL_TIME_STEP 150
 #define COLLECT_BALL_MAX_SPEED 1000
+
+static void RunCollectBallLeft(uint16_t collectBallPWM)
+{
+	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, collectBallPWM);
+}
+
+static void RunCollectBallRight(uint16_t collectBallPWM)
+{
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, collectBallPWM);
+}
 
 static void CollectBallMotorSpeedUp()
 {
 
 	if (HAL_GetTick() - collectBallTickTime > COLLECT_BALL_ACCEL_TIME_STEP && collectBallPWM <= COLLECT_BALL_MAX_SPEED) {
 		collectBallTickTime = HAL_GetTick();
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, collectBallPWM);
-		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, collectBallPWM);
-		collectBallPWM += 100;
+		RunCollectBallLeft(collectBallPWM);
+		RunCollectBallRight(collectBallPWM);
+		collectBallPWM += 10;
 
-		if (collectBallPWM > 800) {
+		if (collectBallPWM > 200) {
 			accelStateCollectBall = 0;
 		}
 	}
@@ -184,18 +197,20 @@ static void CollectBallMotorSpeedDown()
 {
 	if (HAL_GetTick() - collectBallTickTime > 150 && collectBallPWM >= 0) {
 		collectBallTickTime = HAL_GetTick();
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, collectBallPWM);
-		__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, collectBallPWM);
-		if (collectBallPWM < 100)
-			collectBallPWM = 100;
+		RunCollectBallLeft(collectBallPWM);
+		RunCollectBallRight(collectBallPWM);
+		if (collectBallPWM < 10)
+			collectBallPWM = 10;
 		else
-			collectBallPWM -= 100;
+			collectBallPWM -= 10;
 
 		if (collectBallPWM <= 0) {
 			accelStateCollectBall = 0;
 		}
 	}
 }
+
+
 
 void RB1_CollectBallMotor_Init()
 {
@@ -210,10 +225,16 @@ void RB1_CollectBallMotor_ControlSpeed()
 	if (accelStateCollectBall != ACCELERATION && accelStateCollectBall != DECELERATION)
 		return;
 	if (accelStateCollectBall == ACCELERATION) {
-		CollectBallMotorSpeedUp();
+//		CollectBallMotorSpeedUp();
+		//board LH đã có sẵn gia tốc
+		RunCollectBallLeft(200);
+		RunCollectBallRight(200);
 	}
 	else if (accelStateCollectBall == DECELERATION) {
-		CollectBallMotorSpeedDown();
+//		CollectBallMotorSpeedDown();
+		//board LH đã có sẵn gia tốc
+		RunCollectBallLeft(0);
+		RunCollectBallRight(0);
 	}
 }
 

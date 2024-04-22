@@ -1192,6 +1192,8 @@ void process_RiceAppRoach3()
 		step += 1;
 	}
 }
+
+uint16_t pwm1,pwm2,pwm3,pwm4;
 /* USER CODE END 0 */
 
 /**
@@ -1253,10 +1255,7 @@ int main(void)
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
 	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 500);
-	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_2, 500);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, 500);
-	__HAL_TIM_SET_COMPARE(&htim9, TIM_CHANNEL_1, 500);
+
 
   /* USER CODE END 2 */
 
@@ -1665,7 +1664,7 @@ static void MX_TIM8_Init(void)
   htim8.Instance = TIM8;
   htim8.Init.Prescaler = 80-1;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim8.Init.Period = 1000-1;
+  htim8.Init.Period = 255-1;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim8.Init.RepetitionCounter = 0;
   htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -1740,9 +1739,9 @@ static void MX_TIM9_Init(void)
 
   /* USER CODE END TIM9_Init 1 */
   htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 80-1;
+  htim9.Init.Prescaler = 30-1;
   htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim9.Init.Period = 1000-1;
+  htim9.Init.Period = 255-1;
   htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim9) != HAL_OK)
@@ -2765,13 +2764,10 @@ void TaskRunProcess(void const * argument)
   /* USER CODE BEGIN TaskRunProcess */
 	/* Infinite loop */
 	for (;;) {
-//		if(process_ThucHienGapLua() == true){
-//			process_Error(1);
-//			osDelay(5);
-//			process_Error(0);
-//			osDelay(500);
-//			__NOP();
-//		}
+//		__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,pwm1);
+//		__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,pwm2);
+//		__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwm3);
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwm4);
 		osDelay(100);
 		}
   /* USER CODE END TaskRunProcess */

@@ -16,7 +16,7 @@ bool isRowBallAbove = false;
 bool isDetectBallLeft = false;
 bool isDetectBallRight = false;
 Sensor_t collectBallLeft, collectBallRight;
-float aboveRowSpeed = 2950.0, belowRowSpeed = 3700.0;
+float aboveRowSpeed = 1000.0, belowRowSpeed = 2000.0;
 extern uint8_t Manual;
 extern int PlusControl;
 
