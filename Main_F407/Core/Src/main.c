@@ -2050,7 +2050,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	ShootBallTime_Start(&GamePad);
+//	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -2083,8 +2083,6 @@ void InverseKinematic(void const * argument)
 				process_WireRelease();
 			}
 		}
-		//
-		//
 		if (gamepadRxIsBusy) {
 			gamepadRxIsBusy = 0;
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -2659,6 +2657,18 @@ void OdometerHandle(void const * argument)
 		else if(step == 50)
 		{
 			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 90, 3, 5);
+		}
+		else if(step == 51){
+			ShootBallTime_Start(&GamePad);
+			step++;
+		}
+		else if(step == 52){
+			Manual = 1;
+			PlusControl = 2;
+			if(IsInShootBallTime() == false){
+				PlusControl = 0;
+				step += 1;
+			}
 		}
 ///////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 
