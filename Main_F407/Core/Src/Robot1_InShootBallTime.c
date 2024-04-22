@@ -16,7 +16,7 @@ bool isRowBallAbove = false;
 bool isDetectBallLeft = false;
 bool isDetectBallRight = false;
 Sensor_t collectBallLeft, collectBallRight;
-float aboveRowSpeed = 1000.0, belowRowSpeed = 2000.0;
+float aboveRowSpeed = 2500.0, belowRowSpeed = 3700.0;
 extern uint8_t Manual;
 extern int PlusControl;
 
@@ -76,6 +76,22 @@ void RowBallAboveProcess()
 		isTriangleButtonPress = false;
 	}
 }
+
+void BuzzerBeep(){
+	static uint8_t step = 0;
+	if(step == 1){
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+		step++;
+	}
+	else if(step == 1){
+		ProcessDelay(50,&step);
+	}
+	else if(step == 2){
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+		step = 0;
+	}
+}
+
 
 void ShootBallTime_Handle()
 {
@@ -157,6 +173,42 @@ void ShootBallTime_Handle()
 			PlusControl = 0;
 		}
 	}
+
+	// Nút giảm tốc
+	if (_gamepad->R2){
+		osDelay(100);
+		if(_gamepad->R2){
+			if(isRowBallAbove){
+				aboveRowSpeed -=100;
+				RB1_SetTargetSpeedGun1(aboveRowSpeed);
+				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+			}
+			else{
+				belowRowSpeed -=100;
+				RB1_SetTargetSpeedGun1(belowRowSpeed);
+				RB1_SetTargetSpeedGun2(belowRowSpeed);
+			}
+		}
+
+	}
+	// Nút tăng tốc
+	if (_gamepad->R1){
+		osDelay(100);
+		if(_gamepad->R1){
+			if(isRowBallAbove){
+				aboveRowSpeed +=100;
+				RB1_SetTargetSpeedGun1(aboveRowSpeed);
+				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+			}
+			else{
+				belowRowSpeed +=100;
+				RB1_SetTargetSpeedGun1(belowRowSpeed);
+				RB1_SetTargetSpeedGun2(belowRowSpeed);
+			}
+		}
+
+	}
+
 }
 
 void ShootBallTime_Stop()
