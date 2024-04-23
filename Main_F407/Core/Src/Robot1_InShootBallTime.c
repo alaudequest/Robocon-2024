@@ -6,6 +6,7 @@
  */
 
 #include "Robot1_InShootBallTime.h"
+#include "BoardParameter.h"
 #include "Robot1_Sensor.h"
 #include "ActuatorGun.h"
 #include "stdbool.h"
@@ -16,25 +17,13 @@ bool isRowBallAbove = false;
 bool isDetectBallLeft = false;
 bool isDetectBallRight = false;
 Sensor_t collectBallLeft, collectBallRight;
+Sensor_t *currentDetectSensor = NULL;
 float aboveRowSpeed = 2500.0, belowRowSpeed = 3700.0;
 extern uint8_t Manual;
 extern int PlusControl;
+static bool isOnDetectBallProcess = false;
+static bool isTriangleButtonPress = false;
 
-bool isTriangleButtonPress = false;
-
-static inline void ProcessDelay(uint32_t delayMs, uint8_t *step)
-{
-	static bool isOnDelay = false;
-	static uint32_t DelayTick = 0;
-	if (isOnDelay != true) {
-		DelayTick = HAL_GetTick();
-		isOnDelay = true;
-	}
-	if (HAL_GetTick() - DelayTick >= delayMs && isOnDelay) {
-		isOnDelay = false;
-		*step = *step + 1;
-	}
-}
 
 void ShootBallTime_Start(_GamePad *gamepad)
 {
@@ -50,48 +39,46 @@ void ShootBallTime_Start(_GamePad *gamepad)
 	Manual = 1;
 }
 
-void RowBallAboveProcess()
-{
-	static uint8_t step = 0;
-	float speedGun1 = RB1_GetSpeedRuloShootBall1();
-	float speedGun2 = RB1_GetSpeedRuloShootBall2();
 
-	if(   (speedGun1 > aboveRowSpeed - 300 && speedGun1 < aboveRowSpeed + 300)
-		&&(speedGun2 > aboveRowSpeed - 300 && speedGun2 < aboveRowSpeed + 300) && step == 0){
-		RB1_CollectBallMotor_On();
-		step++;
-	} else if(step == 1){
-		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
-		ProcessDelay(50, &step);
-	}
-	else if(step == 2){
-		ProcessDelay(2500,&step);
-	}
-	else if(step == 3){
-		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
-		RB1_SetTargetSpeedGun1(0);
-		RB1_SetTargetSpeedGun2(0);
-		RB1_CollectBallMotor_Off();
-		step = 0;
-		isTriangleButtonPress = false;
-	}
-}
-
-void BuzzerBeep(){
+static void DetectBallProcess(Sensor_t *sensor, bool *isOnDetectBallProcess){
 	static uint8_t step = 0;
-	if(step == 1){
-		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
-		step++;
-	}
-	else if(step == 1){
-		ProcessDelay(50,&step);
-	}
-	else if(step == 2){
-		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+	if(sensor == NULL) return;
+	if(*isOnDetectBallProcess == true && step == 0){
+		step = 1;
+	} else if(*isOnDetectBallProcess == false){
 		step = 0;
 	}
+	switch(step){
+	case 1:
+		// sau khi cảm biến bắt được bóng thì delay 100ms
+		ProcessDelay(100, &step);
+		break;
+	case 2:
+		// đọc lại cảm biến để chắc chắn là không nhiễu, sau đó cho buzzer kêu, kết thúc quá trình đọc
+		if(HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin)){
+			if(BuzzerBeep_Start(1, 50, 0) == HAL_OK)
+				step++;
+		}
+		break;
+	case 3:
+		// nếu cảm biến hết phát hiện bóng thì reset quá trình về 0
+		if(!HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin))
+			step++;
+		break;
+	case 4:
+		ProcessDelay(100, &step);
+		break;
+	case 5:
+		if(!HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin))
+			step++;
+		break;
+	case 6:
+		step = 0;
+		sensor = NULL;
+		*isOnDetectBallProcess = false;
+		break;
+	}
 }
-
 
 void ShootBallTime_Handle()
 {
@@ -102,12 +89,10 @@ void ShootBallTime_Handle()
 		if(_gamepad->Up){
 			// nếu ở hàng dưới banh thì đẩy xilanh trái mở sẵn sàng đón banh
 			isRowBallAbove = false;
-
 			valve_OpenLeftCollectBall();
 			valve_CloseRightCollectBall();
 			valve_ArmDown();
 		}
-
 	}
 	else if (_gamepad->Down) {
 		osDelay(100);
@@ -120,7 +105,6 @@ void ShootBallTime_Handle()
 		}
 	}
 
-
 	if (_gamepad->Triangle && valve_IsProcessEnd()) {
 		osDelay(100);
 		if(_gamepad->Triangle){
@@ -128,19 +112,12 @@ void ShootBallTime_Handle()
 			// nếu ở hàng banh trên thì đưa banh vào
 			if (isRowBallAbove) {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallRight);
-//				RB1_SetTargetSpeedGun1(aboveRowSpeed);
-//				RB1_SetTargetSpeedGun2(aboveRowSpeed);
-//				isTriangleButtonPress = true;
 			}
 			else {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallLeft);
 			}
 		}
 	}
-
-//	if(isTriangleButtonPress){
-//		RowBallAboveProcess();
-//	}
 	if(_gamepad->Circle){
 		osDelay(100);
 		if(_gamepad->Circle){
@@ -177,7 +154,7 @@ void ShootBallTime_Handle()
 	// Nút giảm tốc
 	if (_gamepad->R2){
 		osDelay(100);
-		if(_gamepad->R2){
+		if(_gamepad->R2 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
 				aboveRowSpeed -=100;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
@@ -189,12 +166,11 @@ void ShootBallTime_Handle()
 				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
 		}
-
 	}
 	// Nút tăng tốc
 	if (_gamepad->R1){
 		osDelay(100);
-		if(_gamepad->R1){
+		if(_gamepad->R1 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
 				aboveRowSpeed +=100;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
@@ -206,9 +182,20 @@ void ShootBallTime_Handle()
 				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
 		}
-
 	}
-
+	if(isRowBallAbove){
+		if(HAL_GPIO_ReadPin(collectBallRight.sensorPort, collectBallRight.sensorPin)){
+			isOnDetectBallProcess = true;
+			currentDetectSensor = &collectBallRight;
+		}
+	}
+	else {
+		if(HAL_GPIO_ReadPin(collectBallLeft.sensorPort, collectBallLeft.sensorPin)){
+			isOnDetectBallProcess = true;
+			currentDetectSensor = &collectBallLeft;
+		}
+	}
+	DetectBallProcess(currentDetectSensor, &isOnDetectBallProcess);
 }
 
 void ShootBallTime_Stop()

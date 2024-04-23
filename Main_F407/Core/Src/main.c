@@ -117,7 +117,7 @@ uint8_t stateRun = 0, steadycheck;
 uint8_t xaDay;
 uint8_t ssCheck, stateChange, rst, Manual;
 uint8_t numOfBall = 0;
-
+bool safetyMode = false;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 uint8_t step = 0;
@@ -227,9 +227,9 @@ void CAN_Init() {
 	HAL_CAN_ActivateNotification(&hcan1,
 	CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	canctrl_Filter_Mask16(&hcan1, CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5,
+			CANCTRL_MODE_ROBOT_ERROR << 5,
 			CANCTRL_MODE_SET_HOME << 5,
-			CANCTRL_MODE_NODE_REQ_SPEED_ANGLE << 5, 0,
+			CANCTRL_MODE_ROBOT_ERROR << 5, 0,
 			CAN_RX_FIFO0);
 }
 
@@ -237,6 +237,36 @@ void setHomeComplete() {
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
 	osDelay(100);
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+}
+
+void robotErrorHandler(CAN_DEVICE_ID targetID)
+{
+
+	while(1){
+		safetyMode = 1;
+		if(targetID == CANCTRL_DEVICE_MOTOR_CONTROLLER_1){
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+			osDelay(50);
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+			osDelay(1000);
+		}
+		else if(targetID == CANCTRL_DEVICE_MOTOR_CONTROLLER_2){
+			for(uint8_t i = 0; i < 2; i++){
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+				osDelay(100);
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+			}
+			osDelay(1000);
+		}
+		else if(targetID == CANCTRL_DEVICE_MOTOR_CONTROLLER_3){
+			for(uint8_t i = 0; i < 3; i++){
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+				osDelay(100);
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+			}
+			osDelay(1000);
+		}
+	}
 }
 
 void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
@@ -254,9 +284,8 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 				setHomeComplete();
 																		// @formatter:on
 			break;
-		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-			nodeSpeedAngle[targetID - 1] = canfunc_MotorGetSpeedAndAngle();
-//			flagmain_ClearFlag(MEVT_GET_NODE_SPEED_ANGLE);
+		case CANCTRL_MODE_ROBOT_ERROR:
+			robotErrorHandler(targetID);
 			break;
 		case CANCTRL_MODE_UNTANGLE_WIRE:
 			canfunc_SetBoolValue(1, CANCTRL_MODE_UNTANGLE_WIRE);
@@ -959,13 +988,12 @@ void process_Error(uint8_t error)
 	}
 }
 
-void process_WireRelease() {
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
-	osDelay(1);
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
-	osDelay(1);
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
-	osDelay(1);
+void process_WireRelease(bool isOnUntangleWire)
+{
+	for(CAN_DEVICE_ID id = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; id <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3;id++){
+		canfunc_SetBoolValue(isOnUntangleWire, CANCTRL_MODE_UNTANGLE_WIRE);
+		while (canctrl_Send(&hcan1, id) != HAL_OK);
+	}
 }
 
 void process_PhatHienLuaTrai() {
@@ -1662,7 +1690,7 @@ static void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 80-1;
+  htim8.Init.Prescaler = 64-1;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim8.Init.Period = 255-1;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1739,7 +1767,7 @@ static void MX_TIM9_Init(void)
 
   /* USER CODE END TIM9_Init 1 */
   htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 30-1;
+  htim9.Init.Prescaler = 64-1;
   htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim9.Init.Period = 255-1;
   htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -2050,7 +2078,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-//	ShootBallTime_Start(&GamePad);
+	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -2078,9 +2106,6 @@ void InverseKinematic(void const * argument)
 				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			}
-			else if (xaDay == 1) {
-				process_WireRelease();
 			}
 		}
 		if (gamepadRxIsBusy) {
@@ -2124,7 +2149,7 @@ void CAN_Bus(void const * argument)
 			CAN_RxHeaderTypeDef rxHeader = canctrl_GetRxHeader();
 			uint32_t targetID = rxHeader.StdId >> CAN_DEVICE_POS;
 			if ((modeID == CANCTRL_MODE_SET_HOME
-					|| modeID == CANCTRL_MODE_NODE_REQ_SPEED_ANGLE)
+					|| modeID == CANCTRL_MODE_ROBOT_ERROR)
 					&& targetID) {
 				handleFunctionCAN(modeID, targetID);
 			}
@@ -2144,10 +2169,6 @@ void CAN_Bus(void const * argument)
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
-//	RB1_CollectBallMotorOffForce();
-//	osDelay(3000);
-//	RB1_CollectBallMotorOnMax();
-//	osDelay(1000);
 	/* Infinite loop */
 	for (;;) {
 		RB1_CollectBallMotor_ControlSpeed();
@@ -2155,6 +2176,7 @@ void Actuator(void const * argument)
 		RB1_CalculateRuloGunPIDSpeed();
 		RB1_valve_ProcessManager();
 		ShootBallTime_Handle();
+		BuzzerBeepProcess();
 		osDelay(10);
 	}
   /* USER CODE END Actuator */
