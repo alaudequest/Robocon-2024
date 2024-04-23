@@ -61,18 +61,24 @@ static void DetectBallProcess(Sensor_t *sensor, bool *isOnDetectBallProcess){
 		}
 		break;
 	case 3:
+		ProcessDelay(1000, &step);
+		break;
+	case 4:
 		// nếu cảm biến hết phát hiện bóng thì reset quá trình về 0
 		if(!HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin))
 			step++;
-		break;
-	case 4:
-		ProcessDelay(100, &step);
+		else if(HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin)){
+			step = 1;
+		}
 		break;
 	case 5:
+		ProcessDelay(100, &step);
+		break;
+	case 6:
 		if(!HAL_GPIO_ReadPin(sensor->sensorPort, sensor->sensorPin))
 			step++;
 		break;
-	case 6:
+	case 7:
 		step = 0;
 		sensor = NULL;
 		*isOnDetectBallProcess = false;
