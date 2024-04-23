@@ -405,6 +405,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DirBLDC_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
@@ -420,12 +426,14 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDriveBLDC */
+uint8_t sensor;
 void StartDriveBLDC(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   {
+	sensor = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5);
 	BLDC_Drive_RedBoard(&BLDC, &htim2, SpeedTestBLDC, TIM_CHANNEL_2);
 	SpeedReadNonReset(&ENC_BLDC);
     osDelay(1);

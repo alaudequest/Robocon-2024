@@ -64,8 +64,8 @@ all: main-build
 main-build: UnitTest_Drive.elf secondary-outputs
 
 # Tool invocations
-UnitTest_Drive.elf UnitTest_Drive.map: $(OBJS) $(USER_OBJS) C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive\ -\ hcmute.edu.vn\Desktop\Robocon-2024\UnitTest_Drive\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "UnitTest_Drive.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\defaultuser0.LAPTOP-POTNR7PE\OneDrive - hcmute.edu.vn\Desktop\Robocon-2024\UnitTest_Drive\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="UnitTest_Drive.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+UnitTest_Drive.elf UnitTest_Drive.map: $(OBJS) $(USER_OBJS) D:\Robocon-2024\UnitTest_Drive\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "UnitTest_Drive.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Robocon-2024\UnitTest_Drive\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="UnitTest_Drive.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
