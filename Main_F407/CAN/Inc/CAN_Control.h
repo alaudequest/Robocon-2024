@@ -12,19 +12,24 @@
 #include "Flag.h"
 
 #define CAN_DEVICE_POS 8
+
+/*
+ * Lưu ý khi chọn các giá trị enum cho filter mask thì không được để trùng bit lẫn nhau giữa các lệnh
+ * Ví dụ enum có giá trị 3 = 0011 nghĩa là 2 bit 0 và 1 đã trùng nhau, enum có giá trị 6 = 0110 nghĩa là trùng bit 1 và bit 2
+ * Vậy các enum không trùng là 1,2,4,8,16
+ */
 typedef enum CAN_MODE_ID{
 	CANCTRL_MODE_START,
-	CANCTRL_MODE_SET_HOME,
+	CANCTRL_MODE_SET_HOME = 1, // Lệnh này dùng filter mask cho F4 (1 << 5), không được phép trùng bit các lệnh mask khác
+	CANCTRL_MODE_TEST, // enum = 2 này chỉ có thể dùng filter list, vì mask trùng bit với CAN_RTR_REMOTE
 	CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-	CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
+	CANCTRL_MODE_ROBOT_ERROR = 4, // Lệnh này dùng filter mask cho F4 (4 << 5), không được phép trùng bit các lệnh mask khác
 	CANCTRL_MODE_LED_BLUE,
-	CANCTRL_MODE_SHOOT,
 	CANCTRL_MODE_MOTOR_BLDC_BRAKE,
 	CANCTRL_MODE_PID_DC_SPEED,
 	CANCTRL_MODE_PID_DC_ANGLE,
 	CANCTRL_MODE_PID_BLDC_SPEED,
 	CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
-	CANCTRL_MODE_TEST,
 	CANCTRL_MODE_UNTANGLE_WIRE,
 	CANCTRL_MODE_END,
 }CAN_MODE_ID;
