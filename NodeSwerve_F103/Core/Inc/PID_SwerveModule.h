@@ -17,6 +17,14 @@
 #include "stdbool.h"
 #include "cmsis_os.h"
 
+typedef enum ErrorPID{
+	ERROR_PID_FEEDBACK_ERROR,
+}ErrorPID;
+
+typedef void (*pErrorPID)(ErrorPID);
+
+void PID_RegisterErrorCallback(void (*pErrorPID)(ErrorPID));
+
 void PID_BLDC_CalSpeed(float Target_set);
 void PID_DC_CalSpeed(float Target_set);
 void PID_DC_CalPos(float Target_set);

@@ -64,8 +64,8 @@ void brd_Init()
 	brdParam.pidDC_Angle.kD = 0.04;
 	brdParam.pidDC_Angle.alpha = 0.8;
 	brdParam.pidDC_Angle.deltaT = PIDDeltaT;
-	brdParam.pidDC_Angle.u_AboveLimit = DC_SUM_ABOVE_LIMIT;
-	brdParam.pidDC_Angle.u_BelowLimit = DC_SUM_BELOW_LIMIT;
+	brdParam.pidDC_Angle.u_AboveLimit = 200;
+	brdParam.pidDC_Angle.u_BelowLimit = -200;
 	brdParam.pidDC_Angle.kB = 1/PIDDeltaT;
 
 	brdParam.pidDC_Speed.kP = 1;

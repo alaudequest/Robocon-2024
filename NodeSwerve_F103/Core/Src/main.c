@@ -121,14 +121,17 @@ void CAN_Init() {
 			deviceID | CANCTRL_MODE_LED_BLUE,
 			deviceID | CANCTRL_MODE_UNTANGLE_WIRE,
 			deviceID | CANCTRL_MODE_MOTOR_SPEED_ANGLE,
-			deviceID | CANCTRL_MODE_NODE_REQ_SPEED_ANGLE,
+			0,
 			0, CAN_RX_FIFO0);
 	canctrl_Filter_List16(&hcan,
 			deviceID | CANCTRL_MODE_PID_BLDC_SPEED,
 			deviceID | CANCTRL_MODE_PID_DC_ANGLE,
 			deviceID | CANCTRL_MODE_PID_DC_SPEED,
-			deviceID | CANCTRL_MODE_PID_BLDC_BREAKPROTECTION,
+			0,
 			1, CAN_RX_FIFO0);
+	// chỉ cần Node phát hiện bit này trong Header thì biết đây là remote frame và bộ lọc ngay lập tức nhận
+	// sau đó Node tiếp tục phân tích header để xem bản tin đang yêu cầu request thông tin gì
+	// trong trường hợp header không thoả mãn filter list (ví dụ bản tin không có kèm theo deviceID)
 	canctrl_Filter_Mask16(&hcan,
 			1 << CAN_RTR_REMOTE,
 			0,
@@ -156,23 +159,9 @@ void can_GetPID_CompleteCallback(CAN_PID canPID, PID_type type) {
 
 void handleFunctionCAN(CAN_MODE_ID mode) {
 	switch (mode) {
-		case CANCTRL_MODE_SHOOT:
-			break;
 		case CANCTRL_MODE_SET_HOME:
 			break;
-		case CANCTRL_MODE_NODE_REQ_SPEED_ANGLE:
-			CAN_SpeedBLDC_AngleDC nodeSpeedAngle;
-//			nodeSpeedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
-			nodeSpeedAngle.bldcSpeed = brd_GetCurrentCountBLDC();
-			nodeSpeedAngle.dcAngle = brd_GetCurrentAngleDC();
-			canctrl_SetID(CANCTRL_MODE_NODE_REQ_SPEED_ANGLE);
-			canctrl_PutMessage((void*) &nodeSpeedAngle, sizeof(nodeSpeedAngle));
-			canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
-			break;
 		case CANCTRL_MODE_MOTOR_BLDC_BRAKE:
-			//			bool brake = canfunc_GetBoolValue();
-//			MotorBLDC mbldc = brd_GetObjMotorBLDC();
-//			MotorBLDC_Brake(&mbldc, brake);
 			if (canfunc_GetBoolValue()) {
 				HAL_TIM_Encoder_Stop(&htim3, TIM_CHANNEL_ALL);
 				HAL_TIM_Encoder_Stop(&htim4, TIM_CHANNEL_ALL);
@@ -207,8 +196,7 @@ void handleFunctionCAN(CAN_MODE_ID mode) {
 			else
 				untangleBLDC = 0;
 			break;
-		case CANCTRL_MODE_START:
-			case CANCTRL_MODE_END:
+		default:
 			break;
 	}
 }
@@ -219,13 +207,6 @@ void handle_CAN_RTR_Response(CAN_HandleTypeDef *can, CAN_MODE_ID modeID) {
 		case CANCTRL_MODE_SET_HOME:
 			bool setHomeValue = 1;
 			xQueueSend(qHome, (void* )&setHomeValue, 1/portTICK_PERIOD_MS);
-			break;
-//		case CANCTRL_MODE_MOTOR_SPEED_ANGLE:
-//			CAN_SpeedBLDC_AngleDC speedAngle;
-////			speedAngle.bldcSpeed = brd_GetSpeedBLDC();
-//			speedAngle.bldcSpeed = brd_GetCurrentSpeedBLDC();
-//			speedAngle.dcAngle = brd_GetCurrentAngleDC();
-//			canfunc_RTR_SpeedAngle(can, speedAngle);
 			break;
 		case CANCTRL_MODE_PID_BLDC_SPEED:
 			pid = brd_GetPID(PID_BLDC_SPEED);
@@ -271,7 +252,7 @@ void Flash_Write(CAN_DEVICE_ID ID) {
 	}
 	HAL_FLASH_Lock();
 }
-
+///////////////////////////////////////// Error Handler //////////////////////////////////////////
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 	while (1);
 }
@@ -287,13 +268,18 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 //	while (1);
 }
 
+void PID_ErrorHandler(ErrorPID errPID){
+	canfunc_SetBoolValue(1, CANCTRL_MODE_ROBOT_ERROR);
+	canctrl_Send(&hcan, *(__IO uint32_t*) FLASH_ADDR_TARGET);
+}
+///////////////////////////////////////// Error Handler //////////////////////////////////////////
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {
 	__NOP();
 //	HAL_CAN_DeactivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-//	appintf_ReceiveDataInterrupt(huart);
+	appintf_ReceiveDataInterrupt(huart);
 }
 
 /* USER CODE END 0 */
@@ -339,6 +325,7 @@ int main(void)
 	qHome = xQueueCreate(1, sizeof(bool));
 
 	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
+	PID_RegisterErrorCallback(&PID_ErrorHandler);
 //	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);

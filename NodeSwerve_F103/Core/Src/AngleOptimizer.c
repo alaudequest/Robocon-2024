@@ -131,6 +131,7 @@ void angopt_Cal(float input)
 		preCal = calInput;
 		currentAngle += deltaAngle;
 		if(currentAngle>=1080) currentAngle-=360;
+		else if (currentAngle<=-1080) currentAngle+=360;
 	}
 }
 

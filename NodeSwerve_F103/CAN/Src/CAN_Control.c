@@ -198,6 +198,8 @@ HAL_StatusTypeDef canctrl_Filter_List16(CAN_HandleTypeDef *can,
 // 0000 0000 0000 0000
 // {  ID       }
 
+
+// highID, lowID, maskHigh và maskLow phải tự dịch trái 5 để khớp với stdID của filter list
 HAL_StatusTypeDef canctrl_Filter_Mask16(CAN_HandleTypeDef *can,
 										uint16_t highID,
 										uint16_t lowID,

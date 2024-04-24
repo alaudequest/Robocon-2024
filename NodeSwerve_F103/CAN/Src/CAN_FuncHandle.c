@@ -54,6 +54,7 @@ void canfunc_SetBoolValue(bool bVal, CAN_MODE_ID modeID)
 	&& modeID != CANCTRL_MODE_SET_HOME
 	&& modeID != CANCTRL_MODE_MOTOR_BLDC_BRAKE
 	&& modeID != CANCTRL_MODE_UNTANGLE_WIRE
+	&& modeID != CANCTRL_MODE_ROBOT_ERROR
 	) return;
 	canctrl_SetID(modeID);
 	uint8_t temp = (uint8_t)bVal + 1;
@@ -138,4 +139,3 @@ void canfunc_GetPID(void (*pCallback)(CAN_PID canPID,PID_type type))
 	}
 
 }
-
