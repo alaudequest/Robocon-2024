@@ -988,13 +988,6 @@ void process_Error(uint8_t error)
 	}
 }
 
-void process_WireRelease(bool isOnUntangleWire)
-{
-	for(CAN_DEVICE_ID id = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; id <= CANCTRL_DEVICE_MOTOR_CONTROLLER_3;id++){
-		canfunc_SetBoolValue(isOnUntangleWire, CANCTRL_MODE_UNTANGLE_WIRE);
-		while (canctrl_Send(&hcan1, id) != HAL_OK);
-	}
-}
 
 void process_PhatHienLuaTrai() {
 	phatHienLuaTrai = true;
@@ -2100,6 +2093,14 @@ void StartDefaultTask(void const * argument)
 }
 
 /* USER CODE BEGIN Header_InverseKinematic */
+
+void process_WireRelease(bool isUntangleWire){
+	for(CAN_DEVICE_ID id = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; id <=CANCTRL_DEVICE_MOTOR_CONTROLLER_3;id++){
+		canfunc_SetBoolValue(isUntangleWire,CANCTRL_MODE_UNTANGLE_WIRE);
+		while(canctrl_Send(&hcan1, id) != HAL_OK);
+	}
+}
+
 /**
  * @brief Function implementing the TaskInvKine thread.
  * @param argument: Not used
