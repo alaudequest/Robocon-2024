@@ -11,7 +11,7 @@ static uint32_t buzzerOnDelayMs = 0;
 static uint32_t buzzerOffDelayMs = 0;
 static uint8_t buzzerStep = 0;
 static SignalButtonColor currentPressedButton = 0;
-
+pSignalBtnPressed _pSignalBtnPressed;
 void ProcessDelay(uint32_t delayMs, uint8_t *step)
 {
 	static bool isOnDelay = false;
@@ -99,7 +99,7 @@ void DetectSignalButtonProcess(SignalButtonColor *color)
 	case 2:
 		if(!HAL_GPIO_ReadPin(gpio, gpioPin)){
 			if(BuzzerBeep_Start(1, 50, 0) == HAL_OK){
-
+				if(_pSignalBtnPressed != NULL)_pSignalBtnPressed(*color);
 			}
 		}
 		step++;
@@ -111,6 +111,9 @@ void DetectSignalButtonProcess(SignalButtonColor *color)
 	}
 }
 
+void RobotSignalButton_RegisterButtonPressedCallback(void (*pSignalBtnPressed)(SignalButtonColor)){
+	_pSignalBtnPressed = pSignalBtnPressed;
+}
 
 void RobotSignalButton_ScanButton()
 {
