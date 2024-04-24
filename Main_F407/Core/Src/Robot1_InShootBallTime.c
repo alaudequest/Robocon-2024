@@ -11,14 +11,14 @@
 #include "ActuatorGun.h"
 #include "stdbool.h"
 #include "cmsis_os.h"
-bool inShootBallTime = false;
-_GamePad *_gamepad;
-bool isRowBallAbove = false;
-bool isDetectBallLeft = false;
-bool isDetectBallRight = false;
-Sensor_t collectBallLeft, collectBallRight;
-Sensor_t *currentDetectSensor = NULL;
-float aboveRowSpeed = 2500.0, belowRowSpeed = 3700.0;
+static bool inShootBallTime = false;
+static _GamePad *_gamepad;
+static bool isRowBallAbove = false;
+static bool isDetectBallLeft = false;
+static bool isDetectBallRight = false;
+static Sensor_t collectBallLeft, collectBallRight;
+static Sensor_t *currentDetectSensor = NULL;
+static float aboveRowSpeed = 2500.0, belowRowSpeed = 3700.0;
 extern uint8_t Manual;
 extern int PlusControl;
 static bool isOnDetectBallProcess = false;

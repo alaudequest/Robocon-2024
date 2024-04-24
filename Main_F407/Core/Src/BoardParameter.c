@@ -6,10 +6,11 @@
  */
 #include "BoardParameter.h"
 
-uint8_t buzzerBeepRepeatTime = 0;
-uint32_t buzzerOnDelayMs = 0;
-uint32_t buzzerOffDelayMs = 0;
-uint8_t buzzerStep = 0;
+static uint8_t buzzerBeepRepeatTime = 0;
+static uint32_t buzzerOnDelayMs = 0;
+static uint32_t buzzerOffDelayMs = 0;
+static uint8_t buzzerStep = 0;
+static SignalButtonColor currentPressedButton = 0;
 
 void ProcessDelay(uint32_t delayMs, uint8_t *step)
 {
@@ -62,5 +63,67 @@ void BuzzerBeepProcess()
 			buzzerStep= 0;
 		break;
 	}
+}
+
+void DetectSignalButtonProcess(SignalButtonColor *color)
+{
+	static uint8_t step = 0;
+	GPIO_TypeDef *gpio;
+	uint16_t gpioPin;
+	switch(*color){
+	case SIGBTN_RED:
+		gpio = RobotSignalBtn_RED_GPIO_Port;
+		gpioPin = RobotSignalBtn_RED_Pin;
+		break;
+	case SIGBTN_YELLOW:
+		gpio = RobotSignalBtn_YELLOW_GPIO_Port;
+		gpioPin = RobotSignalBtn_YELLOW_Pin;
+		break;
+	case SIGBTN_BLUE:
+		gpio = RobotSignalBtn_BLUE_GPIO_Port;
+		gpioPin = RobotSignalBtn_BLUE_Pin;
+		break;
+	case SIGBTN_GREEN:
+		gpio = RobotSignalBtn_GREEN_GPIO_Port;
+		gpioPin = RobotSignalBtn_GREEN_Pin;
+		break;
+	}
+	if(*color!=0 && step == 0)
+		step = 1;
+	else if(*color==0)
+		step = 0;
+	switch(step){
+	case 1:
+		ProcessDelay(300, &step);
+		break;
+	case 2:
+		if(!HAL_GPIO_ReadPin(gpio, gpioPin)){
+			if(BuzzerBeep_Start(1, 50, 0) == HAL_OK){
+
+			}
+		}
+		step++;
+		break;
+	case 3:
+		step = 0;
+		*color = 0;
+		break;
+	}
+}
+
+
+void RobotSignalButton_ScanButton()
+{
+	HAL_GPIO_WritePin(RobotSignalBtn_VCC_GPIO_Port, RobotSignalBtn_VCC_Pin, 1);
+	HAL_GPIO_WritePin(RobotSignalBtn_GND_GPIO_Port, RobotSignalBtn_GND_Pin, 0);
+	if(!HAL_GPIO_ReadPin(RobotSignalBtn_RED_GPIO_Port, RobotSignalBtn_RED_Pin) && currentPressedButton == 0)
+		currentPressedButton = SIGBTN_RED;
+	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_YELLOW_GPIO_Port, RobotSignalBtn_YELLOW_Pin) && currentPressedButton == 0)
+		currentPressedButton = SIGBTN_YELLOW;
+	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_BLUE_GPIO_Port, RobotSignalBtn_BLUE_Pin) && currentPressedButton == 0)
+		currentPressedButton = SIGBTN_BLUE;
+	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_GREEN_GPIO_Port, RobotSignalBtn_GREEN_Pin) && currentPressedButton == 0)
+		currentPressedButton = SIGBTN_GREEN;
+	DetectSignalButtonProcess(&currentPressedButton);
 }
 

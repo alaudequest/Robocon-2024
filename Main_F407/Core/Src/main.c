@@ -1690,7 +1690,7 @@ static void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 64-1;
+  htim8.Init.Prescaler = 80-1;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim8.Init.Period = 255-1;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1767,7 +1767,7 @@ static void MX_TIM9_Init(void)
 
   /* USER CODE END TIM9_Init 1 */
   htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 64-1;
+  htim9.Init.Prescaler = 30-1;
   htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim9.Init.Period = 255-1;
   htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1972,7 +1972,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
@@ -1987,12 +1987,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(Buzzer_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Status_Pin */
-  GPIO_InitStruct.Pin = Status_Pin;
+  /*Configure GPIO pins : Status_Pin RobotSignalBtn_VCC_Pin RobotSignalBtn_GND_Pin */
+  GPIO_InitStruct.Pin = Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Status_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
   GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
@@ -2000,6 +2000,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_RED_Pin RobotSignalBtn_YELLOW_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_RED_Pin|RobotSignalBtn_YELLOW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_BLUE_Pin RobotSignalBtn_GREEN_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_BLUE_Pin|RobotSignalBtn_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Sensor1_Pin Sensor2_Pin Sensor4_Pin Sensor5_Pin
                            Sensor6_Pin Sensor7_Pin Sensor8_Pin */
@@ -2078,7 +2090,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	ShootBallTime_Start(&GamePad);
+//	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -2177,6 +2189,7 @@ void Actuator(void const * argument)
 		RB1_valve_ProcessManager();
 		ShootBallTime_Handle();
 		BuzzerBeepProcess();
+		RobotSignalButton_ScanButton();
 		osDelay(10);
 	}
   /* USER CODE END Actuator */

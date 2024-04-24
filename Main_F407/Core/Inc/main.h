@@ -67,6 +67,10 @@ void Error_Handler(void);
 #define MotorGetB2_GPIO_Port GPIOE
 #define Status_Pin GPIO_PIN_13
 #define Status_GPIO_Port GPIOC
+#define RobotSignalBtn_VCC_Pin GPIO_PIN_2
+#define RobotSignalBtn_VCC_GPIO_Port GPIOC
+#define RobotSignalBtn_GND_Pin GPIO_PIN_3
+#define RobotSignalBtn_GND_GPIO_Port GPIOC
 #define MotorGun1_Pin GPIO_PIN_0
 #define MotorGun1_GPIO_Port GPIOA
 #define MotorGun2_Pin GPIO_PIN_1
@@ -79,6 +83,14 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
+#define RobotSignalBtn_RED_Pin GPIO_PIN_4
+#define RobotSignalBtn_RED_GPIO_Port GPIOC
+#define RobotSignalBtn_YELLOW_Pin GPIO_PIN_5
+#define RobotSignalBtn_YELLOW_GPIO_Port GPIOC
+#define RobotSignalBtn_BLUE_Pin GPIO_PIN_0
+#define RobotSignalBtn_BLUE_GPIO_Port GPIOB
+#define RobotSignalBtn_GREEN_Pin GPIO_PIN_1
+#define RobotSignalBtn_GREEN_GPIO_Port GPIOB
 #define Sensor1_Pin GPIO_PIN_7
 #define Sensor1_GPIO_Port GPIOE
 #define Sensor1_EXTI_IRQn EXTI9_5_IRQn
