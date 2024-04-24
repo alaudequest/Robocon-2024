@@ -87,7 +87,7 @@ osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskOdometerHandle;
 /* USER CODE BEGIN PV */
 
-CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
+//CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
 PID_Param pid;
 PID_type type = PID_BLDC_SPEED;
 
@@ -225,7 +225,7 @@ uint8_t Team,Start,Retry;
 #define RETRY_ENABLE	1
 #define RETRY_DISABLE	0
 #define START	1
-#define STOP	0
+#define IDLE	0
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* USER CODE END PV */
@@ -272,7 +272,7 @@ void CAN_Init() {
 	HAL_CAN_ActivateNotification(&hcan1,
 			CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	canctrl_Filter_Mask16(&hcan1,
-			CANCTRL_MODE_SET_HOME << 5, //mask bit Set Home không trùng bit với bit Robot Error thì mới lọc được
+			CANCTRL_MODE_SET_HOME << 5, //mask bit Set Home không trùng bit với bit Robot Error thì mới l�?c được
 			CANCTRL_MODE_ROBOT_ERROR << 5,
 			CANCTRL_MODE_SET_HOME << 5,
 			CANCTRL_MODE_ROBOT_ERROR << 5,
@@ -333,8 +333,7 @@ void handleFunctionCAN(CAN_MODE_ID mode, CAN_DEVICE_ID targetID) {
 																		// @formatter:on
 		break;
 	case CANCTRL_MODE_UNTANGLE_WIRE:
-		canfunc_SetBoolValue(1,CANCTRL_MODE_UNTANGLE_WIRE);
-		while(canctrl_Send(&hcan1, targetID) != HAL_OK);
+
 		break;
 	case CANCTRL_MODE_ROBOT_ERROR:
 		robotErrorHandler(targetID);
@@ -1411,13 +1410,11 @@ void readADC(){
 	HAL_ADC_Stop(&hadc1);
 }
 
-void process_WireRelease(){
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
-	osDelay(1);
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_2);
-	osDelay(1);
-	handleFunctionCAN(CANCTRL_MODE_UNTANGLE_WIRE, CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
-	osDelay(1);
+void process_WireRelease(bool isUntangleWire){
+	for(CAN_DEVICE_ID id = CANCTRL_DEVICE_MOTOR_CONTROLLER_1; id <=CANCTRL_DEVICE_MOTOR_CONTROLLER_3;id++){
+		canfunc_SetBoolValue(isUntangleWire,CANCTRL_MODE_UNTANGLE_WIRE);
+		while(canctrl_Send(&hcan1, id) != HAL_OK);
+	}
 }
 
 //////////////////////////////////Ham Xu Ly Bong Mau////////////////////////////////////////////////
@@ -1460,6 +1457,7 @@ int main(void)
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -2172,7 +2170,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
@@ -2184,12 +2182,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(Buzzer_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Status_Pin */
-  GPIO_InitStruct.Pin = Status_Pin;
+  /*Configure GPIO pins : Status_Pin RobotSignalBtn_VCC_Pin RobotSignalBtn_GND_Pin */
+  GPIO_InitStruct.Pin = Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Status_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
   GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
@@ -2197,6 +2195,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_RED_Pin RobotSignalBtn_YELLOW_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_RED_Pin|RobotSignalBtn_YELLOW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_BLUE_Pin RobotSignalBtn_GREEN_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_BLUE_Pin|RobotSignalBtn_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
                            sensor_5_Pin sensor_6_Pin sensor_7_Pin sensor_8_Pin */
@@ -2212,40 +2222,36 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void InvCpltCallback(ModuleID ID, float speed, float angle) {
-	CAN_SpeedBLDC_AngleDC speedAngle;
-	speedAngle.bldcSpeed = speed;
-	speedAngle.dcAngle = angle;
-	canfunc_MotorPutSpeedAndAngle(speedAngle);
-	while (canctrl_Send(&hcan1, ID) != HAL_OK);
-}
+
 
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
+
+
+uint8_t SetHomeFlag, check;
+void RobotSignalButton_PressedCallback(SignalButtonColor color)
+{
+	if(color == SIGBTN_RED)
+	{
+		Team = RED;
+	}else if (color == SIGBTN_BLUE)
+	{
+		Team = BLUE;
+	}else if (color == SIGBTN_YELLOW)
+	{
+		Retry = RETRY_ENABLE;
+	}else if (color == SIGBTN_GREEN)
+	{
+		Start = START;
+	}
+}
 /**
  * @brief  Function implementing the defaultTask thread.
  * @param  argument: Not used
  * @retval None
  */
 
-
-uint8_t getBall_State;
-//int speedTest;
-//void process_Control_SpeedDC_GetBall(float speed)
-//{
-//	float result = PID_Cal(&PutBall_PID, speed, encoder_GetSpeed(&PutBall_Enc));
-//	MotorDC_Drive(&putBall_DC, speed);
-//}
-//void process_GetBall()
-//{
-//	if (getBall_State == 0)
-//	{
-//
-//	}
-//}
-
-uint8_t SetHomeFlag, check;
 
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
@@ -2254,18 +2260,26 @@ void StartDefaultTask(void const * argument)
 	valve_Output(0,1);
 		osDelay(1000);
 	valve_Output(0,0);
-//	while (SetHomeFlag == 0)
-//	{
-//		osDelay(1);
-//	}
+	RobotSignalButton_RegisterButtonPressedCallback(&RobotSignalButton_PressedCallback);
+
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		BuzzerBeepProcess();
+		RobotSignalButton_ScanButton();
+		osDelay(10);
 	}
   /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_InverseKinematic */
+
+void InvCpltCallback(ModuleID ID, float speed, float angle) {
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = speed;
+	speedAngle.dcAngle = angle;
+	canfunc_MotorPutSpeedAndAngle(speedAngle);
+	while (canctrl_Send(&hcan1, ID) != HAL_OK);
+}
 /**
  * @brief Function implementing the TaskInvKine thread.
  * @param argument: Not used
@@ -2287,13 +2301,16 @@ void InverseKinematic(void const * argument)
 				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
-			}else if (xaDay == 1){
-				process_WireRelease();
-			}else if (Safety_Mode == 1)
+			}
+			else if (Safety_Mode == 1)
 			{
 				invkine_Implementation(MODULE_ID_3, 0, 0, 0, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_1, 0, 0, 0, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_2, 0, 0, 0, &InvCpltCallback);
+			}
+			else if (xaDay == 1)
+			{
+				process_WireRelease(1);
 			}
 	//
 	//
@@ -2411,8 +2428,6 @@ void process_DetectBall()
 }
 
 /* USER CODE END Header_OdometerHandle */
-int GocSetup;
-
 void OdometerHandle(void const * argument)
 {
   /* USER CODE BEGIN OdometerHandle */
@@ -2486,20 +2501,29 @@ void OdometerHandle(void const * argument)
 						{	//Ra lenh cho co Cau lay bong di len cham chu U
 
 
-							if (HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
+//							if (HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
+//							{
+//								osDelay(200);
+//								if(HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
+//								{	//Reset thong so enc tha troi va la ban :
+//									Reset_MPU_Angle();
+//									process_ResetFloatingEnc();
+//									// Set thong so quy hoach quy dao :
+//									step = 2;
+//								}
+//							}
+
+							if((Team == RED)&&(Retry == RETRY_DISABLE)&&(Start == START))
 							{
-								osDelay(200);
-								if(HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
-								{	//Reset thong so enc tha troi va la ban :
-									Reset_MPU_Angle();
-									process_ResetFloatingEnc();
-									// Set thong so quy hoach quy dao :
-									step = 2;
-								}
+								Reset_MPU_Angle();
+								process_ResetFloatingEnc();
+								// Set thong so quy hoach quy dao :
+								step += 1;
+								Run = 0;
 							}
 						}
 
-					if((Team == RED)&&(Retry == RETRY_DISABLE)&&(Start == START ))
+					if(Run == 0)
 					{
 
 						 if (step == 2)
@@ -2528,8 +2552,8 @@ void OdometerHandle(void const * argument)
 						}
 						else if (step == 5)
 						{
-							process_Accel_FloatingEnc3(-0, 0.8, 10000, 0.3, -90, 3);
-							if(HAL_GPIO_ReadPin(sensor_2_GPIO_Port, sensor_2_Pin))
+							process_Accel_FloatingEnc3(0, 0.8, 10000, 0.3, -90, 3);
+							if(HAL_GPIO_ReadPin(sensor_2_GPIO_Port, sensor_2_Pin) == 0)
 								{
 									process_SSCheck++;
 								}else{
@@ -2544,9 +2568,68 @@ void OdometerHandle(void const * argument)
 						}
 						else if (step == 6)
 							{
-								process_Accel_FloatingEnc3(-0, 0.8, 10000, 0.3, -90, 3);
+								process_Accel_FloatingEnc3(0, 0.8, 10000, 0.3, -90, 3);
+								if(floatingEncCount > 4500)
+								{
+									step += 1;
+									process_SubState = 0;
+								}
 							}
+						else if (step == 7)
+							{
+								process_Accel_FloatingEnc3(90, 0.8, 10000, 0.3, 90, 3);
+								if(floatingEncCount > 4500)
+								{
+									step += 1;
+									process_SubState = 0;
+								}
+							}
+						else if (step == 8)
+							{
+								process_Accel_FloatingEnc3(180, 0.8, 10000, 0.3, 90, 3);
+								if(floatingEncCount > 4500)
+								{
+									step += 1;
+									process_SubState = 0;
+								}
+							}
+						else if (step == 9)
+							{
+								process_Accel_FloatingEnc3(160, 0.8, 10000, 0.3, 90, 3);
+							if(HAL_GPIO_ReadPin(sensor_2_GPIO_Port, sensor_2_Pin))
+							{
+								process_SSCheck++;
+							}else{
+								process_SSCheck = 0;
+							}
+							if (process_SSCheck>15){
+								step += 1;
+								process_SubState = 0;
+							}
+							}
+						else if (step == 10)
+							{
+								process_Accel_FloatingEnc3( 175, 0.8, 1500, 0.1, 0, 3);
+							}
+						else if(step == 11)
+							{
+								Reset_MPU_Angle();
+								process_Count ++ ;
+								if (process_Count > 10)
+								{
+									process_Count = 0;
+									step += 1;
+								}
+							}
+						else if (step == 12)
+						{
+							AngleNow = -90;
+							process_setVal_PutBall(1);
+							process_Accel_FloatingEnc3( -90, 0.6, 2000, 0.1, 0, 3);
+						}
 					}
+
+
 //					else if (step == 2)
 //						{
 //						process_PD_Critical();

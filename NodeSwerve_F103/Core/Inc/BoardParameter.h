@@ -46,6 +46,7 @@ typedef struct Safety_Check{
 	float TargetNow;
 
 	float SaftyFlag;
+	float WrongDirFlag;
 
 }Safety_Check;
 typedef struct BoardParameter_t {
