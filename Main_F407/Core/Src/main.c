@@ -264,7 +264,7 @@ void CAN_Init() {
 	HAL_CAN_ActivateNotification(&hcan1,
 			CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING);
 	canctrl_Filter_Mask16(&hcan1,
-			CANCTRL_MODE_SET_HOME << 5, //mask bit Set Home không trùng bit với bit Robot Error thì mới lọc được
+			CANCTRL_MODE_SET_HOME << 5, //mask bit Set Home không trùng bit với bit Robot Error thì mới l�?c được
 			CANCTRL_MODE_ROBOT_ERROR << 5,
 			CANCTRL_MODE_SET_HOME << 5,
 			CANCTRL_MODE_ROBOT_ERROR << 5,
@@ -1420,6 +1420,7 @@ int main(void)
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
 
@@ -2132,7 +2133,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin, GPIO_PIN_RESET);
@@ -2144,12 +2145,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(Buzzer_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Status_Pin */
-  GPIO_InitStruct.Pin = Status_Pin;
+  /*Configure GPIO pins : Status_Pin RobotSignalBtn_VCC_Pin RobotSignalBtn_GND_Pin */
+  GPIO_InitStruct.Pin = Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Status_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HC595_CLK_Pin HC595_RCLK_Pin HC595_OE_Pin HC595_DATA_Pin */
   GPIO_InitStruct.Pin = HC595_CLK_Pin|HC595_RCLK_Pin|HC595_OE_Pin|HC595_DATA_Pin;
@@ -2157,6 +2158,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_RED_Pin RobotSignalBtn_YELLOW_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_RED_Pin|RobotSignalBtn_YELLOW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_BLUE_Pin RobotSignalBtn_GREEN_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_BLUE_Pin|RobotSignalBtn_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
                            sensor_5_Pin sensor_6_Pin sensor_7_Pin sensor_8_Pin */
@@ -2172,16 +2185,17 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void InvCpltCallback(ModuleID ID, float speed, float angle) {
-	CAN_SpeedBLDC_AngleDC speedAngle;
-	speedAngle.bldcSpeed = speed;
-	speedAngle.dcAngle = angle;
-	canfunc_MotorPutSpeedAndAngle(speedAngle);
-	while (canctrl_Send(&hcan1, ID) != HAL_OK);
-}
+
+
 
 /* USER CODE END 4 */
 
+uint8_t SetHomeFlag, check;
+
+void RobotSignalButton_PressedCallback(SignalButtonColor color)
+{
+
+}
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
  * @brief  Function implementing the defaultTask thread.
@@ -2190,23 +2204,6 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  */
 
 
-uint8_t getBall_State;
-//int speedTest;
-//void process_Control_SpeedDC_GetBall(float speed)
-//{
-//	float result = PID_Cal(&PutBall_PID, speed, encoder_GetSpeed(&PutBall_Enc));
-//	MotorDC_Drive(&putBall_DC, speed);
-//}
-//void process_GetBall()
-//{
-//	if (getBall_State == 0)
-//	{
-//
-//	}
-//}
-
-uint8_t SetHomeFlag, check;
-
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
@@ -2214,18 +2211,27 @@ void StartDefaultTask(void const * argument)
 	valve_Output(0,1);
 		osDelay(1000);
 	valve_Output(0,0);
-//	while (SetHomeFlag == 0)
-//	{
-//		osDelay(1);
-//	}
+	RobotSignalButton_RegisterButtonPressedCallback(&RobotSignalButton_PressedCallback);
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		BuzzerBeepProcess();
+		RobotSignalButton_ScanButton();
+		osDelay(10);
 	}
   /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_InverseKinematic */
+
+
+void InvCpltCallback(ModuleID ID, float speed, float angle) {
+	CAN_SpeedBLDC_AngleDC speedAngle;
+	speedAngle.bldcSpeed = speed;
+	speedAngle.dcAngle = angle;
+	canfunc_MotorPutSpeedAndAngle(speedAngle);
+	while (canctrl_Send(&hcan1, ID) != HAL_OK);
+}
+
 /**
  * @brief Function implementing the TaskInvKine thread.
  * @param argument: Not used
