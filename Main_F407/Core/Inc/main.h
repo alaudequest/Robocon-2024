@@ -63,10 +63,6 @@ void Error_Handler(void);
 #define Buzzer_GPIO_Port GPIOE
 #define Status_Pin GPIO_PIN_13
 #define Status_GPIO_Port GPIOC
-#define RobotSignalBtn_VCC_Pin GPIO_PIN_2
-#define RobotSignalBtn_VCC_GPIO_Port GPIOC
-#define RobotSignalBtn_GND_Pin GPIO_PIN_3
-#define RobotSignalBtn_GND_GPIO_Port GPIOC
 #define HC595_CLK_Pin GPIO_PIN_4
 #define HC595_CLK_GPIO_Port GPIOA
 #define HC595_RCLK_Pin GPIO_PIN_5
@@ -75,14 +71,6 @@ void Error_Handler(void);
 #define HC595_OE_GPIO_Port GPIOA
 #define HC595_DATA_Pin GPIO_PIN_7
 #define HC595_DATA_GPIO_Port GPIOA
-#define RobotSignalBtn_RED_Pin GPIO_PIN_4
-#define RobotSignalBtn_RED_GPIO_Port GPIOC
-#define RobotSignalBtn_YELLOW_Pin GPIO_PIN_5
-#define RobotSignalBtn_YELLOW_GPIO_Port GPIOC
-#define RobotSignalBtn_BLUE_Pin GPIO_PIN_0
-#define RobotSignalBtn_BLUE_GPIO_Port GPIOB
-#define RobotSignalBtn_GREEN_Pin GPIO_PIN_1
-#define RobotSignalBtn_GREEN_GPIO_Port GPIOB
 #define sensor_1_Pin GPIO_PIN_7
 #define sensor_1_GPIO_Port GPIOE
 #define sensor_2_Pin GPIO_PIN_8
@@ -99,6 +87,18 @@ void Error_Handler(void);
 #define sensor_7_GPIO_Port GPIOE
 #define sensor_8_Pin GPIO_PIN_14
 #define sensor_8_GPIO_Port GPIOE
+#define RobotSignalBtn_RED_Pin GPIO_PIN_8
+#define RobotSignalBtn_RED_GPIO_Port GPIOD
+#define RobotSignalBtn_YELLOW_Pin GPIO_PIN_9
+#define RobotSignalBtn_YELLOW_GPIO_Port GPIOD
+#define RobotSignalBtn_BLUE_Pin GPIO_PIN_10
+#define RobotSignalBtn_BLUE_GPIO_Port GPIOD
+#define RobotSignalBtn_GREEN_Pin GPIO_PIN_11
+#define RobotSignalBtn_GREEN_GPIO_Port GPIOD
+#define RedLED_Pin GPIO_PIN_8
+#define RedLED_GPIO_Port GPIOB
+#define BlueLED_Pin GPIO_PIN_9
+#define BlueLED_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
