@@ -1040,6 +1040,7 @@ void process_RiceAppRoach()
 //		process_SubState = 2;
 		process_SSCheck++;
 		if(process_SSCheck>15){
+//			xaDay = 2;
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
@@ -2081,6 +2082,11 @@ void InverseKinematic(void const * argument)
 			{
 				process_WireRelease(1);
 			}
+			else if(xaDay == 2)
+			{
+				process_WireRelease(0);
+				xaDay = 0;
+			}
 			else if(safetyMode == 1)
 			{
 				invkine_Implementation(MODULE_ID_3, 0, 0, 0, &InvCpltCallback);
@@ -2304,7 +2310,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 9)
 		{
-			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(30, 1, 12800, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 10)
 		{
@@ -2375,7 +2381,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 17)
 		{
-			process_Accel_FloatingEnc6(28, 1, 13700, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(28, 1, 13400, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 18)
 		{
