@@ -152,7 +152,7 @@ float process_AutoChose_Count;
 float process_SubState;
 uint8_t process_GetBall_State;
 uint8_t process_SSCheck;
-uint8_t process_Count;
+int process_Count;
 ValveProcessName valveProcessName = 0;
 int PlusControl;
 
@@ -781,7 +781,7 @@ void process_Accel_FloatingEnc7(float Angle,float maxSpeed,float s,float accel,f
 		{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<5*M_PI/180)
+			if (absf(trajecTheta.Pf-angle_Rad)<4*M_PI/180)
 			{
 				process_SSCheck ++;
 			}else{
@@ -863,7 +863,7 @@ void process_Accel_FloatingEnc8(float Angle,float maxSpeed,float s,float accel,f
 		{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
+			if (absf(trajecTheta.Pf-angle_Rad)<5*M_PI/180)
 			{
 				process_SSCheck ++;
 			}else{
@@ -996,39 +996,6 @@ void process_PhatHienLuaTrai() {
 void process_PhatHienLuaPhai() {
 	phatHienLuaPhai = true;
 }
-bool process_ResetToaDo() {
-
-	bool gapLuaThanhCong = false;
-//	uint8_t soLanDoc = 10;
-	// sau khi đ�?c tín hiệu ngắt cả 2 cảm biến
-//		uint16_t soLanPhatHienLuaTrai = 0;
-//		uint16_t soLanPhatHienLuaPhai = 0;
-		Sensor_t camBienLuaTrai = RB1_GetSensor(RB1_SENSOR_ARM_LEFT);
-		Sensor_t camBienLuaPhai = RB1_GetSensor(RB1_SENSOR_ARM_RIGHT);
-		//đ�?c liên tục 2000 lần ở cả 2 cảm biến để chắc chắn không có nhiễu
-//		for (uint16_t i = 0; i < soLanDoc; i++) {
-//			if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
-//				soLanPhatHienLuaTrai++;
-//			}
-//			else
-//				soLanPhatHienLuaTrai = 0;
-//			if (HAL_GPIO_ReadPin(camBienLuaPhai.sensorPort, camBienLuaPhai.sensorPin)) {
-//				soLanPhatHienLuaPhai++;
-//			}
-//			else
-//				soLanPhatHienLuaPhai = 0;
-//		}
-//		if (soLanPhatHienLuaTrai > (soLanDoc - 8) && soLanPhatHienLuaPhai > (soLanDoc - 8)) {
-//			valve_BothCatch();
-//			gapLuaThanhCong = true;
-//		}
-		if (HAL_GPIO_ReadPin(camBienLuaTrai.sensorPort, camBienLuaTrai.sensorPin)) {
-//			valve_BothCatch();
-			gapLuaThanhCong = true;
-		}
-
-	return gapLuaThanhCong;
-}
 
 bool process_ThucHienGapLua() {
 
@@ -1054,31 +1021,7 @@ bool process_ThucHienGapLua1() {
 
 	return gapLuaThanhCong;
 }
-void process_ResetWallAppRoach()
-{
-	if(process_SubState == 0)
-	{
-		use_pidTheta = 1;
-		process_RunByAngle(180-18,0.1);
-		if(process_ThucHienGapLua()  == true){
-			process_Error(1);
 
-			osDelay(50);
-			process_SubState = 1;
-		}
-	}
-	else if(process_SubState == 1){
-		process_Error(0);
-		process_RunByAngle(90,0.01);
-		process_SubState = 2;
-	}
-	else if(process_SubState == 2){
-		process_ResetFloatingEnc();
-		Reset_MPU_Angle();
-		process_SubState = 0;
-		step += 1;
-	}
-}
 
 void process_RiceAppRoach()
 {
@@ -1095,16 +1038,20 @@ void process_RiceAppRoach()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
+		process_SSCheck++;
+		if(process_SSCheck>15){
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
+					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
+		}
 	}
 	else if(process_SubState == 2){
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
@@ -1139,16 +1086,21 @@ void process_RiceAppRoach2()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
+		process_SSCheck++;
+		if(process_SSCheck>15){
+
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
+					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
+		}
 	}
 	else if(process_SubState == 2){
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
@@ -1184,16 +1136,21 @@ void process_RiceAppRoach3()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
+		process_SSCheck++;
+		if(process_SSCheck>15){
+
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
+					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
+		}
 	}
 	else if(process_SubState == 2){
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
@@ -2114,11 +2071,21 @@ void InverseKinematic(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		if(nodeSwerveSetHomeComplete == 14){
-			if (xaDay == 0)
+			if (xaDay == 0 && safetyMode == 0)
 					{
 				invkine_Implementation(MODULE_ID_3, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_1, uControlX, uControlY, uControlTheta, &InvCpltCallback);
 				invkine_Implementation(MODULE_ID_2, uControlX, uControlY, uControlTheta, &InvCpltCallback);
+			}
+			else if (xaDay == 1)
+			{
+				process_WireRelease(1);
+			}
+			else if(safetyMode == 1)
+			{
+				invkine_Implementation(MODULE_ID_3, 0, 0, 0, &InvCpltCallback);
+				invkine_Implementation(MODULE_ID_1, 0, 0, 0, &InvCpltCallback);
+				invkine_Implementation(MODULE_ID_2, 0, 0, 0, &InvCpltCallback);
 			}
 		}
 		if (gamepadRxIsBusy) {
@@ -2189,7 +2156,7 @@ void Actuator(void const * argument)
 		RB1_CalculateRuloGunPIDSpeed();
 		RB1_valve_ProcessManager();
 		ShootBallTime_Handle();
-		BuzzerBeepProcess();
+//		BuzzerBeepProcess();
 		RobotSignalButton_ScanButton();
 		osDelay(10);
 	}
@@ -2271,11 +2238,11 @@ void OdometerHandle(void const * argument)
 		else if (step == 1)
 		{
 			AngleNow = -27;
-			process_Accel_FloatingEnc6(-27, 1, 3000, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc6(-27, 1, 2300, 0.5, 0, 3, 5);
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc6(41, 0.8, 2500, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc6(45, 0.8, 3000, 0.5, 0, 3, 5);
 		}
 		else if (step == 3)
 		{
@@ -2336,7 +2303,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 9)
 		{
-			process_Accel_FloatingEnc6(33, 1, 12300, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 10)
 		{
@@ -2361,7 +2328,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 12800, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 130000, 0.08, 90, 1.3, 5);
 
 			if(floatingEncCount> 6100)
 			{
@@ -2372,7 +2339,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 14)
 		{
 
-			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 90, 3, 5);
 		}
 		else if (step == 15)
 		{
@@ -2407,7 +2374,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 17)
 		{
-			process_Accel_FloatingEnc6(28, 1, 13500, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(28, 1, 13700, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 18)
 		{
@@ -2434,7 +2401,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 8700)
+			if(floatingEncCount> 8900)
 			{
 				process_SubState = 0;
 				step++;
@@ -2442,7 +2409,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 22)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5200, 0.08, 90, 3, 5);
 		}
 		else if (step == 23)
 		{
@@ -2477,7 +2444,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 25)
 		{
-			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(29, 1, 13300, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 26)
 		{
@@ -2512,7 +2479,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 30)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5300, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5400, 0.08, 90, 3, 5);
 		}
 		else if (step == 31)
 		{
@@ -2547,7 +2514,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(30, 1, 13300, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(26, 1, 13800, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 34)
 		{
@@ -2572,7 +2539,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-185, 1, 13000, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-185, 1, 13400, 0.08, 90, 1.3, 5);
 
 			if(floatingEncCount> 7500)
 			{
@@ -2617,7 +2584,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 41)
 		{
-			process_Accel_FloatingEnc6(35, 1, 12000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 42)
 		{
@@ -2644,7 +2611,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-185, 1, 13000, 0.08, 90, 1.3, 5);
 
-			if(floatingEncCount> 6100)
+			if(floatingEncCount> 6600)
 			{
 				process_SubState = 0;
 				step++;
@@ -2683,7 +2650,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 48)
 		{
 			AngleNow = -180;
-			process_Accel_FloatingEnc6(-180, 1, 1400, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 1000, 0.08, 90, 3, 5);
 
 		}
 		else if(step == 49)
@@ -2766,15 +2733,9 @@ void OdometerHandle(void const * argument)
 			}
 			if(PlusControl == 2)
 			{
-//				process_PD_OnStrainghtPath();
-//				use_pidTheta = 1;
-//				u = -GamePad.XLeftCtr;
-//				v = GamePad.YLeftCtr;
-////				r = GamePad.XRightCtr;
-//				process_Signal_RotationMatrixTransform3(u, v, r);
 				uControlX = -GamePad.XLeftCtr*1.2;
 				uControlY = GamePad.YLeftCtr*1.2;
-				uControlTheta = GamePad.XRightCtr*2;
+				uControlTheta = GamePad.XRightCtr*1.6;
 				if (absf(uControlX)>absf(uControlY))
 				{
 					uControlY = 0;

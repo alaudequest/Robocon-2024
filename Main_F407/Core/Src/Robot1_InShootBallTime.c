@@ -16,7 +16,7 @@ static _GamePad *_gamepad;
 static bool isRowBallAbove = false;
 static Sensor_t collectBallLeft, collectBallRight;
 static Sensor_t *currentDetectSensor = NULL;
-static float aboveRowSpeed = 2500.0, belowRowSpeed = 3700.0;
+static float aboveRowSpeed = 2800.0, belowRowSpeed = 3700.0;
 extern uint8_t Manual;
 extern int PlusControl;
 static bool isOnDetectBallProcess = false;

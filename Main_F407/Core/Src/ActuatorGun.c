@@ -228,7 +228,7 @@ void RB1_CollectBallMotor_ControlSpeed()
 //		CollectBallMotorSpeedUp();
 		//board LH đã có sẵn gia tốc
 		RunCollectBallLeft(200);
-		RunCollectBallRight(200);
+		RunCollectBallRight(20);
 	}
 	else if (accelStateCollectBall == DECELERATION) {
 //		CollectBallMotorSpeedDown();
