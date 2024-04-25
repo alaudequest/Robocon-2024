@@ -1039,33 +1039,32 @@ void process_RiceAppRoach()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
-		process_SSCheck++;
-		if(process_SSCheck<2)
-		{
-			xaDay = 2;
-		}
-		else if(process_SSCheck>15){
-//			xaDay = 2;
+
+
+
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
+
 					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
-		}
+
 	}
 	else if(process_SubState == 2){
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
+
 		process_SubState = 3;
 	}
 	else if(process_SubState == 3){
 		if(valve_IsProcessEnd()){
 			process_SubState = 4;
+//			xaDay = 2;
 		}
 	}
 	else if(process_SubState == 4){
@@ -1147,25 +1146,22 @@ void process_RiceAppRoach3()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
-		process_SSCheck++;
-		if(process_SSCheck<2)
-		{
-			xaDay = 2;
-		}
-		else if(process_SSCheck>15){
-//			xaDay = 2;
+
+
+			xaDay = 1;
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
+					xaDay = 2;
 					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
-		}
+
 	}
 	else if(process_SubState == 2){
 		valve_ProcessBegin(ValveProcess_CatchAndHold);
