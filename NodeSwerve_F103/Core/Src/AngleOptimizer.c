@@ -140,3 +140,23 @@ float angopt_GetOptAngle()
 #define currentAngle 	opt.currentAngle
 	return currentAngle;
 }
+
+void angopt_Reset()
+{
+#define direct 			opt.direct
+#define currentAngle 	opt.currentAngle
+#define deltaAngle 		opt.deltaAngle
+#define outputAngle 	opt.outputAngle
+#define preAngle 		opt.preAngle
+#define calInput		opt.calInput
+#define preCal			opt.preCal
+#define deltaCal		opt.deltaCal
+	direct = 0;
+	currentAngle = 0;
+	deltaAngle = 0;
+	outputAngle = 0;
+	preAngle = 0;
+	calInput = 0;
+	preCal = 0;
+	deltaCal = 0;
+}

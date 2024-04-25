@@ -22,6 +22,7 @@ typedef struct PutParam_t{
 	uint8_t StopPutFlag;
 	int count;
 	int putBall_SScheck;
+	uint8_t substate;
 }PutParam_t;
 
 typedef struct GetParam_t{

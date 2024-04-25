@@ -59,6 +59,8 @@ void PID_DC_CalPos(float Target_set)
 {
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
+	pid.u_AboveLimit = 1000;
+	pid.u_BelowLimit = -1000;
 	float result = PID_Calculate(&pid, Target_set, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
@@ -136,12 +138,13 @@ void PID_DC_UntangleWireBLDC()
 {
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
-	pid.u_AboveLimit = 20;
-	pid.u_BelowLimit = -20;
+	pid.u_AboveLimit = 60;
+	pid.u_BelowLimit = -60;
 	float result = PID_Calculate(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
 	PID_DC_CalSpeed(result);
+	angopt_Reset();
 }
 
 void PID_BLDC_OnLowSpeed()

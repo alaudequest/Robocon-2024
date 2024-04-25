@@ -21,6 +21,7 @@ void startPutBall(uint8_t state)
 	encoder_Init(&putBall.enc, &htim2, 19200, 0.001);
 	if(state == 0)
 	{
+		putBall.substate = 0;
 		putBall.putBall_SScheck = 0;
 		putBall.count += 1;
 		putBall.StopPutFlag = 0;
@@ -38,6 +39,7 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 1)
 	{
+		putBall.substate = 0;
 		putBall.count = 0;
 		putBall.flag = 0;
 		putBall.accel.vel_controller = 0;
@@ -68,18 +70,54 @@ void startPutBall(uint8_t state)
 	}
 	else if(state == 2)
 	{
-		putBall.putBall_SScheck = 0;
-		putBall.StopPutFlag = 0;
-		putBall.count += 1;
-
-		if (putBall.count<30*50)
+		if (putBall.substate == 0)
 		{
-			MotorDC_Drive(&putBall.mdc,450);
-			MotorDC_Drive(&getBall.mdc, -1000);
-		}else {
-			MotorDC_Drive(&putBall.mdc,100);
-			MotorDC_Drive(&getBall.mdc, -1000);
+			putBall.putBall_SScheck = 0;
+			putBall.StopPutFlag = 0;
+			putBall.count += 1;
+			if (putBall.count<50*50)
+			{
+				MotorDC_Drive(&putBall.mdc,450);
+				MotorDC_Drive(&getBall.mdc, -1000);
+			}else if  (putBall.count<60*50){
+				MotorDC_Drive(&putBall.mdc,450);
+				MotorDC_Drive(&getBall.mdc, -1000);
+			}else {
+				putBall.count = 0;
+				putBall.substate += 1;
+			}
+		}else{
+			putBall.count = 0;
+			putBall.flag = 0;
+			putBall.accel.vel_controller = 0;
+			getBall.accel.vel_controller = 0;
+
+			if(putBall.StopPutFlag == 0)
+			{
+				if(HAL_GPIO_ReadPin(sensor_5_GPIO_Port, sensor_5_Pin))
+				{
+					putBall.putBall_SScheck += 1;
+				}else{
+					putBall.putBall_SScheck = 0;
+				}
+				if(putBall.putBall_SScheck > 5){
+					putBall.StopPutFlag = 1;
+					putBall.putBall_SScheck = 0;
+				}
+
+			}
+			if (putBall.StopPutFlag)
+			{
+				MotorDC_Drive(&putBall.mdc, 100);
+				MotorDC_Drive(&getBall.mdc, 0);
+				encoder_ResetCount(&putBall.enc);
+			}else{
+				MotorDC_Drive(&putBall.mdc, -150);
+				MotorDC_Drive(&getBall.mdc, -1000);
+			}
 		}
+
+
 	}
 	else if(state == 3)
 	{
@@ -113,6 +151,7 @@ void startPutBall(uint8_t state)
 		}
 	}else if(state == 4)
 	{
+		putBall.substate = 0;
 		putBall.putBall_SScheck = 0;
 		putBall.count += 1;
 		putBall.StopPutFlag = 0;

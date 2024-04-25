@@ -37,4 +37,5 @@ void angopt_QuadRantCheckOutput(float Input);
 int angopt_QuadrantCheckInput(float x, float y);
 int angopt_QuadRantCheckOutput2(float Input1,float Input2);
 float angopt_GetOptAngle();
+void angopt_Reset();
 #endif /* INC_ANGLEOPTIMIZER_H_ */

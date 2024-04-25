@@ -326,8 +326,8 @@ int main(void)
 
 	HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World", strlen("Hello World"), HAL_MAX_DELAY);
 	PID_RegisterErrorCallback(&PID_ErrorHandler);
-//	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
-	SwerveApp_Init();
+//	Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_3);
+//	SwerveApp_Init();
 //  Flash_Write(CANCTRL_DEVICE_MOTOR_CONTROLLER_1);
 //  __HAL_DBGMCU_FREEZE_CAN1();
 
