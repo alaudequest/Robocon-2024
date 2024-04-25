@@ -1,0 +1,5 @@
+../STM32-Library/Src/RTC_Format.c:10:7:RTC_GetTimeFromString	10
+../STM32-Library/Src/RTC_Format.c:41:9:RTC_ConvertTickElapsedToSecond	1
+../STM32-Library/Src/RTC_Format.c:42:9:RTC_ConvertTickElapsedToMinute	1
+../STM32-Library/Src/RTC_Format.c:43:9:RTC_ConvertTickElapsedToHour	1
+../STM32-Library/Src/RTC_Format.c:45:6:RTC_PackTimeToString	1

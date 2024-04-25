@@ -1,0 +1,9 @@
+../Core/Src/AngleOptimizer.c:11:7:absf	16	static
+../Core/Src/AngleOptimizer.c:17:7:modulo360	32	static
+../Core/Src/AngleOptimizer.c:22:7:modulo180	32	static
+../Core/Src/AngleOptimizer.c:28:5:angopt_QuadrantCheckInput	24	static
+../Core/Src/AngleOptimizer.c:46:6:angopt_QuadRantCheckOutput	24	static
+../Core/Src/AngleOptimizer.c:68:5:angopt_QuadRantCheckOutput2	32	static
+../Core/Src/AngleOptimizer.c:93:6:angopt_Cal	24	static
+../Core/Src/AngleOptimizer.c:138:7:angopt_GetOptAngle	4	static
+../Core/Src/AngleOptimizer.c:144:6:angopt_Reset	4	static

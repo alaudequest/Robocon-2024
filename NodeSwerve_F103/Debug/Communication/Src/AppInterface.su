@@ -1,0 +1,15 @@
+../Communication/Src/AppInterface.c:33:6:appintf_Init	24	static
+../Communication/Src/AppInterface.c:42:6:appintf_RegisterArgument	16	static
+../Communication/Src/AppInterface.c:47:6:appintf_RegisterReceivedCallbackEvent	16	static
+../Communication/Src/AppInterface.c:51:6:appintf_RegisterErrorCallbackEvent	16	static
+../Communication/Src/AppInterface.c:55:6:appintf_GetValueFromPayload	16	static
+../Communication/Src/AppInterface.c:63:6:appintf_GetValueFromPayload_2	24	static
+../Communication/Src/AppInterface.c:77:21:DecodeFrameDataAndCheckCRC	24	static
+../Communication/Src/AppInterface.c:97:6:appintf_ReceiveDataInterrupt	24	static
+../Communication/Src/AppInterface.c:135:6:appintf_Reset	8	static
+../Communication/Src/AppInterface.c:143:6:appintf_MakeFrame	32	static
+../Communication/Src/AppInterface.c:175:6:appintf_MakeFrame_2	32	static
+../Communication/Src/AppInterface.c:200:20:jumpToError	16	static
+../Communication/Src/AppInterface.c:208:6:appintf_SendFrame	16	static,ignoring_inline_asm
+../Communication/Src/AppInterface.c:222:13:ResetFrameData	16	static
+../Communication/Src/AppInterface.c:227:13:IsPassCRC	16	static

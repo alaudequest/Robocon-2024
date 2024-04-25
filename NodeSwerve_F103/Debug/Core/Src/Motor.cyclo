@@ -1,0 +1,5 @@
+../Core/Src/Motor.c:26:6:MotorDC_Init	1
+../Core/Src/Motor.c:34:6:MotorDC_Drive	31
+../Core/Src/Motor.c:55:6:MotorBLDC_Init	1
+../Core/Src/Motor.c:72:6:MotorBLDC_Brake	1
+../Core/Src/Motor.c:77:6:MotorBLDC_Drive	10

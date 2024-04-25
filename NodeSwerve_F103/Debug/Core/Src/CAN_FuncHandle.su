@@ -1,0 +1,12 @@
+../Core/Src/CAN_FuncHandle.c:15:6:canfunc_HandleRxEvent	24	static
+../Core/Src/CAN_FuncHandle.c:29:6:canfunc_RTR_SpeedAngle	32	static
+../Core/Src/CAN_FuncHandle.c:36:6:canfunc_RTR_PID	104	static
+../Core/Src/CAN_FuncHandle.c:42:6:canfunc_GetBoolValue	16	static
+../Core/Src/CAN_FuncHandle.c:50:6:canfunc_SetBoolValue	24	static
+../Core/Src/CAN_FuncHandle.c:63:10:canfunc_MotorGetEncoderPulseBLDC	16	static
+../Core/Src/CAN_FuncHandle.c:70:6:canfunc_MotorPutSpeedAndAngle	16	static
+../Core/Src/CAN_FuncHandle.c:76:23:canfunc_MotorGetSpeedAndAngle	24	static
+../Core/Src/CAN_FuncHandle.c:91:19:canfunc_PutAndSendParamPID	40	static
+../Core/Src/CAN_FuncHandle.c:117:6:canfunc_Convert_CAN_PID_to_PID_Param	8	static
+../Core/Src/CAN_FuncHandle.c:126:10:canfunc_GetTypePID	40	static
+../Core/Src/CAN_FuncHandle.c:132:6:canfunc_GetPID	32	static
