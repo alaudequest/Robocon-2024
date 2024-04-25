@@ -2269,6 +2269,7 @@ void OdometerHandle(void const * argument)
 				valve_ArmDown();
 			}
 			process_Accel_FloatingEnc8(-36, 1, 11300, 0.08, 6000, 0.01, 90, 1.3, 5);
+//			process_Accel_FloatingEnc8(-40, 2, 7000, 0.08, 2000, 0.01, 90, 2.5, 5);
 		}
 		else if (step == 7)
 		{
@@ -2444,7 +2445,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 25)
 		{
-			process_Accel_FloatingEnc6(29, 1, 13300, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(29, 1, 13000, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 26)
 		{
