@@ -1032,6 +1032,7 @@ void process_RiceAppRoach()
 		if((process_ThucHienGapLua() == true) || GamePad.Down){
 			process_Error(1);
 			process_SubState = 1;
+			process_SSCheck = 0;
 		}
 	}
 	else if(process_SubState == 1){
@@ -1039,7 +1040,11 @@ void process_RiceAppRoach()
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
 		process_SSCheck++;
-		if(process_SSCheck>15){
+		if(process_SSCheck<2)
+		{
+			xaDay = 2;
+		}
+		else if(process_SSCheck>15){
 //			xaDay = 2;
 			Manual = 1;
 			PlusControl = 2;
@@ -1088,7 +1093,11 @@ void process_RiceAppRoach2()
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
 		process_SSCheck++;
-		if(process_SSCheck>15){
+		if(process_SSCheck<2)
+		{
+			xaDay = 2;
+		}
+		else if(process_SSCheck>15){
 
 			Manual = 1;
 			PlusControl = 2;
@@ -1131,6 +1140,7 @@ void process_RiceAppRoach3()
 			process_Error(1);
 
 			process_SubState = 1;
+			process_SSCheck = 0;
 		}
 	}
 	else if(process_SubState == 1){
@@ -1138,8 +1148,12 @@ void process_RiceAppRoach3()
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
 		process_SSCheck++;
-		if(process_SSCheck>15){
-
+		if(process_SSCheck<2)
+		{
+			xaDay = 2;
+		}
+		else if(process_SSCheck>15){
+//			xaDay = 2;
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
