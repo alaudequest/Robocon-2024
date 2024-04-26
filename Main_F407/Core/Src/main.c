@@ -781,7 +781,7 @@ void process_Accel_FloatingEnc7(float Angle,float maxSpeed,float s,float accel,f
 		{
 			u = 0;
 			v = 0;
-			if (absf(trajecTheta.Pf-angle_Rad)<4*M_PI/180)
+			if (absf(trajecTheta.Pf-angle_Rad)<2*M_PI/180)
 			{
 				process_SSCheck ++;
 			}else{
@@ -1028,7 +1028,7 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(15,0.25);
+		process_RunByAngle(15,0.15);
 		if((process_ThucHienGapLua() == true) || GamePad.Down){
 			process_Error(1);
 			process_SubState = 1;
@@ -1039,21 +1039,23 @@ void process_RiceAppRoach()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
-
-
-
+//		process_SSCheck++;
+//		if(process_SSCheck>10)
+//		{
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
-
-					process_SSCheck = 0;
+//					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
+
+//		}
+
 
 	}
 	else if(process_SubState == 2){
@@ -1134,7 +1136,7 @@ void process_RiceAppRoach3()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		process_RunByAngle(180-16,0.25);
+		process_RunByAngle(180-16,0.15);
 		if((process_ThucHienGapLua1() == true) || GamePad.Down){
 			process_Error(1);
 
@@ -1146,21 +1148,23 @@ void process_RiceAppRoach3()
 		process_Error(0);
 		process_RunByAngle(90,0.2);
 //		process_SubState = 2;
-
-
-			xaDay = 1;
+//		process_SSCheck++;
+//		if(process_SSCheck>10)
+//		{
 			Manual = 1;
 			PlusControl = 2;
 			if (GamePad.Up)
 			{
 				if (GamePad.Up)
 				{
-					xaDay = 2;
-					process_SSCheck = 0;
+//					process_SSCheck = 0;
 					process_SubState = 2;
 					Manual = 0;
 				}
 			}
+
+//		}
+
 
 	}
 	else if(process_SubState == 2){
@@ -1962,18 +1966,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RobotSignalBtn_RED_Pin RobotSignalBtn_YELLOW_Pin */
-  GPIO_InitStruct.Pin = RobotSignalBtn_RED_Pin|RobotSignalBtn_YELLOW_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RobotSignalBtn_BLUE_Pin RobotSignalBtn_GREEN_Pin */
-  GPIO_InitStruct.Pin = RobotSignalBtn_BLUE_Pin|RobotSignalBtn_GREEN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /*Configure GPIO pins : Sensor1_Pin Sensor2_Pin Sensor4_Pin Sensor5_Pin
                            Sensor6_Pin Sensor7_Pin Sensor8_Pin */
   GPIO_InitStruct.Pin = Sensor1_Pin|Sensor2_Pin|Sensor4_Pin|Sensor5_Pin
@@ -1981,6 +1973,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RobotSignalBtn_RED_Pin RobotSignalBtn_YELLOW_Pin RobotSignalBtn_BLUE_Pin RobotSignalBtn_GREEN_Pin */
+  GPIO_InitStruct.Pin = RobotSignalBtn_RED_Pin|RobotSignalBtn_YELLOW_Pin|RobotSignalBtn_BLUE_Pin|RobotSignalBtn_GREEN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Enc2B_Pin */
   GPIO_InitStruct.Pin = Enc2B_Pin;
@@ -2172,7 +2170,7 @@ void Actuator(void const * argument)
 		RB1_CalculateRuloGunPIDSpeed();
 		RB1_valve_ProcessManager();
 		ShootBallTime_Handle();
-//		BuzzerBeepProcess();
+		BuzzerBeepProcess();
 		RobotSignalButton_ScanButton();
 		osDelay(10);
 	}
@@ -2254,15 +2252,15 @@ void OdometerHandle(void const * argument)
 		else if (step == 1)
 		{
 			AngleNow = -27;
-			process_Accel_FloatingEnc6(-27, 1, 2300, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc6(-27, 1, 1900, 0.5, -15, 3, 5);
 		}
 		else if (step == 2)
 		{
-			process_Accel_FloatingEnc6(45, 0.8, 3000, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc6(45, 0.5, 3000, 0.5, -15, 3, 5);
 		}
 		else if (step == 3)
 		{
-			process_Accel_FloatingEnc6(18, 0.6, 800, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc6(18, 0.2, 800, 0.5, -5, 3, 5);
 
 		}
 		else if (step == 4)
@@ -2284,7 +2282,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc8(-36, 1, 11300, 0.08, 6000, 0.01, 90, 1.3, 5);
+			process_Accel_FloatingEnc8(-35, 1, 11300, 0.08, 6000, 0.01, 95, 1.3, 5);
 //			process_Accel_FloatingEnc8(-40, 2, 7000, 0.08, 2000, 0.01, 90, 2.5, 5);
 		}
 		else if (step == 7)
@@ -2316,11 +2314,11 @@ void OdometerHandle(void const * argument)
 		else if(step == 8)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 95, 3, 5);
 		}
 		else if(step == 9)
 		{
-			process_Accel_FloatingEnc6(30, 1, 12800, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(28, 1, 13000, 0.5, 15, 3.5, 10);
 		}
 		else if(step == 10)
 		{
@@ -2345,7 +2343,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 130000, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 130000, 0.08, 95, 1.3, 5);
 
 			if(floatingEncCount> 6100)
 			{
@@ -2356,7 +2354,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 14)
 		{
 
-			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 95, 3, 5);
 		}
 		else if (step == 15)
 		{
@@ -2387,11 +2385,11 @@ void OdometerHandle(void const * argument)
 		else if(step == 16)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 95, 3, 5);
 		}
 		else if(step == 17)
 		{
-			process_Accel_FloatingEnc6(28, 1, 13400, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(26, 1, 14200, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 18)
 		{
@@ -2416,9 +2414,9 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 95, 1.3, 5);
 
-			if(floatingEncCount> 8900)
+			if(floatingEncCount> 8700)
 			{
 				process_SubState = 0;
 				step++;
@@ -2426,7 +2424,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 22)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5200, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5200, 0.08, 95, 3, 5);
 		}
 		else if (step == 23)
 		{
@@ -2457,11 +2455,11 @@ void OdometerHandle(void const * argument)
 		else if(step == 24)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 95, 3, 5);
 		}
 		else if(step == 25)
 		{
-			process_Accel_FloatingEnc6(29, 1, 13000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(27, 1, 13800, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 26)
 		{
@@ -2486,7 +2484,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 95, 1.3, 5);
 
 			if(floatingEncCount> 6500)
 			{
@@ -2496,7 +2494,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 30)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5400, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5400, 0.08, 95, 3, 5);
 		}
 		else if (step == 31)
 		{
@@ -2527,11 +2525,11 @@ void OdometerHandle(void const * argument)
 		else if(step == 32)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 95, 3, 5);
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(26, 1, 13800, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(25, 1, 14200, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 34)
 		{
@@ -2556,7 +2554,7 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-185, 1, 13400, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-185, 1, 13400, 0.08, 95, 1.3, 5);
 
 			if(floatingEncCount> 7500)
 			{
@@ -2566,7 +2564,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 38)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 95, 3, 5);
 		}
 		else if (step == 39)
 		{
@@ -2597,11 +2595,11 @@ void OdometerHandle(void const * argument)
 		else if(step == 40)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 1000, 0.5, 95, 3, 5);
 		}
 		else if(step == 41)
 		{
-			process_Accel_FloatingEnc6(30, 1, 13000, 0.5, 0, 3.5, 10);
+			process_Accel_FloatingEnc6(27, 1, 13300, 0.5, 0, 3.5, 10);
 		}
 		else if(step == 42)
 		{
@@ -2626,9 +2624,9 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-185, 1, 13000, 0.08, 90, 1.3, 5);
+			process_Accel_FloatingEnc6(-185, 1, 13000, 0.08, 95, 1.3, 5);
 
-			if(floatingEncCount> 6600)
+			if(floatingEncCount> 6200)
 			{
 				process_SubState = 0;
 				step++;
@@ -2636,7 +2634,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 46)
 		{
-			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc7(-20, 1, 5500, 0.08, 95, 3, 5);
 		}
 		else if (step == 47)
 		{
@@ -2667,16 +2665,16 @@ void OdometerHandle(void const * argument)
 		else if(step == 48)
 		{
 			AngleNow = -180;
-			process_Accel_FloatingEnc6(-180, 1, 1000, 0.08, 90, 3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 1000, 0.08, 95, 3, 5);
 
 		}
 		else if(step == 49)
 		{
-			process_Accel_FloatingEnc6(-88, 1, 11000, 0.5 , 90, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1, 11000, 0.5 , 95, 3, 5);
 		}
 		else if(step == 50)
 		{
-			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 90, 3, 5);
+			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 95, 3, 5);
 		}
 		else if(step == 51){
 			ShootBallTime_Start(&GamePad);
