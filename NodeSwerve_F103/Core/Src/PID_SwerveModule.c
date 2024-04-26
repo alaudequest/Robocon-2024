@@ -138,8 +138,8 @@ void PID_DC_UntangleWireBLDC()
 {
 	Encoder_t encDC = brd_GetObjEncDC();
 	PID_Param pid = brd_GetPID(PID_DC_ANGLE);
-	pid.u_AboveLimit = 60;
-	pid.u_BelowLimit = -60;
+
+
 	float result = PID_Calculate(&pid, 0, encoder_GetPulse(&encDC, MODE_ANGLE));
 	brd_SetPID(pid, PID_DC_ANGLE);
 	brd_SetObjEncDC(encDC);
