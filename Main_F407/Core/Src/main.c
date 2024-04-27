@@ -2361,8 +2361,8 @@ void OdometerHandle(void const * argument)
 				V_want-=0.01;
 
 			}
-			process_Accel_FloatingEnc9(3, V_want, 18000, 0.5, 0, 3, 5);
-			if(floatingEncCount > 10200)
+			process_Accel_FloatingEnc9(5, V_want, 18000, 0.5, 0, 3, 5);
+			if(floatingEncCount > 9500)
 			{
 				process_SubState = 0;
 				step++;
@@ -2373,12 +2373,11 @@ void OdometerHandle(void const * argument)
 		{
 			AngleNow = 15;
 			process_Accel_FloatingEnc9(15, 0.2, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>2200)&&(floatingEncCount<3000))
+			if((floatingEncCount>1500)&&(floatingEncCount<3000))
 			{
 				if(process_ThucHienGapLua1() == true)
 				{
 					osDelay(1);
-
 					if(process_ThucHienGapLua1() == true)
 					{
 						u = 0;
@@ -2495,7 +2494,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 14)
 		{
 			process_Accel_FloatingEnc6(15, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>2700)&&(floatingEncCount<3500))
+			if((floatingEncCount>3500)&&(floatingEncCount<5500))
 			{
 				if(process_ThucHienGapLua1() == true)
 				{
@@ -2514,7 +2513,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>3500)//3000
+			if(floatingEncCount>5500)//3000
 			{
 				u = 0;
 				v = 0;
@@ -2556,7 +2555,7 @@ void OdometerHandle(void const * argument)
 			}
 			process_Accel_FloatingEnc6(-180, 1, 130000, 0.5, 95, 1.5, 5);
 
-			if(floatingEncCount> 3000)
+			if(floatingEncCount> 2800)
 			{
 				process_SubState = 0;
 				step++;
@@ -2592,10 +2591,10 @@ void OdometerHandle(void const * argument)
 					osDelay(250);
 
 					process_Count++;
+
 					if(process_Count == 6)
 					{
 						step = 32;
-						process_Count = 0;
 					}
 					else
 					{
@@ -2723,21 +2722,53 @@ void OdometerHandle(void const * argument)
 					osDelay(250);
 					step = 12;
 					process_Count++;
+				}
+			}
+			if (GamePad.Left)
+			{
+				osDelay(200);
+				if(GamePad.Left)
+				{
+					process_ResetFloatingEnc();
+					// Set thong so quy hoach quy dao :
+					PlusControl = 0;
+					Manual = 0;
+					// tha tay gap
+					process_Error(1);
+					valve_HandRelease();
+					process_Error(0);
+					osDelay(50);
+					valve_ArmUp();
+					osDelay(250);
+					process_Count++;
+					if(process_Count == 3)
+					{
+						step = 32;
+					}
 
 				}
 			}
+
 		}
 
 		// Chay len khu 2
 		else if(step == 32)
 		{
 			AngleNow = -180;
-			process_Accel_FloatingEnc6(-180, 1, 2200, 0.08, 95, 3, 5);
+			if(process_Count == 6)
+			{
 
+				process_Accel_FloatingEnc6(-180, 1, 2200, 0.08, 95, 3, 5);
+			}
+			if(process_Count == 3)
+			{
+
+				process_Accel_FloatingEnc6(-180, 1, 10800, 0.08, 95, 3, 5);
+			}
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(-88, 1, 10300, 0.5 , 95, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1, 10100, 0.5 , 95, 3, 5);
 		}
 		else if(step == 34)
 		{
