@@ -32,4 +32,5 @@ void ProcessDelay(uint32_t delayMs, uint8_t *step);
 HAL_StatusTypeDef BuzzerBeep_Start(uint8_t repeatTime, uint32_t onDelayMs,uint32_t offDelayMs);
 void BuzzerBeepProcess();
 void RobotSignalButton_ScanButton();
+void RobotSignalButton_RegisterButtonPressedCallback(void (*pSignalBtnPressed)(SignalButtonColor));
 #endif /* INC_BOARDPARAMETER_H_ */

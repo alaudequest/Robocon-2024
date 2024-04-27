@@ -30,6 +30,7 @@ void ShootBallTime_Start(_GamePad *gamepad)
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
 	_gamepad = gamepad;
 	valve_ArmDown();
+	valve_HandHold();
 	collectBallLeft = RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_LEFT);
 	collectBallRight= RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_RIGHT);
 	PlusControl = 2;// Điều khiển dạng chữ thập có thể quay góc
@@ -95,6 +96,7 @@ void ShootBallTime_Handle()
 			valve_OpenLeftCollectBall();
 			valve_CloseRightCollectBall();
 			valve_ArmDown();
+			valve_HandHold();
 		}
 	}
 	else if (_gamepad->Down) {
@@ -105,6 +107,7 @@ void ShootBallTime_Handle()
 			valve_OpenRightCollectBall();
 			valve_CloseLeftCollectBall();
 			valve_ArmDown();
+			valve_HandHold();
 		}
 	}
 
@@ -112,6 +115,7 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->Triangle){
 			valve_ArmDown();
+			valve_HandHold();
 			// nếu ở hàng banh trên thì đưa banh vào
 			if (isRowBallAbove) {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallRight);
@@ -205,6 +209,7 @@ void ShootBallTime_Stop()
 {
 	inShootBallTime = false;
 	valve_ArmUp();
+	valve_HandRelease();
 	valve_CloseLeftCollectBall();
 	valve_CloseRightCollectBall();
 	RB1_CollectBallMotor_Off();

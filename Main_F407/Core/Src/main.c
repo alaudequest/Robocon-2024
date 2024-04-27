@@ -111,7 +111,7 @@ _GamePad GamePad;
 uint32_t gamepadRxIsBusy = 0;
 
 float DeltaYR, DeltaYL, DeltaX;
-uint8_t Run, resetParam, breakProtect;
+uint8_t Run = 0, resetParam, breakProtect;
 float uControlX, uControlY, uControlTheta;
 uint8_t stateRun = 0, steadycheck;
 uint8_t xaDay;
@@ -1108,7 +1108,7 @@ void process_RiceAppRoach()
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
-		if((process_ThucHienGapLua() == true) || GamePad.Down){
+		if((process_ThucHienGapLua1() == true) || GamePad.Down){
 			process_Error(1);
 			process_SubState = 1;
 		}
@@ -1143,7 +1143,6 @@ void process_RiceAppRoach()
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
-		process_Count = 0;
 		step += 1;
 	}
 }
@@ -1188,7 +1187,6 @@ void process_RiceAppRoach2()
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
-		process_Count = 0;
 		step += 1;
 	}
 }
@@ -1234,7 +1232,6 @@ void process_RiceAppRoach3()
 		process_ResetFloatingEnc();
 		Reset_MPU_Angle();
 		process_SubState = 0;
-		process_Count = 0;
 		step += 1;
 	}
 }
@@ -1301,6 +1298,7 @@ int main(void)
 //	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
 //	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
+
 
 
   /* USER CODE END 2 */
@@ -2207,6 +2205,28 @@ void CAN_Bus(void const * argument)
 }
 
 /* USER CODE BEGIN Header_Actuator */
+
+void SignalButton_Pressed(SignalButtonColor color){
+
+	switch(color){
+	case SIGBTN_RED:
+		step = 1;
+		Run = 1;
+		Reset_MPU_Angle();
+		process_ResetFloatingEnc();
+		break;
+	case SIGBTN_YELLOW:
+		break;
+	case SIGBTN_BLUE:
+		break;
+	case SIGBTN_GREEN:
+		break;
+	default:
+		break;
+	}
+
+
+}
 /**
  * @brief Function implementing the TaskActuator thread.
  * @param argument: Not used
@@ -2216,6 +2236,7 @@ void CAN_Bus(void const * argument)
 void Actuator(void const * argument)
 {
   /* USER CODE BEGIN Actuator */
+	RobotSignalButton_RegisterButtonPressedCallback(&SignalButton_Pressed);
 	/* Infinite loop */
 	for (;;) {
 		RB1_CollectBallMotor_ControlSpeed();
@@ -2224,7 +2245,10 @@ void Actuator(void const * argument)
 		RB1_valve_ProcessManager();
 		ShootBallTime_Handle();
 		BuzzerBeepProcess();
-		RobotSignalButton_ScanButton();
+		if(Run == 0)
+		{
+			RobotSignalButton_ScanButton();
+		}
 		osDelay(10);
 	}
   /* USER CODE END Actuator */
@@ -2306,6 +2330,7 @@ void OdometerHandle(void const * argument)
 		// Cap lua thu 1
 		else if (step == 1)
 		{
+
 			AngleNow = -45;
 			process_Accel_FloatingEnc6(-45, 1, 1800, 0.5, 0, 3, 5);
 			if(floatingEncCount > 1500)
@@ -2318,7 +2343,7 @@ void OdometerHandle(void const * argument)
 		{
 			AngleNow = 12;
 
-			process_Accel_FloatingEnc6(12, 1.3, 18000, 0.5, 0, 3, 5);
+			process_Accel_FloatingEnc9(12, 1.3, 18000, 0.5, 0, 3, 5);
 			if(floatingEncCount > 3000)
 			{
 				process_SubState = 0;
@@ -2336,8 +2361,8 @@ void OdometerHandle(void const * argument)
 				V_want-=0.01;
 
 			}
-			process_Accel_FloatingEnc6(5, V_want, 18000, 0.5, 0, 3, 5);
-			if(floatingEncCount > 10000)
+			process_Accel_FloatingEnc9(3, V_want, 18000, 0.5, 0, 3, 5);
+			if(floatingEncCount > 10200)
 			{
 				process_SubState = 0;
 				step++;
@@ -2347,14 +2372,14 @@ void OdometerHandle(void const * argument)
 		else if(step == 4)
 		{
 			AngleNow = 15;
-			process_Accel_FloatingEnc6(15, 0.2, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>1500)&&(floatingEncCount<3000))
+			process_Accel_FloatingEnc9(15, 0.2, 100000, 0.08, 0, 3, 5);
+			if((floatingEncCount>2200)&&(floatingEncCount<3000))
 			{
-				if(process_ThucHienGapLua() == true)
+				if(process_ThucHienGapLua1() == true)
 				{
 					osDelay(1);
 
-					if(process_ThucHienGapLua() == true)
+					if(process_ThucHienGapLua1() == true)
 					{
 						u = 0;
 						v = 0;
@@ -2377,9 +2402,9 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 5)
 		{
-			process_RunByAngle(170, 0.2);
+			process_RunByAngle(90, 0.2);
 			process_SSCheck++;
-			if(process_SSCheck>5)
+			if(process_SSCheck>10)
 			{
 				step++;
 				process_SSCheck = 0;
@@ -2408,8 +2433,8 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 95, 1.5, 5);
-			if(floatingEncCount> 1400)
+			process_Accel_FloatingEnc6(-180, 1, 13000, 0.5, 95, 1.5, 5);
+			if(floatingEncCount> 1700)
 			{
 				process_SubState = 0;
 				step++;
@@ -2418,12 +2443,12 @@ void OdometerHandle(void const * argument)
 		else if(step == 9)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 7500, 0.08, 95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 7500, 1, 95, 1.5, 5);
 
 		}
 		else if(step == 10)
 		{
-			process_Accel_FloatingEnc9(-90, 0, 0, 0.08, 95, 1, 5);
+			process_Accel_FloatingEnc9(-90, 0, 0, 1, 95, 1, 5);
 		}
 		else if (step == 11)
 		{
@@ -2456,12 +2481,12 @@ void OdometerHandle(void const * argument)
 		else if(step == 12)
 		{
 			AngleNow = 180;
-			process_Accel_FloatingEnc6(180, 0.6, 800, 0.08, 95, 3, 5);
+			process_Accel_FloatingEnc6(180, 0.6, 500, 0.08, 95, 3, 5);
 		}
 		else if(step == 13)
 		{
-			process_Accel_FloatingEnc6(70, 1, 15000, 0.5, 0, 1.5, 5);
-			if(floatingEncCount>10500)
+			process_Accel_FloatingEnc6(75, 1, 15000, 0.5, -5, 1.5, 5);
+			if(floatingEncCount>9600)
 			{
 				process_SubState = 0;
 				step++;
@@ -2469,13 +2494,13 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 14)
 		{
-			process_Accel_FloatingEnc6(10, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>3000)&&(floatingEncCount<4500))
+			process_Accel_FloatingEnc6(15, 0.4, 100000, 0.08, 0, 3, 5);
+			if((floatingEncCount>2700)&&(floatingEncCount<3500))
 			{
-				if(process_ThucHienGapLua() == true)
+				if(process_ThucHienGapLua1() == true)
 				{
 					osDelay(1);
-					if(process_ThucHienGapLua() == true)
+					if(process_ThucHienGapLua1() == true)
 					{
 
 						u = 0;
@@ -2489,7 +2514,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>4500)//3000
+			if(floatingEncCount>3500)//3000
 			{
 				u = 0;
 				v = 0;
@@ -2500,9 +2525,9 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 15)
 		{
-			process_RunByAngle(170, 0.2);
+			process_RunByAngle(90, 0.2);
 			process_SSCheck++;
-			if(process_SSCheck>5)
+			if(process_SSCheck>10)
 			{
 				step++;
 				process_SSCheck = 0;
@@ -2529,9 +2554,9 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 130000, 0.08, 95, 1.5, 5);
+			process_Accel_FloatingEnc6(-180, 1, 130000, 0.5, 95, 1.5, 5);
 
-			if(floatingEncCount> 2400)
+			if(floatingEncCount> 3000)
 			{
 				process_SubState = 0;
 				step++;
@@ -2539,11 +2564,11 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 19)
 		{
-			process_Accel_FloatingEnc9(-90, 0.8, 6700, 0.08, 95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 6700, 1, 95, 1.5, 5);
 		}
 		else if(step == 20)
 		{
-			process_Accel_FloatingEnc9(-90, 0, 0, 0.08, 95, 1, 5);
+			process_Accel_FloatingEnc9(-90, 0, 0, 1, 95, 1, 5);
 		}
 		else if (step == 21)
 		{
@@ -2565,12 +2590,16 @@ void OdometerHandle(void const * argument)
 					osDelay(50);
 					valve_ArmUp();
 					osDelay(250);
-					step++;
+
 					process_Count++;
 					if(process_Count == 6)
 					{
-						step = 28;
+						step = 32;
 						process_Count = 0;
+					}
+					else
+					{
+						step = 22;
 					}
 
 				}
@@ -2585,7 +2614,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 23)
 		{
-			process_Accel_FloatingEnc6(70, 1, 15000, 0.5, 0, 1.5, 5);
+			process_Accel_FloatingEnc6(75, 1, 15000, 0.5, -5, 1.5, 5);
 			if(floatingEncCount>10300)
 			{
 				process_SubState = 0;
@@ -2594,13 +2623,13 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 24)
 		{
-			process_Accel_FloatingEnc6(10, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>3000)&&(floatingEncCount<4500))
+			process_Accel_FloatingEnc6(15, 0.4, 100000, 0.08, 0, 3, 5);
+			if((floatingEncCount>3700)&&(floatingEncCount<4500))
 			{
-				if(process_ThucHienGapLua() == true)
+				if(process_ThucHienGapLua1() == true)
 				{
 					osDelay(1);
-					if(process_ThucHienGapLua() == true)
+					if(process_ThucHienGapLua1() == true)
 					{
 
 						u = 0;
@@ -2625,9 +2654,9 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 25)
 		{
-			process_RunByAngle(170, 0.2);
+			process_RunByAngle(90, 0.2);
 			process_SSCheck++;
-			if(process_SSCheck>5)
+			if(process_SSCheck>10)
 			{
 				step++;
 				process_SSCheck = 0;
@@ -2655,8 +2684,8 @@ void OdometerHandle(void const * argument)
 			{
 				valve_ArmDown();
 			}
-			process_Accel_FloatingEnc6(-180, 1, 13000, 0.08, 95, 1.5, 5);
-			if(floatingEncCount> 1500)
+			process_Accel_FloatingEnc6(-180, 1, 13000, 1, 95, 1.5, 5);
+			if(floatingEncCount> 1600)
 			{
 				process_SubState = 0;
 				step++;
@@ -2665,12 +2694,12 @@ void OdometerHandle(void const * argument)
 		else if(step == 29)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 7400, 0.08, 95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 7500, 1, 95, 1.5, 5);
 
 		}
 		else if(step == 30)
 		{
-			process_Accel_FloatingEnc9(-90, 0, 0, 0.08, 95, 1, 5);
+			process_Accel_FloatingEnc9(-90, 0, 0, 0.5, 95, 1, 5);
 		}
 		else if (step == 31)
 		{
@@ -2700,25 +2729,25 @@ void OdometerHandle(void const * argument)
 		}
 
 		// Chay len khu 2
-		else if(step == 28)
+		else if(step == 32)
 		{
 			AngleNow = -180;
-			process_Accel_FloatingEnc6(-180, 1, 2000, 0.08, 95, 3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 2200, 0.08, 95, 3, 5);
 
 		}
-		else if(step == 29)
+		else if(step == 33)
 		{
 			process_Accel_FloatingEnc6(-88, 1, 10300, 0.5 , 95, 3, 5);
 		}
-		else if(step == 30)
+		else if(step == 34)
 		{
 			process_Accel_FloatingEnc6(0, 1, 5800, 0.5, 95, 3, 5);
 		}
-		else if(step == 31){
+		else if(step == 35){
 			ShootBallTime_Start(&GamePad);
 			step++;
 		}
-		else if(step == 32){
+		else if(step == 36){
 			Manual = 1;
 			PlusControl = 2;
 			if(IsInShootBallTime() == false){
@@ -2791,7 +2820,7 @@ void OdometerHandle(void const * argument)
 			{
 				uControlX = -GamePad.XLeftCtr*1;
 				uControlY = GamePad.YLeftCtr*1;
-				uControlTheta = GamePad.XRightCtr*1.2;
+				uControlTheta = GamePad.XRightCtr*1;
 				if (absf(uControlX)>absf(uControlY))
 				{
 					uControlY = 0;
