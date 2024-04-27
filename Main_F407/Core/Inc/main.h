@@ -55,7 +55,15 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void process_Ball_Approach3(uint8_t Ball);
+void process_setVal_PutBall(uint8_t value);
+void process_PD_Critical();
+void process_Accel_FloatingEnc3(float Angle,float maxSpeed,float s,float accel,float TargetAngle,float RotateTime,float AngleChange);
+void process_Accel_FloatingEnc4(float Angle, float maxSpeed, float s, float accel, float TargetAngle, float RotateTime);
+void Reset_MPU_Angle();
+void process_PD_OnStrainghtPath();
+void process_getBall();
+void process_ResetFloatingEnc();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

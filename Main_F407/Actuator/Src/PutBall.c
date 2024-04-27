@@ -75,11 +75,11 @@ void startPutBall(uint8_t state)
 			putBall.putBall_SScheck = 0;
 			putBall.StopPutFlag = 0;
 			putBall.count += 1;
-			if (putBall.count<50*50)
+			if (putBall.count<30*50)
 			{
 				MotorDC_Drive(&putBall.mdc,450);
 				MotorDC_Drive(&getBall.mdc, -1000);
-			}else if  (putBall.count<60*50){
+			}else if  (putBall.count<40*50){
 				MotorDC_Drive(&putBall.mdc,450);
 				MotorDC_Drive(&getBall.mdc, -1000);
 			}else {
