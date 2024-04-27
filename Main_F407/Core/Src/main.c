@@ -60,6 +60,7 @@ typedef enum MainEvent {
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 CAN_HandleTypeDef hcan1;
 
@@ -197,8 +198,11 @@ int v_Line;
 
 ///////////////////////////////////////CAM BIEN DO KHOANG CACH///////////////////////////////////////////
 float count,adc_val_Fil,sum;
+float adc_val_Fil2,sum2;
 float adc_val = 0;
+float adc_val2 = 0;
 float distance = 0;
+float distance2 = 0;
 
 ///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
 trajec_Param trajecTheta;
@@ -222,6 +226,27 @@ float distance_Delta, distance_Pre;
 uint8_t distanceFlag,GetballFlag;
 
 uint8_t Team,Start,Retry;
+///////////////////////////////////////Xu ly silo///////////////////////////////////////
+
+#define SILO_12_DISTANCE 4.256
+#define SILO_23_DISTANCE 3.203
+#define SILO_34_DISTANCE 2.155
+#define SILO_45_DISTANCE 1.083
+
+#define SILO_1_DISTANCE 3.134
+#define SILO_2_DISTANCE 2.424
+#define SILO_3_DISTANCE 1.662
+#define SILO_4_DISTANCE 0.910
+#define SILO_5_DISTANCE 0.155
+
+#define SILO_MAX_BALL 1
+
+uint8_t silo[6] = {0};
+uint8_t siloNow = 0;
+uint8_t siloTarget = 0;
+
+
+////
 #define RED   1
 #define BLUE  2
 #define RETRY_ENABLE	1
@@ -248,6 +273,7 @@ static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_UART5_Init(void);
+static void MX_ADC2_Init(void);
 void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
@@ -453,12 +479,17 @@ float absf(float num)
 }
 ///////////////////////////MPU//////////////////////////
 #define DELTA_T 0.05
+int16_t xxx,yyy,sumxy;
+
 void Get_MPU_Angle()
 {
     send_mpu ='z';
     HAL_UART_Transmit(&huart1,&send_mpu,1,1);
     angle=mpu[0]<<8|mpu[1];
     a_Now=angle;
+    xxx=mpu[2]<<8|mpu[3];
+    yyy=mpu[4]<<8|mpu[5];
+    sumxy = xxx+yyy;
 }
 
 void Reset_MPU_Angle()
@@ -1069,7 +1100,8 @@ void process_Ball_Approach2()
 
 void process_Ball_Approach3(uint8_t Ball)
 {
-	float dis = 120+ Ball*(205*2);
+	float dis = 130 +(215*Ball);
+
 
 	if (process_SubState == 0)
 	{
@@ -1315,7 +1347,7 @@ void Process_Ball_Continue()
 	else if (process_SubState == 2)
 	{
 		process_RunByAngle(0,0.15);
-		if (floatingEncCount>130)
+		if (floatingEncCount>150)
 		{
 			u = 0;
 			v = 0;
@@ -1389,10 +1421,65 @@ void process_Ball_Out(){
 		}
 	}
 }
-
-
-void process_ApproachWall()
+void process_ApproachWall4()
 {
+	if(process_SubState == 0)
+	{
+		use_pidTheta = 1;
+		process_RunByAngle2(45,0.3);
+		if (HAL_GPIO_ReadPin(sensor_3_GPIO_Port, sensor_3_Pin))
+		{
+			process_SSCheck ++;
+		}else{
+			process_SSCheck = 0;
+		}
+		if (process_SSCheck > 5)
+		{
+			process_SSCheck = 0;
+			process_SubState = 1;
+
+		}
+	}
+	else if(process_SubState == 1)
+		{
+			process_Count++;
+			if (process_Count > 10)
+			{
+				u = 0;
+				v = 0;
+				r = 0;
+				use_pidTheta = 0;
+				r  = 0;
+				process_Count = 0;
+				process_SubState = 0;
+				step+= 1;
+			}
+		}
+
+}
+
+void process_ApproachWall(uint8_t siloNum)
+{
+
+	float targetDistance = 0;
+		switch(siloNum){
+		case 1:
+			targetDistance = SILO_1_DISTANCE;
+			break;
+		case 2:
+			targetDistance = SILO_2_DISTANCE;
+			break;
+		case 3:
+			targetDistance = SILO_3_DISTANCE;
+			break;
+		case 4:
+			targetDistance = SILO_4_DISTANCE;
+			break;
+		case 5:
+			targetDistance = SILO_5_DISTANCE;
+			break;
+		}
+
 	if(process_SubState == 0)
 	{
 		use_pidTheta = 1;
@@ -1437,7 +1524,7 @@ void process_ApproachWall()
 		}
 	else if(process_SubState == 3)
 		{
-			if (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin))
+			if (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin) || distance2 <= targetDistance  )
 			{
 					process_SSCheck = 0;
 					process_SubState = 0;
@@ -1557,7 +1644,6 @@ void process_setVal_PutBall(uint8_t value)
 }
 
 uint8_t Rice;
-uint8_t siloNum;
 void process_ReleaseBall()
 {
 	process_RunByAngle(45,0);
@@ -1611,17 +1697,24 @@ void process_AutogetBall()
 
 void readADC(){
 	HAL_ADC_Start(&hadc1);
+	HAL_ADC_Start(&hadc2);
 	HAL_ADC_PollForConversion(&hadc1, 1000);
+	HAL_ADC_PollForConversion(&hadc2, 1000);
 	adc_val = HAL_ADC_GetValue(&hadc1);
+	adc_val2 = HAL_ADC_GetValue(&hadc2);
 	count++;
 	sum+=adc_val;
+	sum2+=adc_val2;
 	if(count>50)
 	{
-		adc_val_Fil=sum/50;
+		adc_val_Fil=sum/count;
+		adc_val_Fil2 = sum2/count;
 		sum = 0;
+		sum2 = 0;
 		count = 0;
 	}
 	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.38;
+	distance2 = (9.8/3945) * adc_val_Fil2 - 150 * (9.8/3945) + 0.38;
 	distance_Delta = distance - distance_Pre;
 	distance_Pre = distance;
 
@@ -1751,6 +1844,7 @@ int main(void)
   MX_TIM5_Init();
   MX_USART2_UART_Init();
   MX_UART5_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 
 	log_Init(&huart2);
@@ -1768,6 +1862,7 @@ int main(void)
 	osDelay(1000);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
 	HAL_UART_Receive_IT(&huart5, (uint8_t*) UARTRX5_Buffer, 1);
+
 //	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 //	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
@@ -1926,6 +2021,58 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc2.Init.ScanConvMode = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -2750,6 +2897,46 @@ void process_SiloScan(int dir)
 	}
 }
 
+void FindSilo(uint8_t siloNum, bool mode){
+	float targetDistance = 0;
+	switch(siloNum){
+	case 1:
+		targetDistance = SILO_1_DISTANCE;
+		break;
+	case 2:
+		targetDistance = SILO_2_DISTANCE;
+		break;
+	case 3:
+		targetDistance = SILO_3_DISTANCE;
+		break;
+	case 4:
+		targetDistance = SILO_4_DISTANCE;
+		break;
+	case 5:
+		targetDistance = SILO_5_DISTANCE;
+		break;
+
+	}
+
+	if(distance2 >= targetDistance + 0.1 && mode == false)
+	{
+		process_SubState = 0;
+		step+=1;
+		u = 0;
+		v = 0;
+		r = 0;
+
+	}
+	else if(distance2 <= targetDistance + 0.2 && mode == true)
+	{
+		process_SubState = 0;
+		step+=1;
+		u = 0;
+		v = 0;
+		r = 0;
+	}
+}
+
 /* USER CODE END Header_OdometerHandle */
 void OdometerHandle(void const * argument)
 {
@@ -2758,7 +2945,7 @@ void OdometerHandle(void const * argument)
 
 			process_Init();
 			osDelay(1000);
-			siloNum = 2;
+
 //			process_ReadVel_Init();
 			/* Infinite loop */
 			for (;;) {
@@ -2935,6 +3122,7 @@ void OdometerHandle(void const * argument)
 							process_setVal_PutBall(1);
 							trajecPlan_Reset(&trajecTheta);
 							osDelay(1000);
+							process_PD_OnStrainghtPath();
 							step++;
 						}
 						else if (step == 11)
@@ -2971,10 +3159,8 @@ void OdometerHandle(void const * argument)
 
 						else if (step == 13)
 						{
-							process_Ball_Approach3(0);
-//							u = 0;
-//							v = 0;
-//							r = 0;
+							process_Ball_Approach3(column);
+
 						}
 						else if (step == 14)
 						{
@@ -2988,506 +3174,116 @@ void OdometerHandle(void const * argument)
 
 						else if (step == 50)
 						{
-							AngleNow = 135;
-							process_Accel_FloatingEnc3(135, 0.6, 10000, 0.1,0,2.5,5);
-							if (floatingEncCount>400+250*column)
+							AngleNow = 45;
+							if(floatingEncCount < 4000)
 							{
-								process_SubState = 0;
-								step += 1;
-								process_ResetFloatingEnc();
-							}
-						}
-						else if (step == 51)
-						{
-//							AngleNow = 135;
-							if (floatingEncCount<4000){
 								process_Accel_FloatingEnc3(45, 0.8, 20000, 0.1,-5,2.5,10);
-							}else{
+							}
+							else
+							{
 								process_Accel_FloatingEnc3(45, 0.6, 20000, 0.1,-5,2.5,10);
 							}
 
-//							HAL_GPIO_ReadPin(GPIOx, GPIO_Pin)
-							if (floatingEncCount>7000)
+							if (floatingEncCount>6000)
 							{
+								step+=1;
 								process_SubState = 0;
-								step += 1;
 							}
+						}
+						else if(step == 51)
+						{
+							process_ApproachWall4();
 						}
 						else if (step == 52)
 						{
-							process_ApproachWall();
+							// move silo increase (or move left)
+							AngleNow =-38;
+							process_Accel_FloatingEnc3(-38, 0.1, 20000, 0.1,-5,2.5,10);
+							FindSilo(3,1);
 						}
 						else if (step == 53)
 						{
-							AngleNow = 225;
-
-							process_Accel_FloatingEnc4(225, 0.6, 10000, 0.1,0,2.5);
+							AngleNow =130;
+							process_Accel_FloatingEnc3(130, 0.1, 20000, 0.1,-5,2.5,10);
+							FindSilo(3,0);
 						}
-						else if (step == 54)
+						else if (step == 54) //
 						{
-							AngleNow = 0;
-//							process_Ball_Approach3(0);
-							column += 1;
-							step = 13;
+							process_ApproachWall(3);
 						}
-//						{
-//							if(row>2)
-//							{
-//								process_Ball_Approach3(0);
-//							}
-//							else
-//							{
-//								process_Ball_Approach3(column);
-//							}
-//
-//						}
-//
-//						else if (step == 13)
-//						{
-//							process_getBall();
-//						}
-//						else if (step == 14)
-//						{
-//							process_DetectBall();
-////							Raspberry[0] = 0;
-////							step+= 1;
-//						}
-//						else if (step == 15)
-//						{
-//							column += 1;
-//							if(column>3)
-//							{
-//								row += 1;
-//
-//							}
-//
-//
-//
-//							if (Raspberry[0] != 0)
-//							{
-//								step = 16;
-//							}else {
-//
-//								process_SubState = 0;
-//								process_Count = 0;
-//								process_SSCheck = 0;
-//								step = 50;
-//								putBall_ResetStopFlag();
-//							}
-//						}
-//						else if (step == 16)
-//						{
-//
-//							AngleNow = 135;
-//							process_setVal_PutBall(2);
-//							valve_Output(0,1);
-//							valve_Output(2,1);
-//							process_Accel_FloatingEnc3(135, 0.8, 500+(column)*100+(row)*50, 0.1,0,2.5,5);
-//						}
-//						else if (step == 17)
-//						{
-//							process_Accel_FloatingEnc3(45, 0.8, 20000, 0.1,-5,2.5,5);
-//							if(floatingEncCount>6000)
-//							{
-//
-//								process_SubState = 0;
-//								step += 1;
-//							}
-//
-//						}
-//						else if (step == 18)
-//						{
-////							siloNum = 2;
-//							float dis = 0;
-//							if(siloNum==3)
-//							{
-//								dis = 2000;
-//							}
-//							if(siloNum ==4)
-//							{
-//								dis = 3500;
-//							}
-//							process_Accel_FloatingEnc3(-45, 0.6, dis, 0.1,-5,2.5,5);
-//
-//						}
-//						else if (step == 19)
-//						{
-//							process_ApproachWall();
-//						}
-//						else if (step == 20)
-//						{
-//							valve_Output(0, 0);
-//							if(siloNum != 2)
-//								step += 1;
-//							else
-//								step = 24;
-//						}
-//						else if (step == 21)
-//						{
-//							AngleNow = 225;
-//							process_Accel_FloatingEnc3(225, 0.6, 10000, 0.1,-5,2.5,5);
-//							if(floatingEncCount>300)
-//							{
-//								process_SubState = 0;
-//								step+=1;
-//							}
-//						}
-//						else if (step == 22)
-//						{
-//
-//							float dis = 0;
-//							if(siloNum==3)
-//							{
-//								dis = 2900;
-//							}
-//							if(siloNum ==4)
-//							{
-//								dis = 4300;
-//							}
-//							process_Accel_FloatingEnc3(135, 0.6, dis, 0.1,-5,2.5,5);
-//						}
-//						else if (step == 23)
-//						{
-//							process_ApproachWall();
-//						}
-//						else if (step == 24)
-//						{
-//							Reset_MPU_Angle();
-//							xaDay = 1;
-//							osDelay(1000);
-//							xaDay = 2;
-//							step += 1;
-//						}
-//						else if (step == 25)
-//						{
-//							process_Accel_FloatingEnc4(220, 0.8,9800, 0.1,0,2.5);
-//
-//						}
-//						else if (step == 26)
-//						{
-//							colorNum ++;
-//							if(colorNum > 2)
-//							{
-//								colorNum = 0;
-//								siloNum++;
-//							}
-//							step = 12;
-//						}
-//
-//
-//						else if (step == 50)
-//						{
-//							process_setVal_PutBall(2);
-//							valve_Output(2, 0);
-//							valve_Output(1, 0);
-//							if(putBall_getStopFlag() == 1)
-//							{step+= 1;
-//							}
-//
-//
-//						}
-//						else if (step == 51)
-//						{
-//							Process_Ball_Continue();
-//						}
-//						else if (step == 52)
-//						{
-//							process_getBall();
-//							GetballFlag = 0;
-//							process_ResetFloatingEnc();
-//						}
-//						else if (step == 53)
-//						{
-////							osDelay(500);
-//							if(column==0)
-//							{
-//								process_Ball_Out();
-//							}
-//							else {
-//								step = 14;
-//							}
-//						}
-//						else if (step == 54)
-//						{
-//							process_setVal_PutBall(2);
-//							valve_Output(2, 0);
-//							valve_Output(1, 0);
-//							if(putBall_getStopFlag())
-//							step+= 1;
-//						}
-//						else if (step == 55)
-//						{
-//							step = 12;
-//							column = 0;
-//							row+=1;
-//						}
+						else if (step == 55)
+						{
+							xaDay = 1;
+							Reset_MPU_Angle();
+							osDelay(1500);
+							xaDay = 2;
+							step += 1;
+						}
+						else if (step == 56)
+						{
+							AngleNow =130;
+							process_Accel_FloatingEnc3(130, 0.1, 20000, 0.1,-5,2.5,10);
+							FindSilo(2,0);
+						}
+						else if (step == 57)
+						{
+							AngleNow = 222;
+							process_Accel_FloatingEnc3(222, 0.6, 10000, 0.1,-5,2.5,10);
 
-
-
-//					if (step == 2)
+						}
+						else if (step == 58)
+						{
+							step = 13;
+							column +=1;
+							BuzzerBeep_Start(1, 50, 0);
+							if(column >3){
+								column = 0;
+								row +=1;
+							}
+							//							AngleNow =135;
+//							process_Accel_FloatingEnc3(135, 0.1, 20000, 0.1,-5,2.5,10);
+//							FindSilo(2,1);
+						}
+//						else if(step == ){
+//						else if(step == 52)
 //						{
-//						process_PD_Critical();
-//							AngleNow = -42;
-//							float speedtest = 2;
-//							if(floatingEncCount > 800)
+//							if(distance < SILO_45_DISTANCE){
+//								siloNow = 5;
+//								BuzzerBeep_Start(5, 50, 100);
+//							}
+//							else if(distance < SILO_34_DISTANCE && distance > SILO_45_DISTANCE){
+//								siloNow = 4;
+//								BuzzerBeep_Start(4, 50, 100);
+//							}
+//							else if(distance < SILO_23_DISTANCE && distance > SILO_34_DISTANCE){
+//								siloNow = 3;
+//								BuzzerBeep_Start(3, 50, 100);
+//							}
+//							else if(distance < SILO_12_DISTANCE && distance > SILO_23_DISTANCE){
+//								siloNow = 2;
+//								BuzzerBeep_Start(2, 500, 100);
+//							}
+//							else if(distance > SILO_12_DISTANCE){
+//								siloNow = 1;
+//								BuzzerBeep_Start(1, 500, 0);
+//							}
+//							if(siloNow != 0) // phat hien duoc silo
 //							{
-//								speedtest = 2;
-//							}
-//							if(floatingEncCount > 1000)
-//							{
-//								speedtest = 1.8;
-//							}
-//							process_Accel_FloatingEnc3(-42, speedtest, 10000, 0.3, 0, 3,5);
+//								if(silo[siloNow] < SILO_MAX_BALL){
+//									step+=1;
+//								}
+//								else // neu du banh trong silo
+//								{
 //
-//							if(floatingEncCount > 8500)
-//							{
-//								step += 1;
-//								process_SubState = 0;
+//								}
 //							}
 //						}
-//					else if (step == 3)
-//						{
-//						process_setVal_PutBall(1);
-//							process_Accel_FloatingEnc3( -20, 2, 8000, 0.1, 0, 3,5);
-//							if(floatingEncCount > 3000)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//						}
-//					else if (step == 4)
-//						{
-//							process_Accel_FloatingEnc3( 45, 1.8, 10000, 0.1, 0, 3,5);
-//							if(floatingEncCount >5500)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//						}
-//					else if (step == 5)
-//					{
-//						process_Accel_FloatingEnc3( -45, 1.5, 10000, 0.1, 0, 3,5);
-//						if(floatingEncCount > 5300)
-//						{
-//							step += 1;
-//							process_SubState = 0;
-//						}
-//					}
-//					else if (step == 6)
-//					{
-//						process_Accel_FloatingEnc3( -135, 1, 10000, 0.1, 0, 3,10);
-//						if(floatingEncCount > 2500)
-//						{
-//							step += 1;
-//							process_SubState = 0;
-//						}
-//					}
-//					else if (step == 7)
-//						{
-//							process_PD_Critical();
-//							process_Accel_FloatingEnc3( -170, 0.6, 10000, 0.1, 0, 3,5);
-//
-//							if(HAL_GPIO_ReadPin(sensor_2_GPIO_Port, sensor_2_Pin))
-//							{
-//								process_SSCheck++;
-//							}else{
-//								process_SSCheck = 0;
-//							}
-//							if (process_SSCheck>15){
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//						}
-//					else if (step == 8)
-//						{
-//							AngleNow = -140;
-//							process_Accel_FloatingEnc3( -140, 0.6, 1800, 0.1, 0, 3,5);
-//						}
-//					else if (step == 9)
-//					{
-//						Reset_MPU_Angle();
-//						step += 1;
-//					}
-//					else if (step == 10)
-//					{
-//						AngleNow = -90;
-//						process_setVal_PutBall(1);
-//						process_Accel_FloatingEnc3( -90, 0.6, 2000, 0.1, 0, 3,5);
-//					}
-//					else if (step == 11)
-//					{
-//						if(row < 3){
-//								process_Ball_Approach3(column);
-//							}else{
-//								process_Ball_Approach3(0);
-//							}
-////						xaDay = 1;
-//					}
-//					else if (step == 12)
-//						{
-////						process_PD_Critical();
-//						xaDay = 1;
-//							process_getBall();
-//							process_SSCheck = 0;
-//
-//						}
-//					else if (step == 13)
-//					{
-//						if(process_SSCheck == 0)
-//						{
-//							xaDay = 2;
-//						}process_SSCheck++;
-//						Raspberry[0] = 1;
-//						step = 14;
-////						valve_Output(0,1);
-////						process_DetectBall();
-//					}
-//					else if (step == 14)
-//					{
-//						process_SubState = 0;
-//						process_SSCheck = 0;
-
-
-//
-//						if (Raspberry[0] == 0)
-//						{
-//							valve_Output(1,0);
-//							valve_Output(2,0);
-//							step = 60;
-//						}else {
-//						valve_Output(0,1);
-//						valve_Output(2,1);
-//							step = 15;
-//
-//
-//
-//						}
-//					}
-//
-//					else if (step == 15)
-//						{
-//							AngleNow = -225;
-//							process_setVal_PutBall(2);
-//							process_Accel_FloatingEnc3( -225, 0.6,2100 , 0.1, -3, 3,5);
-//							HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
-//							if (floatingEncCount>1000)
-//							{
-//								step = 16;
-//								process_SubState = 0;
-//
-//							}
-//						}
-//					else if(step == 16)
-//						{
-//							process_ApproachWall2();
-//						}
-//					else if(step == 17)
-//						{
-//							AngleNow = 48;
-//							process_Accel_FloatingEnc3( 50, 0.8,10000 , 0.1, 0, 3,5);
-//
-//								Reset_MPU_Angle();
-//							if (floatingEncCount>3000)
-//							{
-//								step += 1;
-//								process_SubState = 0;
-//							}
-//
-//						}
-//					else if(step == 18)
-//					{
-//						process_PD_Critical();
-////						siloNum = 0;
-//						process_Accel_FloatingEnc3( 42, 0.8,10000 , 0.1, 0, 3,5);
-//						if(floatingEncCount>3500)
-//						{
-//							process_SubState = 0;
-//							step += 1;
-//						}
-//
-//					}
-//					else if(step == 19)
-//					{
-//						if(siloNum !=0)
-//						{
-//							process_Accel_FloatingEnc3( -45,0.5,siloNum*1600 , 0.1, 0, 3,5);
-//						}
-//						else {
-//							step ++;
-//						}
-//					}
-//					else if(step == 20)
-//					{
-//						process_ApproachWall();
-//
-//					}
-//					else if (step == 21)
-//					{
-//						valve_Output(0, 0);
-//						osDelay(500);
-//						step+=1;
-//					}
-//					else if (step == 22)
-//					{
-//
-//						AngleNow = -135;
-//						process_Accel_FloatingEnc3( -135, 0.8,5000 , 0.1, 0, 3,5);
-////						if(floatingEncCount>5000)
-////						{
-////							step += 1;
-////							process_SubState = 0;
-////						}
-//
-//					}
-//					else if (step == 23)
-//					{
-////						process_Accel_FloatingEnc3(-225,1,siloNum*1500,0.1,0,3,5);
-//						step++;
-//					}
-//					else if (step == 24)
-//					{
-//						process_ApproachWall2();
-//					}
-//					else if (step == 25)
-//					{
-//						AngleNow = -138;
-//						process_Accel_FloatingEnc3(-138,0.6,3000,0.1,0,3,5);
-//					}
-//					else if (step == 26)
-//					{
-//						colorNum ++;
-//						if (colorNum>2)
-//						{
-//							colorNum = 0;
-//							siloNum++;
-//						}
-//						step = 9;
-//					}
-//
-//						else if(step == 60)
-//						{
-//							process_Ball_Out();
-//							process_setVal_PutBall(2);
-//
-//						}
-//						else if(step == 61)
+//						else if(step == 53) // tha banh vao silo
 //						{
 //
-//							valve_Output(1,0);
-//							valve_Output(2,0);
-//							step ++;
 //						}
-//						else if(step == 62)
-//						{
-//							step = 11;
-//						}
-//
 
 					}
-
-
-
-
 
 	////////////////////////////////////////////////NUT BAM////////////////////////////////////////////////////////////
 				if (GamePad.Down && GamePad.Cross)//Chuyen Sang Che Do GamePad
@@ -3524,7 +3320,7 @@ void OdometerHandle(void const * argument)
 
 				osDelay(DELTA_T*1000);
 
-			}
+					}
   /* USER CODE END OdometerHandle */
 }
 
