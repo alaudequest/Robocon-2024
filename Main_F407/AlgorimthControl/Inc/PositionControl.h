@@ -45,4 +45,5 @@ void PD_Cal(pd_Param *pd, float Target,float Current);
 
 void trajecPlan_SetParam(trajec_Param *trajec,float P0,float Pf,float tf,float v0,float vf);
 void trajecPlan_Cal(trajec_Param *trajec);
+void trajecPlan_Reset(trajec_Param *trajec);
 #endif /* INC_POSITIONCONTROL_H_ */

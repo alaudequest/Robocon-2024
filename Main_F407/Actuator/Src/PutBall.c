@@ -182,7 +182,16 @@ uint8_t PutBall_getFlag()
 	return putBall.flag;
 }
 
+void putBall_ResetStopFlag()
+{
+ putBall.StopPutFlag = 0;
+ putBall.substate = 0;
+ putBall.count = 0;
+ putBall.putBall_SScheck = 0;
+}
+
 uint8_t putBall_getStopFlag()
 {
 	return putBall.StopPutFlag;
+
 }
