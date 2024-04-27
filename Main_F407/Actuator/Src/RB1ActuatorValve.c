@@ -66,7 +66,7 @@ void ProcessCatchAndHold()
 			valveProcessStep++;
 			break;
 		case 4:
-			ProcessDelay(500);
+			ProcessDelay(100);
 			break;
 		case 5:
 			HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
