@@ -156,7 +156,7 @@ int process_Count;
 ValveProcessName valveProcessName = 0;
 int PlusControl;
 float V_want = 0;
-uint8_t Blue = 0, Red = 0;
+uint8_t Blue = 0, Red = 0, Retry = 0;
 ///////////////////////////////////////Quy Hoach Quy Dao///////////////////////////////////////////
 trajec_Param trajecTheta;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2211,21 +2211,25 @@ void SignalButton_Pressed(SignalButtonColor color){
 	switch(color){
 	case SIGBTN_RED:
 		Red = 1;
-
 		Reset_MPU_Angle();
 		process_ResetFloatingEnc();
 		break;
 	case SIGBTN_YELLOW:
+		Retry = 1;
+		step = 32;
+		Reset_MPU_Angle();
+		process_ResetFloatingEnc();
 		break;
 	case SIGBTN_BLUE:
 		Blue = 1;
-
 		Reset_MPU_Angle();
 		process_ResetFloatingEnc();
 		break;
 	case SIGBTN_GREEN:
 		step = 1;
 		Run = 1;
+		Reset_MPU_Angle();
+		process_ResetFloatingEnc();
 		break;
 	default:
 		break;
@@ -2370,7 +2374,7 @@ void OdometerHandle(void const * argument)
 
 			}
 			process_Accel_FloatingEnc9(5, V_want, 18000, 0.5, 0, 3, 5);
-			if(floatingEncCount > 9500)
+			if(floatingEncCount > 9200)
 			{
 				process_SubState = 0;
 				step++;
@@ -2381,7 +2385,7 @@ void OdometerHandle(void const * argument)
 		{
 			AngleNow = 15;
 			process_Accel_FloatingEnc9(15, 0.2, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>1500)&&(floatingEncCount<3000))
+			if((floatingEncCount>1200)&&(floatingEncCount<2500))
 			{
 				if(process_ThucHienGapLua1() == true)
 				{
@@ -2631,7 +2635,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 24)
 		{
 			process_Accel_FloatingEnc6(15, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>3700)&&(floatingEncCount<4500))
+			if((floatingEncCount>3300)&&(floatingEncCount<4000))
 			{
 				if(process_ThucHienGapLua1() == true)
 				{
@@ -2773,6 +2777,16 @@ void OdometerHandle(void const * argument)
 
 				process_Accel_FloatingEnc6(-180, 1, 10800, 0.08, 95, 3, 5);
 			}
+			if(Retry == 1)
+			{
+				process_Accel_FloatingEnc6(-80, 1, 5000, 0.08, 0, 3, 5);
+				if(floatingEncCount>2000)
+				{
+					process_Accel_FloatingEnc6(-90, 1, 3000, 0.08, 0, 3, 5);
+				}
+
+			}
+
 		}
 		else if(step == 33)
 		{
@@ -2851,7 +2865,7 @@ void OdometerHandle(void const * argument)
 
 			}
 			process_Accel_FloatingEnc9(180-5, V_want, 18000, 0.5, 0, 3, 5);
-			if(floatingEncCount > 9000)
+			if(floatingEncCount > 9500)
 			{
 				process_SubState = 0;
 				step++;
@@ -2862,7 +2876,7 @@ void OdometerHandle(void const * argument)
 		{
 			AngleNow = 180-20;
 			process_Accel_FloatingEnc9(180-18, 0.2, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>2000)&&(floatingEncCount<3000))
+			if((floatingEncCount>1500)&&(floatingEncCount<2500))
 			{
 				if(process_ThucHienGapLua() == true)
 				{
@@ -2879,7 +2893,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if((floatingEncCount>3000) || GamePad.Down)//3000
+			if((floatingEncCount>2500) || GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -3252,16 +3266,25 @@ void OdometerHandle(void const * argument)
 			if(process_Count == 3)
 			{
 
-				process_Accel_FloatingEnc6(0, 1, 10500, 0.08, -95, 3, 5);
+				process_Accel_FloatingEnc6(0, 1, 11000, 0.08, -95, 3, 5);
+			}
+			if(Retry == 1)
+			{
+				process_Accel_FloatingEnc6(-80, 1, 5000, 0.08, 0, 3, 5);
+				if(floatingEncCount>2000)
+				{
+					process_Accel_FloatingEnc6(-90, 1, 3000, 0.08, 0, 3, 5);
+				}
+
 			}
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(-88, 1.5, 13000, 0.1 , -95, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1, 11000, 0.1 , -95, 3, 5);
 		}
 		else if(step == 34)
 		{
-			process_Accel_FloatingEnc6(-180, 1, 5000, 0.5, 95, 3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 4500, 0.5, 95, 3, 5);
 		}
 		else if(step == 35){
 			ShootBallTime_Start(&GamePad);
