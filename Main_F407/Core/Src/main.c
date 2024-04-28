@@ -2398,7 +2398,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if((floatingEncCount>3000))//3000
+			if((floatingEncCount>3000)|| GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -2521,7 +2521,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>5500)//3000
+			if(floatingEncCount>5500|| GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -2650,7 +2650,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>4500)//3000
+			if(floatingEncCount>4500|| GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -2862,7 +2862,7 @@ void OdometerHandle(void const * argument)
 		{
 			AngleNow = 180-20;
 			process_Accel_FloatingEnc9(180-18, 0.2, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>2500)&&(floatingEncCount<3000))
+			if((floatingEncCount>2000)&&(floatingEncCount<3000))
 			{
 				if(process_ThucHienGapLua() == true)
 				{
@@ -2879,7 +2879,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if((floatingEncCount>3000))//3000
+			if((floatingEncCount>3000) || GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -3131,7 +3131,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>5500)//3000
+			if(floatingEncCount>5500|| GamePad.Down)//3000
 			{
 				u = 0;
 				v = 0;
@@ -3252,16 +3252,16 @@ void OdometerHandle(void const * argument)
 			if(process_Count == 3)
 			{
 
-				process_Accel_FloatingEnc6(0, 1, 9700, 0.08, -95, 3, 5);
+				process_Accel_FloatingEnc6(0, 1, 10500, 0.08, -95, 3, 5);
 			}
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(-88, 1, 15000, 0.5 , -95, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1.5, 13000, 0.1 , -95, 3, 5);
 		}
 		else if(step == 34)
 		{
-			process_Accel_FloatingEnc6(-180, 1, 5800, 0.5, 95, 3, 5);
+			process_Accel_FloatingEnc6(-180, 1, 5000, 0.5, 95, 3, 5);
 		}
 		else if(step == 35){
 			ShootBallTime_Start(&GamePad);
