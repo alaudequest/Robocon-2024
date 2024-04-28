@@ -1,0 +1,4 @@
+../Core/Src/BoardParamter.c:13:6:BrdParam_SetCustomGamepad	16	static
+../Core/Src/BoardParamter.c:18:17:BrdParam_GetCustomGamepad	16	static
+../Core/Src/BoardParamter.c:23:6:BrdParam_SetTeamColor	16	static
+../Core/Src/BoardParamter.c:28:11:BrdParam_GetTeamColor	4	static
