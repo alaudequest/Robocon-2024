@@ -46,12 +46,17 @@ typedef struct HarvestZoneBallPosition_t {
 } HarvestZoneBallPosition_t;
 #endif
 
-void BrdParam_SetCustomGamepad(CustomGamepad_t gamepad);
-CustomGamepad_t BrdParam_GetCustomGamepad();
 void BrdParam_SetTeamColor(TeamColor color);
 TeamColor BrdParam_GetTeamColor();
+
+#if defined(BOARD_MAINF4_ROBOT1)
+
+#elif defined(BOARD_MAINF4_ROBOT2)
+void BrdParam_SetCustomGamepad(CustomGamepad_t gamepad);
+CustomGamepad_t BrdParam_GetCustomGamepad();
 void BrdParam_SetBallSuccess(uint8_t ballGetSuccess);
 uint8_t BrdParam_GetBallSuccess();
+#endif
 
 void BrdParam_SetIsOnLoadDataFromFlash(bool isOnLoadDataFromFlash);
 void BrdParam_SaveDataToFlash();
