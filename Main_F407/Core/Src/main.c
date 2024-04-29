@@ -418,11 +418,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 				}
 				++cnt;
 			}
-
-			GamepPadHandle(&GamePad, DataTayGame);
-
-		} else {
-			GamePad.Status = 0;
+			CustomGamepad_t customGamepad;
+			for (uint8_t i = 0; i < 6; i++) {
+				customGamepad.ballMatrix[i] = DataTayGame[i + 1];
+			}
+			customGamepad.siloNum = DataTayGame[7];
+			BrdParam_SetCustomGamepad(customGamepad);
 		}
 		if (!gamepadRxIsBusy)
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -1812,6 +1813,11 @@ HAL_StatusTypeDef UART5_Is_Received(){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void HAL_FLASH_OperationErrorCallback(uint32_t ReturnValue)
+{
+	RBFlash_ErrorHandler(ReturnValue);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -1857,9 +1863,9 @@ int main(void)
   MX_UART5_Init();
   MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
-
-	log_Init(&huart2);
-	Send_Header();
+  	RBFlash_LoadDataFromFlashToBoardParameters();
+//	log_Init(&huart2);
+//	Send_Header();
 	valve_Init();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_TIM_Base_Start_IT(&htim4);
