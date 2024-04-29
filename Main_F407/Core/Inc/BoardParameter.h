@@ -12,11 +12,8 @@
 #include "stdbool.h"
 #include "InverseKinematic.h"
 
-typedef enum MainF4Robot1TypePID {
-	PID_RULO_1 = 1,
-	PID_RULO_2,
-	PID_ROBOT_THETA,
-} MainF4Robot1TypePID;
+#define FLASH_ROBOT_PLAYGROUND_DATA_ADDRESS 0x080e0000
+
 
 typedef enum SignalButtonColor {
 	SIGBTN_RED = 1,
@@ -33,6 +30,11 @@ typedef enum TeamColor {
 
 #if defined(BOARD_MAINF4_ROBOT1)
 typedef uint8_t PaddyRice_t;
+typedef enum MainF4Robot1TypePID {
+	PID_RULO_1 = 1,
+	PID_RULO_2,
+	PID_ROBOT_THETA,
+} MainF4Robot1TypePID;
 #elif defined(BOARD_MAINF4_ROBOT2)
 
 typedef struct CustomGamepad_t {
@@ -45,6 +47,16 @@ typedef struct HarvestZoneBallPosition_t {
 	uint8_t column;
 } HarvestZoneBallPosition_t;
 #endif
+
+typedef struct Robot2PlayGroundData{
+	CustomGamepad_t gp;
+	uint8_t ballCollectSuccess;
+	uint8_t ballInSilo[5];
+	HarvestZoneBallPosition_t nextBall;
+	TeamColor teamColor;
+}Robot2PlayGroundData;
+
+
 
 void BrdParam_SetTeamColor(TeamColor color);
 TeamColor BrdParam_GetTeamColor();

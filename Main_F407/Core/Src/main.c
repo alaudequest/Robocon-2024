@@ -1863,7 +1863,10 @@ int main(void)
   MX_UART5_Init();
   MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
-  	RBFlash_LoadDataFromFlashToBoardParameters();
+  	BrdParam_GetDataFromFlash();
+  	if(BrdParam_GetTeamColor() == BLUE_TEAM){
+  		HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+  	}
 //	log_Init(&huart2);
 //	Send_Header();
 	valve_Init();
@@ -2670,10 +2673,14 @@ void RobotSignalButton_PressedCallback(SignalButtonColor color)
 	if(color == SIGBTN_RED)
 	{
 		Team = RED;
+		BrdParam_SetTeamColor(RED_TEAM);
+		BrdParam_SaveDataToFlash();
 	}else if (color == SIGBTN_BLUE)
 	{
 //		Team = BLUE;
 //		xaDay = 1;
+		BrdParam_SetTeamColor(BLUE_TEAM);
+		BrdParam_SaveDataToFlash();
 		process_WireRelease(1);
 	}else if (color == SIGBTN_YELLOW)
 	{

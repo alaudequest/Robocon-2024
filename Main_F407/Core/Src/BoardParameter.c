@@ -13,7 +13,6 @@ static uint8_t buzzerStep = 0;
 static SignalButtonColor currentPressedButton = 0;
 pSignalBtnPressed _pSignalBtnPressed;
 static TeamColor teamColor = 0;
-static bool _isOnLoadDataFromFlash = false;
 static bool _dataChanged = false;
 
 void ProcessDelay(uint32_t delayMs, uint8_t *step)
@@ -136,85 +135,84 @@ void RobotSignalButton_ScanButton()
 	DetectSignalButtonProcess(&currentPressedButton);
 }
 
-void BrdParam_SetTeamColor(TeamColor color)
-{
-	if (_isOnLoadDataFromFlash == false && teamColor != color) {
-		teamColor = color;
-		_dataChanged = true;
 
-	}
-	else
-		teamColor = color;
-}
-
-TeamColor BrdParam_GetTeamColor()
-{
-	return teamColor;
-}
 
 #if defined(BOARD_MAINF4_ROBOT1)
 
 #elif defined(BOARD_MAINF4_ROBOT2)
 
-uint8_t _ballGetSuccess;
-CustomGamepad_t _customGamepad;
+
+Robot2PlayGroundData robotPlayGroundData;
 
 void BrdParam_SetCustomGamepad(CustomGamepad_t gamepad)
 {
-	if (_isOnLoadDataFromFlash == false) {
-		// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
-		if (_customGamepad.siloNum != gamepad.siloNum) {
-			_customGamepad = gamepad;
+	// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
+	if (robotPlayGroundData.gp.siloNum != gamepad.siloNum) {
+		robotPlayGroundData.gp = gamepad;
+		_dataChanged = true;
+		return;
+	}
+	for (uint8_t i = 0; i < 6; i++) {
+		if (robotPlayGroundData.gp.ballMatrix[i] != gamepad.ballMatrix[i]) {
+			// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
+			robotPlayGroundData.gp = gamepad;
 			_dataChanged = true;
 			return;
 		}
-		for (uint8_t i = 0; i < 6; i++) {
-			if (_customGamepad.ballMatrix[i] != gamepad.ballMatrix[i]) {
-				// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
-				_customGamepad = gamepad;
-				_dataChanged = true;
-				return;
-			}
-		}
 	}
-	else
-		// Lấy trực tiếp data từ flash, không cần kiểm tra khác nhau
-		_customGamepad = gamepad;
 }
 
 CustomGamepad_t BrdParam_GetCustomGamepad()
 {
-	return _customGamepad;
+	return robotPlayGroundData.gp;
+}
+
+void BrdParam_SetTeamColor(TeamColor color)
+{
+	if (robotPlayGroundData.teamColor != color) {
+		robotPlayGroundData.teamColor = color;
+		_dataChanged = true;
+	}
+}
+
+TeamColor BrdParam_GetTeamColor()
+{
+	return robotPlayGroundData.teamColor;
 }
 
 void BrdParam_SetBallSuccess(uint8_t ballGetSuccess)
 {
-	if (_isOnLoadDataFromFlash == false && _ballGetSuccess != ballGetSuccess) {
-		_ballGetSuccess = ballGetSuccess;
+	if (robotPlayGroundData.ballCollectSuccess != ballGetSuccess) {
+		robotPlayGroundData.ballCollectSuccess = ballGetSuccess;
 		_dataChanged = true;
-	}
-	else
-		_ballGetSuccess = ballGetSuccess;
-}
-
-void BrdParam_SaveDataToFlash()
-{
-	if (_dataChanged) {
-		RBFlash_UpdateBoardParametersToFlash();
-		_dataChanged = false;
 	}
 }
 
 uint8_t BrdParam_GetBallSuccess()
 {
-	return _ballGetSuccess;
+	return robotPlayGroundData.ballCollectSuccess;
 }
 
-void BrdParam_SetIsOnLoadDataFromFlash(bool isOnLoadDataFromFlash)
+void BrdParam_SetBallInSilo(uint8_t ball, uint8_t silo){
+	robotPlayGroundData.ballInSilo[silo] = ball;
+}
+
+uint8_t BrdParam_GetBallInSilo(uint8_t silo){
+	return robotPlayGroundData.ballInSilo[silo];
+}
+
+void BrdParam_GetDataFromFlash()
 {
-	_isOnLoadDataFromFlash = isOnLoadDataFromFlash;
+	RBFlash_ReadDataFromFlash((void*)&robotPlayGroundData, sizeof(robotPlayGroundData), FLASH_ROBOT_PLAYGROUND_DATA_ADDRESS);
 }
 
+void BrdParam_SaveDataToFlash()
+{
+	if (_dataChanged) {
+		RBFlash_WriteToFlash((void*)&robotPlayGroundData, sizeof(robotPlayGroundData), FLASH_ROBOT_PLAYGROUND_DATA_ADDRESS);
+		_dataChanged = false;
+	}
+}
 #else
 #error "Not define board selected in main.h"
 #endif
