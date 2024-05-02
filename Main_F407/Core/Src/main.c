@@ -1706,7 +1706,7 @@ static void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 80-1;
+  htim8.Init.Prescaler = 75-1;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim8.Init.Period = 255-1;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1783,7 +1783,7 @@ static void MX_TIM9_Init(void)
 
   /* USER CODE END TIM9_Init 1 */
   htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 30-1;
+  htim9.Init.Prescaler = 75-1;
   htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim9.Init.Period = 255-1;
   htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -2094,13 +2094,13 @@ void InvCpltCallback(ModuleID ID, float speed, float angle) {
  * @param  argument: Not used
  * @retval None
  */
-//kiểm tra trên bàn anh có mạch nạp ko
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-//	ShootBallTime_Start(&GamePad);
+	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 
@@ -2440,10 +2440,6 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 8)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 0.5, 95, 1.5, 5);
 			if(floatingEncCount> 1700)
 			{
@@ -2454,8 +2450,12 @@ void OdometerHandle(void const * argument)
 		else if(step == 9)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 7500, 1, 95, 1.5, 5);
-
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, 95, 1.5, 5);
+			if(floatingEncCount>7000)
+			{
+				valve_ArmDown();
+				step++;
+			}
 		}
 		else if(step == 10)
 		{
@@ -2476,6 +2476,7 @@ void OdometerHandle(void const * argument)
 					Manual = 0;
 					// tha tay gap
 					process_Error(1);
+					valve_ArmDown();
 					valve_HandRelease();
 					process_Error(0);
 					osDelay(50);
@@ -2496,8 +2497,8 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 13)
 		{
-			process_Accel_FloatingEnc6(75, 1, 15000, 0.5, -5, 1.5, 5);
-			if(floatingEncCount>9600)
+			process_Accel_FloatingEnc6(70, 1, 15000, 0.5, -5, 1.5, 5);
+			if(floatingEncCount>9400)
 			{
 				process_SubState = 0;
 				step++;
@@ -2561,10 +2562,10 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 18)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
 			process_Accel_FloatingEnc6(-180, 1, 130000, 0.5, 95, 1.5, 5);
 
 			if(floatingEncCount> 2800)
@@ -2575,7 +2576,12 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 19)
 		{
-			process_Accel_FloatingEnc9(-90, 0.8, 6700, 1, 95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, 95, 1.5, 5);
+			if(floatingEncCount>6300)
+			{
+				valve_ArmDown();
+				step++;
+			}
 		}
 		else if(step == 20)
 		{
@@ -2626,7 +2632,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 23)
 		{
 			process_Accel_FloatingEnc6(75, 1, 15000, 0.5, -5, 1.5, 5);
-			if(floatingEncCount>10300)
+			if(floatingEncCount>10000)
 			{
 				process_SubState = 0;
 				step++;
@@ -2635,7 +2641,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 24)
 		{
 			process_Accel_FloatingEnc6(15, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>3300)&&(floatingEncCount<4000))
+			if((floatingEncCount>3500)&&(floatingEncCount<4000))
 			{
 				if(process_ThucHienGapLua1() == true)
 				{
@@ -2691,10 +2697,10 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 28)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
 			process_Accel_FloatingEnc6(-180, 1, 13000, 1, 95, 1.5, 5);
 			if(floatingEncCount> 1600)
 			{
@@ -2705,12 +2711,18 @@ void OdometerHandle(void const * argument)
 		else if(step == 29)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 7500, 1, 95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, 95, 1.5, 5);
+			if(floatingEncCount>6900)
+			{
+				valve_ArmDown();
+				step++;
+			}
 
 		}
 		else if(step == 30)
 		{
 			process_Accel_FloatingEnc9(-90, 0, 0, 0.5, 95, 1, 5);
+
 		}
 		else if (step == 31)
 		{
@@ -2811,7 +2823,7 @@ void OdometerHandle(void const * argument)
 	}
 
 
-	///// San xanh
+	/////////////////////////////////// SAN XANH///////////////////////////////////////////////
 	if(Blue == 1)
 	{
 		if (step == 0)
@@ -2931,10 +2943,10 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 8)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
 			process_Accel_FloatingEnc6(0, 1, 13000, 0.5, -95, 1.5, 5);
 			if(floatingEncCount> 1300)
 			{
@@ -2945,7 +2957,12 @@ void OdometerHandle(void const * argument)
 		else if(step == 9)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 6300, 1, -95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, -95, 1.5, 5);
+			if(floatingEncCount>6300)
+			{
+				valve_ArmDown();
+				step++;
+			}
 
 		}
 		else if(step == 10)
@@ -3052,10 +3069,10 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 18)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
 			process_Accel_FloatingEnc6(0, 1, 130000, 0.5, -95, 1.5, 5);
 
 			if(floatingEncCount> 2400)
@@ -3066,11 +3083,17 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 19)
 		{
-			process_Accel_FloatingEnc9(-90, 0.8, 5400, 1, -95, 1.5, 5);
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, -95, 1.5, 5);
+			if(floatingEncCount>5400)
+			{
+				valve_ArmDown();
+				step++;
+			}
 		}
 		else if(step == 20)
 		{
 			process_Accel_FloatingEnc9(-90, 0, 0, 1, -95, 1, 5);
+
 		}
 		else if (step == 21)
 		{
@@ -3182,10 +3205,10 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 28)
 		{
-			if(floatingEncCount>1000)
-			{
-				valve_ArmDown();
-			}
+//			if(floatingEncCount>1000)
+//			{
+//				valve_ArmDown();
+//			}
 			process_Accel_FloatingEnc6(0, 1, 13000, 1, -95, 1.5, 5);
 			if(floatingEncCount> 1200)
 			{
@@ -3196,12 +3219,17 @@ void OdometerHandle(void const * argument)
 		else if(step == 29)
 		{
 
-			process_Accel_FloatingEnc9(-90, 0.8, 5800, 1, -95, 1.5, 5);
-
+			process_Accel_FloatingEnc9(-90, 0.8, 10000, 1, -95, 1.5, 5);
+			if(floatingEncCount>5800)
+			{
+				valve_ArmDown();
+				step++;
+			}
 		}
 		else if(step == 30)
 		{
 			process_Accel_FloatingEnc9(-90, 0, 0, 0.5, -95, 1, 5);
+
 		}
 		else if (step == 31)
 		{
