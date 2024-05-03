@@ -16,7 +16,7 @@ static _GamePad *_gamepad;
 static bool isRowBallAbove = false;
 static Sensor_t collectBallLeft, collectBallRight;
 static Sensor_t *currentDetectSensor = NULL;
-static float aboveRowSpeed = 2800.0, belowRowSpeed = 3700.0;
+static float aboveRowSpeed = 2300.0, belowRowSpeed = 3200.0;
 extern uint8_t Manual;
 extern int PlusControl;
 static bool isOnDetectBallProcess = false;
@@ -165,13 +165,13 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->L2 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				if(aboveRowSpeed <= 2800.0) aboveRowSpeed = 2800.0;
+				if(aboveRowSpeed <= 2300.0) aboveRowSpeed = 2300.0;
 				else aboveRowSpeed -= 300;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
 				RB1_SetTargetSpeedGun2(aboveRowSpeed);
 			}
 			else{
-				if(belowRowSpeed <= 3700.0) belowRowSpeed = 3700.0;
+				if(belowRowSpeed <= 3200.0) belowRowSpeed = 3200.0;
 				else belowRowSpeed -= 300;
 				RB1_SetTargetSpeedGun1(belowRowSpeed);
 				RB1_SetTargetSpeedGun2(belowRowSpeed);
@@ -183,7 +183,7 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->L1 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				if(aboveRowSpeed >= 3700.0) aboveRowSpeed = 3700.0;
+				if(aboveRowSpeed >= 3200.0) aboveRowSpeed = 3200.0;
 				else aboveRowSpeed += 300;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
 				RB1_SetTargetSpeedGun2(aboveRowSpeed);
