@@ -87,6 +87,7 @@ osThreadId TaskCANHandle;
 uint32_t TaskCANBuffer[ 128 ];
 osStaticThreadDef_t TaskCANControlBlock;
 osThreadId TaskOdometerHandle;
+osThreadId taskFlashHandle;
 /* USER CODE BEGIN PV */
 
 //CAN_DEVICE_ID targetID = CANCTRL_DEVICE_MOTOR_CONTROLLER_1;
@@ -146,6 +147,8 @@ uint8_t Run,resetParam,breakProtect;
 float uControlX,uControlY,uControlTheta;
 uint8_t stateRun = 0 ,steadycheck;
 uint8_t xaDay;
+bool startToFlash = false;
+bool resetAllDataFlash = false;
 uint8_t ssCheck,stateChange,rst,Gamepad;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,12 +244,6 @@ uint8_t Team,Start,Retry;
 #define SILO_5_DISTANCE 0.35
 
 #define SILO_MAX_BALL 1
-
-uint8_t silo[6] = {0};
-uint8_t siloNow = 0;
-uint8_t siloTarget = 0;
-
-
 ////
 #define RED   1
 #define BLUE  2
@@ -282,6 +279,7 @@ void StartDefaultTask(void const * argument);
 void InverseKinematic(void const * argument);
 void CAN_Bus(void const * argument);
 void OdometerHandle(void const * argument);
+void TaskFlash(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -422,11 +420,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 				}
 				++cnt;
 			}
-
-			GamepPadHandle(&GamePad, DataTayGame);
-
-		} else {
-			GamePad.Status = 0;
+			CustomGamepad_t customGamepad;
+			for (uint8_t i = 0; i < 6; i++) {
+				customGamepad.ballMatrix[i] = DataTayGame[i + 1];
+			}
+			customGamepad.siloNum = DataTayGame[7];
+			BrdParam_SetCustomGamepad(customGamepad);
 		}
 		if (!gamepadRxIsBusy)
 			HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -2193,6 +2192,11 @@ HAL_StatusTypeDef UART5_Is_Received(){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void HAL_FLASH_OperationErrorCallback(uint32_t ReturnValue)
+{
+	RBFlash_ErrorHandler(ReturnValue);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -2208,7 +2212,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -2238,13 +2242,20 @@ int main(void)
   MX_UART5_Init();
   MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
+  	BrdParam_GetDataFromFlash();
 
-	log_Init(&huart2);
-	Send_Header();
+  	colorNum = BrdParam_GetBallSuccess();
+  	TargetSilo = BrdParam_GetTargetSilo();
+  	HarvestZoneBallPosition_t ballpos = BrdParam_GetTargetBall();
+  	column = ballpos.column;
+  	row = ballpos.row;
+
+  	if(BrdParam_GetTeamColor() == BLUE_TEAM){
+  		HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+  	}
 	valve_Init();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
 	HAL_TIM_Base_Start_IT(&htim4);
-
 
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
@@ -2252,10 +2263,9 @@ int main(void)
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
-//	osDelay(1000);
 	HAL_UART_Receive_DMA(&huart1,(uint8_t*)mpu,10);
 	HAL_UART_Receive_IT(&huart5, (uint8_t*) UARTRX5_Buffer, 1);
-	TargetSilo = 2;
+
 //	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart2_ds, 5);
 //	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);
 
@@ -2299,6 +2309,10 @@ int main(void)
   /* definition and creation of TaskOdometer */
   osThreadDef(TaskOdometer, OdometerHandle, osPriorityNormal, 0, 256);
   TaskOdometerHandle = osThreadCreate(osThread(TaskOdometer), NULL);
+
+  /* definition and creation of taskFlash */
+  osThreadDef(taskFlash, TaskFlash, osPriorityIdle, 0, 128);
+  taskFlashHandle = osThreadCreate(osThread(taskFlash), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -3041,60 +3055,22 @@ static void MX_GPIO_Init(void)
 
 
 uint8_t SetHomeFlag, check;
-uint8_t last_Column,last_Row,last_TargetSilo,last_colorNum;
-uint8_t initialColorNumFlag,intialColumnFlag;
 void RobotSignalButton_PressedCallback(SignalButtonColor color)
 {
 	if(color == SIGBTN_RED)
 	{
-		Team = RED;
-		colorNum += 1;
-		if(initialColorNumFlag == 0)
-		{
-			if(colorNum>3)
-			{
-				colorNum = 0;
-				row+= 1;
-				intialColumnFlag = 1;
-			}
-		}else {
-			if (colorNum>2)
-			{
-				colorNum = 0;
-				TargetSilo += 1;
-			}
-		}
-	}else if (color == SIGBTN_BLUE)
+		BrdParam_ResetAllDataInFlash();
+		BrdParam_SetTeamColor(RED_TEAM);
+		BrdParam_SaveDataToFlash();
+	}
+	else if (color == SIGBTN_BLUE)
 	{
-		Team = BLUE;
-		colorNum += 1;
-		if (intialColumnFlag == 0)
-		{
-			if (colorNum>3)
-			{
-				colorNum = 0;
-				TargetSilo += 1;
-				intialColumnFlag = 1;
-			}
-		}else {
-			if (colorNum>2)
-			{
-				colorNum = 0;
-				TargetSilo += 1;
-			}
-		}
-//		xaDay = 1;
-//		process_WireRelease(1);
-	}else if (color == SIGBTN_YELLOW)
+		BrdParam_SetTeamColor(BLUE_TEAM);
+		BrdParam_SaveDataToFlash();
+	}
+	else if (color == SIGBTN_YELLOW)
 	{
-//		process_WireRelease(1);
 		Retry = RETRY_ENABLE;
-		column+=1;
-		if(column > 3)
-		{
-			column = 0;
-			row += 1;
-		}
 	}else if (color == SIGBTN_GREEN)
 	{
 		Start = START;
@@ -3114,7 +3090,7 @@ void StartDefaultTask(void const * argument)
 	valve_Output(0,1);
 	valve_Output(1,1);
 	valve_Output(2,1);
-		osDelay(1000);
+	osDelay(1000);
 	valve_Output(0,0);
 	valve_Output(1,0);
 	valve_Output(2,0);
@@ -3122,11 +3098,8 @@ void StartDefaultTask(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-//		if ((step == 1)||(step == finalStep)){
-
-			BuzzerBeepProcess();
-			RobotSignalButton_ScanButton();
-//		}
+		BuzzerBeepProcess();
+//		RobotSignalButton_ScanButton();
 		osDelay(10);
 	}
   /* USER CODE END 5 */
@@ -3336,19 +3309,19 @@ void FindSilo(uint8_t siloNum, bool mode){
 	float targetDistance = 0;
 	switch(siloNum){
 	case 1:
-		targetDistance = SILO_1_DISTANCE ;
+		targetDistance = SILO_1_DISTANCE;
 		break;
 	case 2:
-		targetDistance = SILO_2_DISTANCE ;
+		targetDistance = SILO_2_DISTANCE;
 		break;
 	case 3:
-		targetDistance = SILO_3_DISTANCE ;
+		targetDistance = SILO_3_DISTANCE;
 		break;
 	case 4:
-		targetDistance = SILO_4_DISTANCE ;
+		targetDistance = SILO_4_DISTANCE;
 		break;
 	case 5:
-		targetDistance = SILO_5_DISTANCE ;
+		targetDistance = SILO_5_DISTANCE;
 		break;
 
 	}
@@ -3837,6 +3810,11 @@ if(Run == 10)
 						}
 						else if (step == 58)
 						{
+							BrdParam_SetBallSuccess(colorNum);
+							BrdParam_SetTargetSilo(TargetSilo);
+							BrdParam_SetTargetBall(row, column);
+							startToFlash = true;
+
 							Reset_MPU_Angle();
 							step += 1;
 						}
@@ -3879,8 +3857,14 @@ if(Run == 10)
 								}
 								lastRow = row;
 							}
-						}else if(step == 71)
+
+						}
+						else if(step == 71)
 						{
+							BrdParam_SetBallSuccess(colorNum);
+							BrdParam_SetTargetSilo(TargetSilo);
+							BrdParam_SetTargetBall(row, column);
+							startToFlash = true;
 							Process_Ball_Continue();
 						}else if(step == 72)
 						{
@@ -4152,7 +4136,7 @@ if(Run == 10)
 
 							else if (step== 53)
 							{
-								process_ApproachWall_BLUE(siloTarget);
+								process_ApproachWall_BLUE(TargetSilo);
 							}
 							else if (step == 54)
 							{
@@ -4560,6 +4544,36 @@ if(Run == 10)
 
 					}
   /* USER CODE END OdometerHandle */
+}
+
+/* USER CODE BEGIN Header_TaskFlash */
+/**
+* @brief Function implementing the taskFlash thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_TaskFlash */
+void TaskFlash(void const * argument)
+{
+  /* USER CODE BEGIN TaskFlash */
+  /* Infinite loop */
+  for(;;)
+  {
+	  if(startToFlash){
+		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+		  BrdParam_SaveDataToFlash();
+		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+		  startToFlash = false;
+	  }
+	  if(resetAllDataFlash){
+		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
+		  BrdParam_ResetAllDataInFlash();
+		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
+		  resetAllDataFlash = false;
+	  }
+	  osDelay(1);
+  }
+  /* USER CODE END TaskFlash */
 }
 
 /**

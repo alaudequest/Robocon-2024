@@ -12,6 +12,8 @@ static uint32_t buzzerOffDelayMs = 0;
 static uint8_t buzzerStep = 0;
 static SignalButtonColor currentPressedButton = 0;
 pSignalBtnPressed _pSignalBtnPressed;
+static bool _dataChanged = false;
+
 void ProcessDelay(uint32_t delayMs, uint8_t *step)
 {
 	static bool isOnDelay = false;
@@ -120,14 +122,132 @@ void RobotSignalButton_ScanButton()
 {
 	HAL_GPIO_WritePin(RobotSignalBtn_VCC_GPIO_Port, RobotSignalBtn_VCC_Pin, 1);
 	HAL_GPIO_WritePin(RobotSignalBtn_GND_GPIO_Port, RobotSignalBtn_GND_Pin, 0);
-	if(!HAL_GPIO_ReadPin(RobotSignalBtn_RED_GPIO_Port, RobotSignalBtn_RED_Pin) && currentPressedButton == 0)
+	if (!HAL_GPIO_ReadPin(RobotSignalBtn_RED_GPIO_Port, RobotSignalBtn_RED_Pin) && currentPressedButton == 0)
 		currentPressedButton = SIGBTN_RED;
-	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_YELLOW_GPIO_Port, RobotSignalBtn_YELLOW_Pin) && currentPressedButton == 0)
+	else if (!HAL_GPIO_ReadPin(RobotSignalBtn_YELLOW_GPIO_Port, RobotSignalBtn_YELLOW_Pin) && currentPressedButton == 0)
 		currentPressedButton = SIGBTN_YELLOW;
-	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_BLUE_GPIO_Port, RobotSignalBtn_BLUE_Pin) && currentPressedButton == 0)
+	else if (!HAL_GPIO_ReadPin(RobotSignalBtn_BLUE_GPIO_Port, RobotSignalBtn_BLUE_Pin) && currentPressedButton == 0)
 		currentPressedButton = SIGBTN_BLUE;
-	else if(!HAL_GPIO_ReadPin(RobotSignalBtn_GREEN_GPIO_Port, RobotSignalBtn_GREEN_Pin) && currentPressedButton == 0)
+	else if (!HAL_GPIO_ReadPin(RobotSignalBtn_GREEN_GPIO_Port, RobotSignalBtn_GREEN_Pin) && currentPressedButton == 0)
 		currentPressedButton = SIGBTN_GREEN;
 	DetectSignalButtonProcess(&currentPressedButton);
 }
 
+
+
+#if defined(BOARD_MAINF4_ROBOT1)
+
+#elif defined(BOARD_MAINF4_ROBOT2)
+
+
+Robot2PlayGroundData robotPlayGroundData;
+
+void BrdParam_SetCustomGamepad(CustomGamepad_t gamepad)
+{
+	// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
+	if (robotPlayGroundData.gp.siloNum != gamepad.siloNum) {
+		robotPlayGroundData.gp = gamepad;
+		_dataChanged = true;
+		return;
+	}
+	for (uint8_t i = 0; i < 6; i++) {
+		if (robotPlayGroundData.gp.ballMatrix[i] != gamepad.ballMatrix[i]) {
+			// chỉ cần có một sự thay đổi bất kỳ giữa dữ liệu mới và dữ liệu board thì gán luôn không cần kiểm tra tiếp
+			robotPlayGroundData.gp = gamepad;
+			_dataChanged = true;
+			return;
+		}
+	}
+}
+
+CustomGamepad_t BrdParam_GetCustomGamepad()
+{
+	return robotPlayGroundData.gp;
+}
+
+void BrdParam_SetTeamColor(TeamColor color)
+{
+	if (robotPlayGroundData.teamColor != color) {
+		robotPlayGroundData.teamColor = color;
+		_dataChanged = true;
+	}
+}
+
+TeamColor BrdParam_GetTeamColor()
+{
+	return robotPlayGroundData.teamColor;
+}
+
+void BrdParam_SetBallSuccess(uint8_t ballGetSuccess)
+{
+	if (robotPlayGroundData.ballCollectSuccess != ballGetSuccess) {
+		robotPlayGroundData.ballCollectSuccess = ballGetSuccess;
+		_dataChanged = true;
+	}
+}
+
+uint8_t BrdParam_GetBallSuccess()
+{
+	return robotPlayGroundData.ballCollectSuccess;
+}
+
+void BrdParam_SetTargetBall(uint8_t row, uint8_t column)
+{
+	if(robotPlayGroundData.targetBall.row != row || robotPlayGroundData.targetBall.column != column){
+		robotPlayGroundData.targetBall.row = row;
+		robotPlayGroundData.targetBall.column = column;
+		_dataChanged = true;
+	}
+}
+
+
+HarvestZoneBallPosition_t BrdParam_GetTargetBall()
+{
+	return robotPlayGroundData.targetBall;
+}
+
+void BrdParam_SetTargetSilo(uint8_t silo)
+{
+	if(robotPlayGroundData.targetSilo != silo){
+		robotPlayGroundData.targetSilo = silo;
+		_dataChanged = true;
+	}
+}
+
+uint8_t BrdParam_GetTargetSilo()
+{
+	return robotPlayGroundData.targetSilo;
+}
+
+void BrdParam_SetBallInSilo(uint8_t ball, uint8_t silo){
+	robotPlayGroundData.ballInSilo[silo] = ball;
+}
+
+uint8_t BrdParam_GetBallInSilo(uint8_t silo){
+	return robotPlayGroundData.ballInSilo[silo];
+}
+
+void BrdParam_GetDataFromFlash()
+{
+	RBFlash_ReadDataFromFlash((void*)&robotPlayGroundData, sizeof(robotPlayGroundData), FLASH_ROBOT_PLAYGROUND_DATA_ADDRESS);
+}
+
+void BrdParam_SaveDataToFlash()
+{
+	if (_dataChanged) {
+		RBFlash_WriteToFlash((void*)&robotPlayGroundData, sizeof(robotPlayGroundData), FLASH_ROBOT_PLAYGROUND_DATA_ADDRESS);
+		_dataChanged = false;
+	}
+}
+
+void BrdParam_ResetAllDataInFlash()
+{
+	Robot2PlayGroundData temp = {0};
+	robotPlayGroundData = temp;
+	_dataChanged = true;
+	BrdParam_SaveDataToFlash();
+}
+
+#else
+#error "Not define board selected in main.h"
+#endif
