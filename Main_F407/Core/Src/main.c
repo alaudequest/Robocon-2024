@@ -1299,7 +1299,15 @@ int main(void)
 //	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
 
-
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,50);
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,50);
+	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,50);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,50);
+	HAL_Delay(500);
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,0);
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,0);
+	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);
 
   /* USER CODE END 2 */
 
@@ -2100,7 +2108,12 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	ShootBallTime_Start(&GamePad);
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,0);
+	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,0);
+	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);
+
+//	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
 

@@ -93,6 +93,7 @@ void ShootBallTime_Handle()
 		if(_gamepad->Up){
 			// nếu ở hàng dưới banh thì đẩy xilanh trái mở sẵn sàng đón banh
 			isRowBallAbove = false;
+			aboveRowSpeed = 2800.0;
 			valve_OpenLeftCollectBall();
 			valve_CloseRightCollectBall();
 			valve_ArmDown();
@@ -104,6 +105,7 @@ void ShootBallTime_Handle()
 		if(_gamepad->Down){
 			// nếu ở hàng trên thì kích xilanh phải
 			isRowBallAbove = true;
+			belowRowSpeed = 3700.0;
 			valve_OpenRightCollectBall();
 			valve_CloseLeftCollectBall();
 			valve_ArmDown();
@@ -159,32 +161,36 @@ void ShootBallTime_Handle()
 	}
 
 	// Nút giảm tốc
-	if (_gamepad->R2){
+	if (_gamepad->L2){
 		osDelay(100);
-		if(_gamepad->R2 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
+		if(_gamepad->L2 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				aboveRowSpeed -=100;
+				if(aboveRowSpeed <= 2800.0) aboveRowSpeed = 2800.0;
+				else aboveRowSpeed -= 300;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
 				RB1_SetTargetSpeedGun2(aboveRowSpeed);
 			}
 			else{
-				belowRowSpeed -=100;
+				if(belowRowSpeed <= 3700.0) belowRowSpeed = 3700.0;
+				else belowRowSpeed -= 300;
 				RB1_SetTargetSpeedGun1(belowRowSpeed);
 				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
 		}
 	}
 	// Nút tăng tốc
-	if (_gamepad->R1){
+	if (_gamepad->L1){
 		osDelay(100);
-		if(_gamepad->R1 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
+		if(_gamepad->L1 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				aboveRowSpeed +=100;
+				if(aboveRowSpeed >= 3700.0) aboveRowSpeed = 3700.0;
+				else aboveRowSpeed += 300;
 				RB1_SetTargetSpeedGun1(aboveRowSpeed);
 				RB1_SetTargetSpeedGun2(aboveRowSpeed);
 			}
 			else{
-				belowRowSpeed +=100;
+				if(belowRowSpeed >= 4600.0) belowRowSpeed = 4600.0;
+				else belowRowSpeed += 300;
 				RB1_SetTargetSpeedGun1(belowRowSpeed);
 				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
