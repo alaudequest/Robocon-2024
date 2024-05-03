@@ -70,5 +70,8 @@ void trajecPlan_Reset(trajec_Param *trajec)
 	trajec -> vf = 0;
 	trajec -> xTrajec = 0;
 	trajec -> xdottraject = 0;
-
+	trajec->a0 = 0;
+	trajec->a1 = 0;
+	trajec->a2 = 0;
+	trajec->a3 = 0;
 }

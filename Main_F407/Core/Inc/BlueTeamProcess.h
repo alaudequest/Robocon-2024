@@ -10,6 +10,6 @@
 #include "main.h"
 #include "PositionControl.h"
 #include "cmsis_os.h"
-
+void BlueTeamRunProcess();
 
 #endif /* INC_BLUETEAMPROCESS_H_ */

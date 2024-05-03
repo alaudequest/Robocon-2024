@@ -79,7 +79,10 @@ void startPutBall(uint8_t state)
 			{
 				MotorDC_Drive(&putBall.mdc,450);
 				MotorDC_Drive(&getBall.mdc, -1000);
-			}else if  (putBall.count<40*50){
+			}else if  (putBall.count<40
+
+
+					*50){
 				MotorDC_Drive(&putBall.mdc,450);
 				MotorDC_Drive(&getBall.mdc, -1000);
 			}else {
