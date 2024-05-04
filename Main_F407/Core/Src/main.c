@@ -1285,7 +1285,7 @@ int main(void)
 	HAL_UART_Receive_DMA(&huart1, (uint8_t*) mpu, 10);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-//	CAN_Init();
+	CAN_Init();
 	valve_Init();
 	process_Init();
 	RB1_Gun_Init();
@@ -1295,8 +1295,6 @@ int main(void)
 	RB1_SensorRegisterPin(Sensor5_GPIO_Port, Sensor5_Pin, RB1_SENSOR_ARM_RIGHT);
 	RB1_SensorRegisterPin(Sensor8_GPIO_Port, Sensor8_Pin, RB1_SENSOR_COLLECT_BALL_LEFT);
 	RB1_SensorRegisterPin(Sensor4_GPIO_Port, Sensor4_Pin, RB1_SENSOR_COLLECT_BALL_RIGHT);
-//	RB1_RegisterSensorCallBack(&process_PhatHienLuaTrai, RB1_SENSOR_ARM_LEFT);
-//	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
 
 	RB1_CollectBallMotor_On();

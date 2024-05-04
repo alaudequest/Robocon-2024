@@ -24,7 +24,7 @@ static bool inShootBallTime = false;
 static _GamePad *_gamepad;
 static bool isRowBallAbove = false;
 static Sensor_t collectBallLeft, collectBallRight;
-static uint8_t pwmAbove2 = MIN_SPEED_ABOVE_1 + SPEED_OFFSET, pwmAbove1 = MIN_SPEED_ABOVE_1, pwmBelow1 = MIN_SPEED_BELOW_1, pwmBelow2 = MIN_SPEED_BELOW_1 + SPEED_OFFSET;
+ uint8_t pwmAbove2, pwmAbove1 = MIN_SPEED_ABOVE_1, pwmBelow1 = MIN_SPEED_BELOW_1, pwmBelow2;
 extern uint8_t Manual;
 extern int PlusControl;
 static uint32_t shootBallDelayTime = 0;
@@ -43,6 +43,8 @@ void ShootBallTime_Start(_GamePad *gamepad)
 	collectBallRight= RB1_GetSensor(RB1_SENSOR_COLLECT_BALL_RIGHT);
 	PlusControl = 2;// Điều khiển dạng chữ thập có thể quay góc
 	Manual = 1;
+	pwmAbove2 = pwmAbove1 + SPEED_OFFSET;
+	pwmBelow2 = pwmBelow1 + SPEED_OFFSET;
 }
 
 static void inline SetShootBallSpeed(uint8_t speedGun1, uint8_t speedGun2)
@@ -100,10 +102,23 @@ void ShootBallTime_Handle()
 			}
 		}
 	}
-	if(valve_IsProcessEnd() && (HAL_GetTick() - shootBallDelayTime > 2500)){
+
+	if(		valve_IsProcessEnd()
+			&& isRowBallAbove == true
+			&& (HAL_GetTick() - shootBallDelayTime > 3000))
+	{
 		SetShootBallSpeed(SHOOTBALL_IDLE_SPEED, SHOOTBALL_IDLE_SPEED);
 		shootBallDelayTime = 0;
 	}
+	else if(valve_IsProcessEnd()
+			&& isRowBallAbove == false
+			&& (HAL_GetTick() - shootBallDelayTime > 5000))
+	{
+		SetShootBallSpeed(SHOOTBALL_IDLE_SPEED, SHOOTBALL_IDLE_SPEED);
+		shootBallDelayTime = 0;
+	}
+
+
 	if(_gamepad->Circle){
 		osDelay(100);
 		if(_gamepad->Circle){
