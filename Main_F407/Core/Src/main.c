@@ -2330,7 +2330,6 @@ void OdometerHandle(void const * argument)
 					process_ResetFloatingEnc();
 					// Set thong so quy hoach quy dao :
 					step = 1;
-//					step = 11;
 				}
 			}
 		}
@@ -2558,10 +2557,6 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 18)
 		{
-//			if(floatingEncCount>1000)
-//			{
-//				valve_ArmDown();
-//			}
 			process_Accel_FloatingEnc6(-180, 1, 130000, 0.5, 95, 1.5, 5);
 
 			if(floatingEncCount> 2600)
@@ -2741,30 +2736,31 @@ void OdometerHandle(void const * argument)
 					process_Count++;
 				}
 			}
-			if (GamePad.Left)
-			{
-				osDelay(200);
-				if(GamePad.Left)
-				{
-					process_ResetFloatingEnc();
-					// Set thong so quy hoach quy dao :
-					PlusControl = 0;
-					Manual = 0;
-					// tha tay gap
-					process_Error(1);
-					valve_HandRelease();
-					process_Error(0);
-					osDelay(50);
-					valve_ArmUp();
-					osDelay(250);
-					process_Count++;
-					if(process_Count == 3)
-					{
-						step = 32;
-					}
-
-				}
-			}
+			// NUT LAY 6 LUA
+//			if (GamePad.Left)
+//			{
+//				osDelay(200);
+//				if(GamePad.Left)
+//				{
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//					PlusControl = 0;
+//					Manual = 0;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					process_Error(0);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(250);
+//					process_Count++;
+//					if(process_Count == 3)
+//					{
+//						step = 32;
+//					}
+//
+//				}
+//			}
 
 		}
 
@@ -2785,7 +2781,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(-88, 1, 10100, 0.5 , 95, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1, 13100, 0.5 , 95, 3, 5);
 		}
 		else if(step == 34)
 		{
@@ -2860,7 +2856,7 @@ void OdometerHandle(void const * argument)
 
 			}
 			process_Accel_FloatingEnc9(180-5, V_want, 18000, 0.5, 0, 3, 5);
-			if(floatingEncCount > 9500)
+			if(floatingEncCount > 9200)
 			{
 				process_SubState = 0;
 				step++;
@@ -2988,7 +2984,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 13)
 		{
 			process_Accel_FloatingEnc6(180-75, 1, 15000, 0.5, 5, 1.5, 5);
-			if(floatingEncCount>8400)
+			if(floatingEncCount>8200)
 			{
 				process_SubState = 0;
 				step++;
@@ -2997,7 +2993,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 14)
 		{
 			process_Accel_FloatingEnc6(180-15, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>4000)&&(floatingEncCount<5500))
+			if((floatingEncCount>3500)&&(floatingEncCount<6000))
 			{
 				if(process_ThucHienGapLua() == true)
 				{
@@ -3016,7 +3012,7 @@ void OdometerHandle(void const * argument)
 				}
 			}
 
-			if(floatingEncCount>5500)//3000
+			if(floatingEncCount>6000)//3000
 			{
 				u = 0;
 				v = 0;
@@ -3052,10 +3048,6 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 18)
 		{
-//			if(floatingEncCount>1000)
-//			{
-//				valve_ArmDown();
-//			}
 			process_Accel_FloatingEnc6(0, 1, 130000, 0.5, -95, 1.5, 5);
 
 			if(floatingEncCount> 2200)
@@ -3132,7 +3124,7 @@ void OdometerHandle(void const * argument)
 		else if(step == 24)
 		{
 			process_Accel_FloatingEnc6(180-15, 0.4, 100000, 0.08, 0, 3, 5);
-			if((floatingEncCount>4500)&&(floatingEncCount<5500))
+			if((floatingEncCount>3500)&&(floatingEncCount<5500))
 			{
 				if(process_ThucHienGapLua() == true)
 				{
@@ -3234,30 +3226,31 @@ void OdometerHandle(void const * argument)
 					process_Count++;
 				}
 			}
-			if (GamePad.Left)
-			{
-				osDelay(200);
-				if(GamePad.Left)
-				{
-					process_ResetFloatingEnc();
-					// Set thong so quy hoach quy dao :
-					PlusControl = 0;
-					Manual = 0;
-					// tha tay gap
-					process_Error(1);
-					valve_HandRelease();
-					process_Error(0);
-					osDelay(50);
-					valve_ArmUp();
-					osDelay(250);
-					process_Count++;
-					if(process_Count == 3)
-					{
-						step = 32;
-					}
-
-				}
-			}
+			// NUT LAY 6 LUA
+//			if (GamePad.Left)
+//			{
+//				osDelay(200);
+//				if(GamePad.Left)
+//				{
+//					process_ResetFloatingEnc();
+//					// Set thong so quy hoach quy dao :
+//					PlusControl = 0;
+//					Manual = 0;
+//					// tha tay gap
+//					process_Error(1);
+//					valve_HandRelease();
+//					process_Error(0);
+//					osDelay(50);
+//					valve_ArmUp();
+//					osDelay(250);
+//					process_Count++;
+//					if(process_Count == 3)
+//					{
+//						step = 32;
+//					}
+//
+//				}
+//			}
 
 		}
 
@@ -3278,7 +3271,7 @@ void OdometerHandle(void const * argument)
 		}
 		else if(step == 33)
 		{
-			process_Accel_FloatingEnc6(-88, 1, 11000, 0.1 , -95, 3, 5);
+			process_Accel_FloatingEnc6(-88, 1, 14000, 0.1 , -95, 3, 5);
 		}
 		else if(step == 34)
 		{
