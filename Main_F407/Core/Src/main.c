@@ -2251,7 +2251,12 @@ int main(void)
   	row = ballpos.row;
 
   	if(BrdParam_GetTeamColor() == BLUE_TEAM){
+  		Team = BLUE;
   		HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 1);
+  	}
+  	else if(BrdParam_GetTeamColor() == RED_TEAM){
+  		Team = RED;
+  		HAL_GPIO_WritePin(Status_GPIO_Port, Status_Pin, 0);
   	}
 	valve_Init();
 	HAL_UART_Receive_IT(&huart3, (uint8_t*) UARTRX3_Buffer, 9);
@@ -3061,12 +3066,13 @@ void RobotSignalButton_PressedCallback(SignalButtonColor color)
 	{
 		BrdParam_ResetAllDataInFlash();
 		BrdParam_SetTeamColor(RED_TEAM);
-		BrdParam_SaveDataToFlash();
+		startToFlash = 1;
 	}
 	else if (color == SIGBTN_BLUE)
 	{
+		BrdParam_ResetAllDataInFlash();
 		BrdParam_SetTeamColor(BLUE_TEAM);
-		BrdParam_SaveDataToFlash();
+		startToFlash = 1;
 	}
 	else if (color == SIGBTN_YELLOW)
 	{
@@ -3099,7 +3105,7 @@ void StartDefaultTask(void const * argument)
 	/* Infinite loop */
 	for (;;) {
 		BuzzerBeepProcess();
-//		RobotSignalButton_ScanButton();
+		RobotSignalButton_ScanButton();
 		osDelay(10);
 	}
   /* USER CODE END 5 */
@@ -3436,7 +3442,7 @@ if(Run == 10)
 								Reset_MPU_Angle();
 								process_ResetFloatingEnc();
 								// Set thong so quy hoach quy dao :
-								step = 2;
+								step = 51;
 								Run = RED_RUN;
 								column = 0;
 								row = 0;
@@ -3448,7 +3454,7 @@ if(Run == 10)
 								Reset_MPU_Angle();
 								process_ResetFloatingEnc();
 								// Set thong so quy hoach quy dao :
-								step =2;
+								step =51;
 								column = 0;
 								row = 0;
 								colorNum = 0;
@@ -3463,17 +3469,17 @@ if(Run == 10)
 								step = 2;
 								Run = RED_RETRY;
 //								column -= 1;
-								colorNum -= 1;
+//								colorNum -= 1;
 //								putBall_ResetStopFlag();
 							}
 							if((Team == BLUE)&&(Retry == RETRY_ENABLE)&&(Start == START))
 							{
 								Reset_MPU_Angle();
 								process_ResetFloatingEnc();
-								putBall_ResetStopFlag();
+//								putBall_ResetStopFlag();
 								// Set thong so quy hoach quy dao :
 //								column -= 1;
-								colorNum -= 1;
+//								colorNum -= 1;
 								step = 2;
 								Run = BLUE_RETRY;
 							}
@@ -3750,17 +3756,17 @@ if(Run == 10)
 							// move silo increase (or move left)
 //							AngleNow =-45;
 							process_Accel_FloatingEnc3(-45, 0.3, 20000, 0.1,0,2.5,10);
-							FindSilo(TargetSilo,1);
+							FindSilo(3,1);
 						}
 						else if (step == 52)
 						{
 //							AngleNow =135;
-							process_Accel_FloatingEnc3(125, 0.3, 20000, 0.1,0,2.5,10);
-							FindSilo(TargetSilo,0);
+							process_Accel_FloatingEnc3(135, 0.3, 20000, 0.1,0,2.5,10);
+							FindSilo(3,0);
 						}
 						else if (step== 53)
 						{
-							process_ApproachWall(TargetSilo);
+//							process_ApproachWall(TargetSilo);
 						}
 						else if (step == 54)
 						{
@@ -4186,6 +4192,10 @@ if(Run == 10)
 							}
 							else if (step == 58)
 							{
+								BrdParam_SetBallSuccess(colorNum);
+								BrdParam_SetTargetSilo(TargetSilo);
+								BrdParam_SetTargetBall(row, column);
+								startToFlash = true;
 								Reset_MPU_Angle();
 								step += 1;
 							}
@@ -4229,6 +4239,10 @@ if(Run == 10)
 								}
 							}else if(step == 71)
 							{
+								BrdParam_SetBallSuccess(colorNum);
+								BrdParam_SetTargetSilo(TargetSilo);
+								BrdParam_SetTargetBall(row, column);
+								startToFlash = true;
 								Process_Ball_Continue_BLUE();
 							}else if(step == 72)
 							{
@@ -4568,6 +4582,12 @@ void TaskFlash(void const * argument)
 	  if(resetAllDataFlash){
 		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
 		  BrdParam_ResetAllDataInFlash();
+		  colorNum = BrdParam_GetBallSuccess();
+		  TargetSilo = BrdParam_GetTargetSilo();
+		  HarvestZoneBallPosition_t ballpos = BrdParam_GetTargetBall();
+		  column = ballpos.column;
+		  row = ballpos.row;
+		  Team = (uint8_t) BrdParam_GetTeamColor();
 		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
 		  resetAllDataFlash = false;
 	  }
