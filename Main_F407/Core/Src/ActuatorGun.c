@@ -17,13 +17,9 @@ static Encoder_t encGun2;
 static PID_Param PID_Gun1;
 static PID_Param PID_Gun2;
 
-static uint16_t collectBallPWM = 0;
-static uint32_t collectBallTickTime = 0;
 static uint8_t pidCurrentTickTimeGun1_ms = 0;
 static uint8_t pidCurrentTickTimeGun2_ms = 0;
-static AccelerationState accelStateCollectBall = NO_ACCEL;
 static Acceleration_t accelGun1, accelGun2;
-static bool enableRuloShootBall = false;
 float gun1TargetSpeed, gun2TargetSpeed;
 static void RB1_Gun_AccelerateInit();
 

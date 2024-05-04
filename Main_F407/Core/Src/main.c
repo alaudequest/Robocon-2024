@@ -1252,7 +1252,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -1300,8 +1300,8 @@ int main(void)
 	MainF4Robot1App_Init();
 
 	RB1_CollectBallMotor_On();
-	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,50); // bắn 2
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,80);// bắn 1
+	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,24); // bắn 2
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,24);// bắn 1
 	HAL_Delay(1000);
 	RB1_CollectBallMotor_Off();
 	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0);
