@@ -61,10 +61,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define Buzzer_Pin GPIO_PIN_4
 #define Buzzer_GPIO_Port GPIOE
-#define MotorGetB1_Pin GPIO_PIN_5
-#define MotorGetB1_GPIO_Port GPIOE
-#define MotorGetB2_Pin GPIO_PIN_6
-#define MotorGetB2_GPIO_Port GPIOE
+#define RelayCollectBallLeft_Pin GPIO_PIN_5
+#define RelayCollectBallLeft_GPIO_Port GPIOE
+#define RelayCollectBallRight_Pin GPIO_PIN_6
+#define RelayCollectBallRight_GPIO_Port GPIOE
 #define Status_Pin GPIO_PIN_13
 #define Status_GPIO_Port GPIOC
 #define RobotSignalBtn_VCC_Pin GPIO_PIN_2

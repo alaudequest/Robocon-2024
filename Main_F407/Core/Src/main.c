@@ -1285,7 +1285,7 @@ int main(void)
 	HAL_UART_Receive_DMA(&huart1, (uint8_t*) mpu, 10);
 	HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
 	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
-	CAN_Init();
+//	CAN_Init();
 	valve_Init();
 	process_Init();
 	RB1_Gun_Init();
@@ -1299,13 +1299,11 @@ int main(void)
 //	RB1_RegisterSensorCallBack(&process_PhatHienLuaPhai, RB1_SENSOR_ARM_RIGHT);
 	MainF4Robot1App_Init();
 
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,50);
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,50);
-	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,50);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,50);
-	HAL_Delay(500);
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,0);
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,0);
+	RB1_CollectBallMotor_On();
+	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,50); // bắn 2
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,80);// bắn 1
+	HAL_Delay(1000);
+	RB1_CollectBallMotor_Off();
 	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0);
 	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);
 
@@ -1785,7 +1783,6 @@ static void MX_TIM9_Init(void)
   /* USER CODE END TIM9_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM9_Init 1 */
 
@@ -1805,26 +1802,9 @@ static void MX_TIM9_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim9) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim9, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim9, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM9_Init 2 */
 
   /* USER CODE END TIM9_Init 2 */
-  HAL_TIM_MspPostInit(&htim9);
 
 }
 
@@ -1993,7 +1973,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, Buzzer_Pin|RelayCollectBallLeft_Pin|RelayCollectBallRight_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin, GPIO_PIN_RESET);
@@ -2004,12 +1984,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(RelayRulo_GPIO_Port, RelayRulo_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : Buzzer_Pin */
-  GPIO_InitStruct.Pin = Buzzer_Pin;
+  /*Configure GPIO pins : Buzzer_Pin RelayCollectBallLeft_Pin RelayCollectBallRight_Pin */
+  GPIO_InitStruct.Pin = Buzzer_Pin|RelayCollectBallLeft_Pin|RelayCollectBallRight_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Buzzer_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Status_Pin RobotSignalBtn_VCC_Pin RobotSignalBtn_GND_Pin */
   GPIO_InitStruct.Pin = Status_Pin|RobotSignalBtn_VCC_Pin|RobotSignalBtn_GND_Pin;
@@ -2108,15 +2088,14 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 	swer_Init();
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_1,0);
-	__HAL_TIM_SET_COMPARE(&htim9,TIM_CHANNEL_2,0);
-	__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);
-
-//	ShootBallTime_Start(&GamePad);
 	/* Infinite loop */
 	for (;;) {
-
+		if(Retry == 1 && GamePad.Touch == 1){
+			osDelay(1000);
+			if(GamePad.Touch == 1){
+				ShootBallTime_Start(&GamePad);
+			}
+		}
 		osDelay(50);
 	}
   /* USER CODE END 5 */
@@ -2229,7 +2208,6 @@ void SignalButton_Pressed(SignalButtonColor color){
 		break;
 	case SIGBTN_YELLOW:
 		Retry = 1;
-		step = 32;
 		Reset_MPU_Angle();
 		process_ResetFloatingEnc();
 		break;
@@ -2332,24 +2310,11 @@ void OdometerHandle(void const * argument)
 //
 //				process_Error(check);
 //	///////////////////////////////////////////////////CODE O DAY/////////////////////////////////////////////////////
-//
-	if(GamePad.Down)
-	{
-		valve_ArmDown();
-		osDelay(500);
-		valve_HandHold();
-		osDelay(500);
-		valve_ArmUp();
-		if(GamePad.Up)
-		{
-			valve_ArmDown();
-			osDelay(500);
-			valve_ArmUp();
-			osDelay(500);
-			valve_ArmDown();
-			valve_HandRelease();
-		}
 
+	if(Retry == 1)
+	{
+		Manual = 1;
+		PlusControl = 4;
 	}
 	if(Red == 1)
 	{
@@ -2817,16 +2782,6 @@ void OdometerHandle(void const * argument)
 
 				process_Accel_FloatingEnc6(-180, 1, 10800, 0.08, 95, 3, 5);
 			}
-			if(Retry == 1)
-			{
-				process_Accel_FloatingEnc6(-80, 1, 5000, 0.08, 0, 3, 5);
-				if(floatingEncCount>2000)
-				{
-					process_Accel_FloatingEnc6(-90, 1, 3000, 0.08, 0, 3, 5);
-				}
-
-			}
-
 		}
 		else if(step == 33)
 		{
@@ -3320,15 +3275,6 @@ void OdometerHandle(void const * argument)
 
 				process_Accel_FloatingEnc6(0, 1, 11000, 0.08, -95, 3, 5);
 			}
-			if(Retry == 1)
-			{
-				process_Accel_FloatingEnc6(-80, 1, 5000, 0.08, 0, 3, 5);
-				if(floatingEncCount>2000)
-				{
-					process_Accel_FloatingEnc6(-90, 1, 3000, 0.08, 0, 3, 5);
-				}
-
-			}
 		}
 		else if(step == 33)
 		{
@@ -3363,6 +3309,19 @@ void OdometerHandle(void const * argument)
 			if(GamePad.Triangle)
 			{
 				valve_ProcessBegin(ValveProcess_ShootBallTime_Reset);
+			}
+		}
+		if(GamePad.Cross)
+		{
+			osDelay(300);
+			if(GamePad.Cross)
+			{
+				valve_ArmDown();
+				osDelay(500);
+				valve_ArmUp();
+				osDelay(500);
+				valve_ArmDown();
+
 			}
 		}
 		if (GamePad.Down && GamePad.Cross)	//Chuyen Sang Che Do GamePad
@@ -3436,6 +3395,20 @@ void OdometerHandle(void const * argument)
 				{
 					uControlX = 0;
 				}
+			}
+			if(PlusControl == 4)
+			{
+				uControlX = -GamePad.XLeftCtr*3;
+				uControlY = GamePad.YLeftCtr*3;
+				uControlTheta = GamePad.XRightCtr*1;
+				if (absf(uControlX)>absf(uControlY))
+				{
+					uControlY = 0;
+				}else if(absf(uControlX)<absf(uControlY))
+				{
+					uControlX = 0;
+				}
+
 			}
 		}
 		else if (Manual == 0) {

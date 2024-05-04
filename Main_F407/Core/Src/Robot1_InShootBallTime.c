@@ -17,16 +17,18 @@ static bool isRowBallAbove = false;
 static Sensor_t collectBallLeft, collectBallRight;
 static Sensor_t *currentDetectSensor = NULL;
 static float aboveRowSpeed = 2300.0, belowRowSpeed = 3200.0;
+static uint8_t pwmAbove2 = 120, pwmAbove1 = 80, pwmBelow1 = 150, pwmBelow2 = 190;
 extern uint8_t Manual;
 extern int PlusControl;
 static bool isOnDetectBallProcess = false;
-
+#define SPEED_OFFSET 40
+extern TIM_HandleTypeDef htim8;
 
 void ShootBallTime_Start(_GamePad *gamepad)
 {
 	inShootBallTime = true;
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
-	osDelay(100);
+	osDelay(700);
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
 	_gamepad = gamepad;
 	valve_ArmDown();
@@ -93,7 +95,8 @@ void ShootBallTime_Handle()
 		if(_gamepad->Up){
 			// nếu ở hàng dưới banh thì đẩy xilanh trái mở sẵn sàng đón banh
 			isRowBallAbove = false;
-			aboveRowSpeed = 2800.0;
+			pwmAbove1 = 80;
+			pwmAbove2 = pwmAbove1 + SPEED_OFFSET;
 			valve_OpenLeftCollectBall();
 			valve_CloseRightCollectBall();
 			valve_ArmDown();
@@ -105,7 +108,8 @@ void ShootBallTime_Handle()
 		if(_gamepad->Down){
 			// nếu ở hàng trên thì kích xilanh phải
 			isRowBallAbove = true;
-			belowRowSpeed = 3700.0;
+			pwmBelow1 = 150;
+			pwmBelow2 = pwmBelow1 + SPEED_OFFSET;
 			valve_OpenRightCollectBall();
 			valve_CloseLeftCollectBall();
 			valve_ArmDown();
@@ -121,23 +125,35 @@ void ShootBallTime_Handle()
 			// nếu ở hàng banh trên thì đưa banh vào
 			if (isRowBallAbove) {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallRight);
+//				RB1_SetTargetSpeedGun1(aboveRowSpeed);
+//				RB1_SetTargetSpeedGun2(aboveRowSpeed);
 			}
 			else {
 				valve_ProcessBegin(ValveProcess_ShootBallTime_GetBallLeft);
+//				RB1_SetTargetSpeedGun1(belowRowSpeed);
+//				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
 		}
 	}
+//	if(valve_IsProcessEnd()){
+//		RB1_SetTargetSpeedGun1(SHOOTBALL_IDLE_SPEED);
+//		RB1_SetTargetSpeedGun2(SHOOTBALL_IDLE_SPEED);
+//	}
 	if(_gamepad->Circle){
 		osDelay(100);
 		if(_gamepad->Circle){
 			RB1_CollectBallMotor_On();
 			if(isRowBallAbove){
-				RB1_SetTargetSpeedGun1(aboveRowSpeed);
-				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmAbove2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmAbove1);// bắn 1
+//				RB1_SetTargetSpeedGun1(aboveRowSpeed);
+//				RB1_SetTargetSpeedGun2(aboveRowSpeed);
 			}
 			else{
-				RB1_SetTargetSpeedGun1(belowRowSpeed);
-				RB1_SetTargetSpeedGun2(belowRowSpeed);
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmBelow2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmBelow1);// bắn 1
+//				RB1_SetTargetSpeedGun1(belowRowSpeed);
+//				RB1_SetTargetSpeedGun2(belowRowSpeed);
 			}
 		}
 	}
@@ -145,8 +161,10 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->Square){
 			RB1_CollectBallMotor_Off();
-			RB1_SetTargetSpeedGun1(0);
-			RB1_SetTargetSpeedGun2(0);
+			__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0); // bắn 2
+			__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);// bắn 1
+//			RB1_SetTargetSpeedGun1(0);
+//			RB1_SetTargetSpeedGun2(0);
 		}
 	}
 	if (_gamepad->Cross){
@@ -154,8 +172,10 @@ void ShootBallTime_Handle()
 		if(_gamepad->Cross){
 			ShootBallTime_Stop();
 			RB1_CollectBallMotor_Off();
-			RB1_SetTargetSpeedGun1(0);
-			RB1_SetTargetSpeedGun2(0);
+			__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,0); // bắn 2
+			__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,0);// bắn 1
+//			RB1_SetTargetSpeedGun1(0);
+//			RB1_SetTargetSpeedGun2(0);
 			PlusControl = 0;
 		}
 	}
@@ -165,16 +185,24 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->L2 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				if(aboveRowSpeed <= 2300.0) aboveRowSpeed = 2300.0;
-				else aboveRowSpeed -= 300;
-				RB1_SetTargetSpeedGun1(aboveRowSpeed);
-				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+				if(pwmAbove1 <= 80) {
+					pwmAbove1 = 80;
+					BuzzerBeep_Start(1, 500, 0);
+				}
+				else pwmAbove1 -= 10;
+				pwmAbove2 = pwmAbove1 + SPEED_OFFSET;
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmAbove2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmAbove1);// bắn 1
 			}
 			else{
-				if(belowRowSpeed <= 3200.0) belowRowSpeed = 3200.0;
-				else belowRowSpeed -= 300;
-				RB1_SetTargetSpeedGun1(belowRowSpeed);
-				RB1_SetTargetSpeedGun2(belowRowSpeed);
+				if(pwmBelow1 <= 150) {
+					pwmBelow1 = 150;
+					BuzzerBeep_Start(1, 500, 0);
+				}
+				else pwmBelow1 -= 10;
+				pwmBelow2 = pwmBelow1 + SPEED_OFFSET;
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmBelow2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmBelow1);// bắn 1
 			}
 		}
 	}
@@ -183,16 +211,24 @@ void ShootBallTime_Handle()
 		osDelay(100);
 		if(_gamepad->L1 && BuzzerBeep_Start(1, 50, 0) == HAL_OK){
 			if(isRowBallAbove){
-				if(aboveRowSpeed >= 3200.0) aboveRowSpeed = 3200.0;
-				else aboveRowSpeed += 300;
-				RB1_SetTargetSpeedGun1(aboveRowSpeed);
-				RB1_SetTargetSpeedGun2(aboveRowSpeed);
+				if(pwmAbove1 >= 130) {
+					pwmAbove1 = 130;
+					BuzzerBeep_Start(1, 500, 0);
+				}
+				else pwmAbove1 += 10;
+				pwmAbove2 = pwmAbove1 + SPEED_OFFSET;
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmAbove2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmAbove1);// bắn 1
 			}
 			else{
-				if(belowRowSpeed >= 4600.0) belowRowSpeed = 4600.0;
-				else belowRowSpeed += 300;
-				RB1_SetTargetSpeedGun1(belowRowSpeed);
-				RB1_SetTargetSpeedGun2(belowRowSpeed);
+				if(pwmBelow1 <= 200) {
+					pwmBelow1 = 200;
+					BuzzerBeep_Start(1, 500, 0);
+				}
+				else pwmBelow1 += 10;
+				pwmBelow2 = pwmBelow1 + SPEED_OFFSET;
+				__HAL_TIM_SET_COMPARE(&htim8,TIM_CHANNEL_3,pwmBelow2); // bắn 2
+				__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4,pwmBelow1);// bắn 1
 			}
 		}
 	}

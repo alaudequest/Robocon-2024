@@ -74,12 +74,8 @@ void RB1_UpdateAccelTickInInterrupt();
 
 void RB1_CollectBallMotor_Init();
 void RB1_CollectBallMotor_ControlSpeed();
-void RB1_CollectBallMotor_IdleSpeed();
 void RB1_CollectBallMotor_On();
 void RB1_CollectBallMotor_Off();
-
-void RB1_CollectBallMotorOffForce();
-void RB1_CollectBallMotorOnMax();
 
 void RB1_EncGun1_IncreaseCount();
 void RB1_EncGun1_DecreaseCount();
