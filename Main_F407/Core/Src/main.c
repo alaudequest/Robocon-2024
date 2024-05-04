@@ -153,7 +153,7 @@ uint8_t ssCheck,stateChange,rst,Gamepad;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t step = 0;
+uint16_t step = 0;
 uint8_t angle_PID_Cycle;
 ////////////MPU//////////////
 uint8_t mpu[10];
@@ -1178,13 +1178,13 @@ void process_Ball_Approach3(uint8_t Ball)
 
 void process_Ball_Approach_BLUE(uint8_t Ball)
 {
-	float dis = 30 +(214*2*Ball);
+	float dis = 30 +(206*2*Ball);
 
 
 	if (process_SubState == 0)
 	{
 
-	process_RunByAngle2(-180,0.15);
+	process_RunByAngle(-180,0.15);
 	GetballFlag = 0;
 
 			process_Count = 0;
@@ -1204,7 +1204,7 @@ void process_Ball_Approach_BLUE(uint8_t Ball)
 	}
 	else if (process_SubState == 2)
 	{
-		process_RunByAngle2(-180,0.15);
+		process_RunByAngle(-180,0.15);
 		if (floatingEncCount>dis)
 		{
 			u = 0;
@@ -1684,8 +1684,8 @@ void process_ApproachWall(uint8_t siloNum)
 		}
 	else if(process_SubState == 3)
 		{
-			if (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin)
-					|| distance2 <= targetDistance  - 0.03)
+			if (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin))
+//					|| distance2 <= targetDistance  - 0.03)
 			{
 					process_SSCheck = 0;
 					process_SubState = 0;
@@ -1765,8 +1765,8 @@ void process_ApproachWall_BLUE(uint8_t siloNum)
 		}
 	else if(process_SubState == 3)
 		{
-			if (HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin)
-					|| distance2 <= targetDistance  - 0.03)
+			if (HAL_GPIO_ReadPin(sensor_4_GPIO_Port, sensor_4_Pin))
+//					|| distance2 <= targetDistance  - 0.03)
 			{
 					process_SSCheck = 0;
 					process_SubState = 0;
@@ -1958,15 +1958,49 @@ void process_Get_Ball_Fall()
 		if(process_Count>20)
 		{
 			process_Count = 0;
-			step += 1;
+//			step += 1;
 			u = 0;
 			v = 0;
 			r = 0;
-			process_SubState = 0;
+			process_SubState = 4;
 			distanceFlag = 0;
 			GetballFlag = 0;
 			process_ResetFloatingEnc();
 		}
+		}
+	if (process_SubState == 4)
+		{
+			GetballFlag = 3;
+			use_pidTheta = 1;
+			process_RunByAngle(90,-0.1);
+			if(distanceFlag == 3)
+			{
+				process_Count = 0;
+				u = 0;
+				v = 0;
+				r = 0;
+				use_pidTheta = 0;
+				process_SubState += 1;
+			}
+		}
+
+		else if (process_SubState == 5)
+		{
+			use_pidTheta = 1;
+			process_RunByAngle(90,0.1);
+			GetballFlag = 4;
+			if(distanceFlag == 4)
+			{
+				process_Count = 0;
+				u = 0;
+				v = 0;
+				r = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				GetballFlag = 0;
+				distanceFlag = 0;
+				step += 1;
+				}
 		}
 }
 
@@ -2023,18 +2057,52 @@ void process_Get_Ball_Fall_BLUE()
 //				r = 0;
 //			}
 		process_Count+=1;
-		if(process_Count>10)
+		if(process_Count>20)
 		{
 			process_Count = 0;
-			step += 1;
+//			step += 1;
 			u = 0;
 			v = 0;
 			r = 0;
-			process_SubState = 0;
+			process_SubState = 4;
 			distanceFlag = 0;
 			GetballFlag = 0;
 			process_ResetFloatingEnc();
 		}
+		}
+	if (process_SubState == 4)
+		{
+			GetballFlag = 3;
+			use_pidTheta = 1;
+			process_RunByAngle(90,-0.1);
+			if(distanceFlag == 3)
+			{
+				process_Count = 0;
+				u = 0;
+				v = 0;
+				r = 0;
+				use_pidTheta = 0;
+				process_SubState += 1;
+			}
+		}
+
+		else if (process_SubState == 5)
+		{
+			use_pidTheta = 1;
+			process_RunByAngle(90,0.1);
+			GetballFlag = 4;
+			if(distanceFlag == 4)
+			{
+				process_Count = 0;
+				u = 0;
+				v = 0;
+				r = 0;
+				use_pidTheta = 0;
+				process_SubState = 0;
+				GetballFlag = 0;
+				distanceFlag = 0;
+				step += 1;
+				}
 		}
 }
 
@@ -2095,6 +2163,7 @@ void readADC(){
 		sum = 0;
 		sum2 = 0;
 		count = 0;
+
 	}
 	distance = (9.8/3945) * adc_val_Fil - 150 * (9.8/3945) + 0.38;
 	distance2 = (9.8/3945) * adc_val_Fil2 - 150 * (9.8/3945) + 0.38;
@@ -2111,7 +2180,7 @@ void readADC(){
 	}
 	if(GetballFlag == 10)
 	{
-		if (absf(distance_Delta) > 0.02 )
+		if (absf(distance_Delta) > 0.1 )
 		{
 			distanceFlag = 10;
 //			distanceRear = distance;
@@ -2119,10 +2188,20 @@ void readADC(){
 	}
 	if(GetballFlag == 5)
 	{
-		if (distance < 0.8)
+		if(row<=1)
 		{
-			distanceFlag = 5;
-//			distanceRear = distance;
+
+			if (distance < 0.6)
+			{
+				distanceFlag = 5;
+	//			distanceRear = distance;
+			}
+		}else{
+			if (distance < 0.8)
+			{
+				distanceFlag = 5;
+	//			distanceRear = distance;
+			}
 		}
 	}
 	if(GetballFlag == 6)
@@ -3442,7 +3521,7 @@ if(Run == 10)
 								Reset_MPU_Angle();
 								process_ResetFloatingEnc();
 								// Set thong so quy hoach quy dao :
-								step = 51;
+								step = 2;
 								Run = RED_RUN;
 								column = 0;
 								row = 0;
@@ -3454,7 +3533,7 @@ if(Run == 10)
 								Reset_MPU_Angle();
 								process_ResetFloatingEnc();
 								// Set thong so quy hoach quy dao :
-								step =51;
+								step = 2;
 								column = 0;
 								row = 0;
 								colorNum = 0;
@@ -3538,7 +3617,7 @@ if(Run == 10)
 						}
 						else if (step == 4)
 						{
-							process_Accel_FloatingEnc3(-45, 1.2, 20000, 0.1, 0, 3,10);
+							process_Accel_FloatingEnc3(-45, 1.2, 20000, 0.1, 0, 3, 10);
 							if(floatingEncCount > 7600)
 							{
 //								if(distance2 < 1.4)
@@ -3556,7 +3635,7 @@ if(Run == 10)
 						}
 						else if (step == 5)
 						{
-							process_Accel_FloatingEnc3(-135, 0.8, 5700, 0.1, 0, 2.5,5);
+							process_Accel_FloatingEnc3(-135, 0.8, 5700, 0.1, 0, 2.5, 5);
 
 
 //								if (floatingEncCount > 5000){
@@ -3690,7 +3769,31 @@ if(Run == 10)
 						{
 							process_getBall();
 						}
-						else if (step == 15)
+						else if(step == 15)
+						{
+
+
+								if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+								{
+									step = 18;
+									process_SSCheck = 0;
+								}else{
+									step = 160;
+									process_SSCheck = 0;
+								}
+
+//							step = 2;
+						}
+
+						else if(step == 16)
+						{
+							process_Get_Ball_Fall();
+						}
+						else if (step == 17)
+						{
+							step = 14;
+						}
+						else if (step == 18)
 						{
 //							step = 70;
 //							process_DetectBall();
@@ -3711,7 +3814,7 @@ if(Run == 10)
 							}
 							step += 1;
 						}
-						else if (step == 16)
+						else if (step == 19)
 						{
 							if (Raspberry[0] == 0)
 							{
@@ -3732,9 +3835,11 @@ if(Run == 10)
 
 							AngleNow = 45;
 							float speed = 0.8;
+
 							if(floatingEncCount>6000)
 							{
 								speed = 0.25;
+
 								process_setVal_PutBall(2);
 							}
 							process_Accel_FloatingEnc3(45, speed, 50000, 0.1,-5,2.5,10);
@@ -3756,17 +3861,17 @@ if(Run == 10)
 							// move silo increase (or move left)
 //							AngleNow =-45;
 							process_Accel_FloatingEnc3(-45, 0.3, 20000, 0.1,0,2.5,10);
-							FindSilo(3,1);
+							FindSilo(TargetSilo,1);
 						}
 						else if (step == 52)
 						{
 //							AngleNow =135;
 							process_Accel_FloatingEnc3(135, 0.3, 20000, 0.1,0,2.5,10);
-							FindSilo(3,0);
+							FindSilo(TargetSilo,0);
 						}
 						else if (step== 53)
 						{
-//							process_ApproachWall(TargetSilo);
+							process_ApproachWall(TargetSilo);
 						}
 						else if (step == 54)
 						{
@@ -3843,8 +3948,8 @@ if(Run == 10)
 
 						else if(step == 70)
 						{
+							valve_Output(1,1);
 							process_setVal_PutBall(2);
-							valve_Output(1,0);
 							valve_Output(2,0);
 							if(putBall_getStopFlag())
 							{
@@ -3874,21 +3979,76 @@ if(Run == 10)
 							Process_Ball_Continue();
 						}else if(step == 72)
 						{
+							valve_Output(1,0);
 							process_getBall();
-						}else if(step == 73)
+						}
+						else if(step == 73)
+						{
+							if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+							{
+								step = 76;
+								process_SSCheck = 0;
+							}else{
+								step = 740;
+								process_SSCheck = 0;
+							}
+//							step = 2;
+						}
+
+						else if(step == 74)
+						{
+							process_Get_Ball_Fall();
+						}
+						else if (step == 75)
+						{
+							step = 72;
+						}
+						else if(step == 76)
 						{
 
-							step = 15;
+							step = 18;
 						}
 
 						else if (step == 80)
 						{
 							process_Ball_Out();
+
 						}else if (step == 81)
 						{
+
 							step = 13;
 						}
 
+						else if (step == 160)
+						{
+							process_SSCheck++;
+							if(process_SSCheck>30)
+							{
+								if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+								{
+									step = 18;
+									process_SSCheck = 0;
+								}else{
+									step = 16;
+									process_SSCheck = 0;
+								}
+							}
+						}
+						else if (step == 740)
+						{
+							process_SSCheck++;
+							if(process_SSCheck>30)
+							{
+								if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+								{
+									step = 76;
+									process_SSCheck = 0;
+								}else{
+									step = 74;
+									process_SSCheck = 0;
+								}
+							}
+						}
 
 
 
@@ -3905,7 +4065,7 @@ if(Run == 10)
 							AngleNow = -46;
 							process_PD_Critical();
 							process_Accel_FloatingEnc3(-46, 1.2, 10000, 0.3, 0, 3,5);
-							if(floatingEncCount > 8700)
+							if(floatingEncCount > 8600)
 							{
 								step += 1;
 								process_SubState = 0;
@@ -4002,7 +4162,7 @@ if(Run == 10)
 							{
 								speedTest = 0.5;
 							}
-							process_Accel_FloatingEnc3(50, speedTest, 3000, 0.1,-90,2.5,5);
+							process_Accel_FloatingEnc3(60, speedTest, 3000, 0.1,-90,2.5,5);
 
 						}
 						else if (step == 10)
@@ -4068,19 +4228,41 @@ if(Run == 10)
 								process_Ball_Approach_BLUE(0);
 								else
 								process_Ball_Approach_BLUE(column);
-							}else if (step == 14)
+							}
+							else if (step == 14)
 							{
 								process_getBall();
 							}
-							else if (step == 15)
+							else if(step == 15)
+							{
+
+								if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+								{
+									step = 18;
+								}else{
+									step = 160;
+
+								}
+	//							step = 2;
+							}
+
+							else if(step == 16)
+							{
+								process_Get_Ball_Fall_BLUE();
+							}
+							else if (step == 17)
+							{
+								step = 14;
+							}
+							else if (step == 18)
 							{
 //								process_DetectBall();
-								if (((column == 1)&&(row == 0))
-									|| ((column == 0)&&(row == 1))
-									|| ((column == 2)&&(row == 1))
-									|| ((column == 1)&&(row == 2))
-									|| ((column == 3)&&(row == 2))
-									|| ((column == 2)&&(row == 3)))
+								if (((column == 2)&&(row == 0))
+									|| ((column == 1)&&(row == 1))
+									|| ((column == 3)&&(row == 1))
+									|| ((column == 0)&&(row == 2))
+									|| ((column == 2)&&(row == 2))
+									|| ((column == 1)&&(row == 3)))
 								{
 									Raspberry[0]  = 1;
 								}else{
@@ -4089,7 +4271,7 @@ if(Run == 10)
 								step += 1;
 //								step = 50;
 							}
-							else if (step == 16)
+							else if (step == 19)
 							{
 								if (Raspberry[0] == 0)
 								{
@@ -4201,10 +4383,10 @@ if(Run == 10)
 							}
 							else if (step == 59)
 							{
-								float angleRun = 135;
+								float angleRun = -45;
 								if(row<1)
 								{
-									angleRun = 130;
+									angleRun = -35;
 
 								}
 								AngleNow = angleRun;
@@ -4218,7 +4400,8 @@ if(Run == 10)
 							else if(step == 70)
 							{
 								process_setVal_PutBall(2);
-								valve_Output(0,0);
+
+								valve_Output(0,1);
 								valve_Output(2,1);
 								if(putBall_getStopFlag())
 								{
@@ -4246,21 +4429,75 @@ if(Run == 10)
 								Process_Ball_Continue_BLUE();
 							}else if(step == 72)
 							{
+								valve_Output(0,0);
 								process_getBall();
-							}else if(step == 73)
+							}
+							else if(step == 73)
 							{
 
-								step = 15;
+								if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+								{
+									step = 76;
+									process_SSCheck = 0;
+								}else{
+									step = 740;
+									process_SSCheck = 0;
+								}
+	//							step = 2;
+							}
+
+							else if(step == 74)
+							{
+								process_Get_Ball_Fall_BLUE();
+							}
+							else if (step == 75)
+							{
+								step = 72;
+							}
+							else if(step == 76)
+							{
+
+								step = 18;
 							}
 
 							else if (step == 80)
 							{
-								process_Ball_Out();
+								process_Ball_Out_BLUE();
 							}else if (step == 81)
 							{
 								step = 13;
 							}
 
+							else if (step == 160)
+							{
+								process_SSCheck++;
+								if(process_SSCheck>30)
+								{
+									if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+									{
+										step = 18;
+										process_SSCheck = 0;
+									}else{
+										step = 16;
+										process_SSCheck = 0;
+									}
+								}
+							}
+							else if (step == 740)
+							{
+								process_SSCheck++;
+								if(process_SSCheck>30)
+								{
+									if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
+									{
+										step = 76;
+										process_SSCheck = 0;
+									}else{
+										step = 74;
+										process_SSCheck = 0;
+									}
+								}
+							}
 
 						}
 
@@ -4359,7 +4596,8 @@ if(Run == 10)
 //						}else if(step == 4)
 //						{
 //							process_getBall();
-//						}else if(step == 5)
+//						}
+//						else if(step == 5)
 //						{
 //
 //							if(!HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin))
@@ -4576,6 +4814,12 @@ void TaskFlash(void const * argument)
 	  if(startToFlash){
 		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 1);
 		  BrdParam_SaveDataToFlash();
+		  colorNum = BrdParam_GetBallSuccess();
+		  TargetSilo = BrdParam_GetTargetSilo();
+		  HarvestZoneBallPosition_t ballpos = BrdParam_GetTargetBall();
+		  column = ballpos.column;
+		  row = ballpos.row;
+		  Team = (uint8_t) BrdParam_GetTeamColor();
 		  HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, 0);
 		  startToFlash = false;
 	  }

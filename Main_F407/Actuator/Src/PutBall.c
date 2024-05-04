@@ -12,7 +12,7 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim5;
 PutParam_t putBall;
 GetParam_t getBall;
-
+#define HoldPWM 70
 void startPutBall(uint8_t state)
 {
 
@@ -27,7 +27,7 @@ void startPutBall(uint8_t state)
 		putBall.StopPutFlag = 0;
 		if(putBall.count < 30*50)
 		{
-			MotorDC_Drive(&putBall.mdc, -200);
+			MotorDC_Drive(&putBall.mdc, -300);
 			putBall.flag = 0;
 		}
 		else
@@ -60,8 +60,8 @@ void startPutBall(uint8_t state)
 		}
 		if (putBall.StopPutFlag)
 		{
-			MotorDC_Drive(&putBall.mdc, 100);
-			MotorDC_Drive(&getBall.mdc, 0);
+			MotorDC_Drive(&putBall.mdc, HoldPWM);
+			MotorDC_Drive(&getBall.mdc, -1000);
 			encoder_ResetCount(&putBall.enc);
 		}else{
 			MotorDC_Drive(&putBall.mdc, 400);
@@ -111,7 +111,7 @@ void startPutBall(uint8_t state)
 			}
 			if (putBall.StopPutFlag)
 			{
-				MotorDC_Drive(&putBall.mdc, 100);
+				MotorDC_Drive(&putBall.mdc, HoldPWM);
 				MotorDC_Drive(&getBall.mdc, 0);
 				encoder_ResetCount(&putBall.enc);
 			}else{
@@ -145,7 +145,7 @@ void startPutBall(uint8_t state)
 		}
 		if (putBall.StopPutFlag)
 		{
-			MotorDC_Drive(&putBall.mdc, 100);
+			MotorDC_Drive(&putBall.mdc, HoldPWM);
 			MotorDC_Drive(&getBall.mdc, 0);
 			encoder_ResetCount(&putBall.enc);
 		}else{
