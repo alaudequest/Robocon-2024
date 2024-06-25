@@ -9,5 +9,3 @@ Tài liệu hiện tại tương thích với version 3.x
 
 
 README cụm bánh Swerve [NodeSwerve_F103](NodeSwerve_F103/README.md)
-
-README của Main_F407 [Main_F407](Main_F407/README.md)
